@@ -2,9 +2,56 @@
 
 @font-face {
   font-family: 'Liebling';
-  src: url('/fonts/Liebling.woff2') format('woff2'),
-    url('/fonts/Liebling.ttf') format('truetype');
-  font-weight: normal;
+  src: url('/fonts/Liebling_Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liebling';
+  src: url('/fonts/Liebling_Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liebling';
+  src: url('/fonts/Liebling_Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liebling';
+  src: url('/fonts/Liebling_Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liebling';
+  src: url('/fonts/Liebling_Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liebling';
+  src: url('/fonts/Liebling_Heavy.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Liebling';
+  src: url('/fonts/Liebling_Black.woff2') format('woff2');
+  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
@@ -12,11 +59,13 @@
 :root {
   --background: #0f1115;
   --foreground: #e2e8f0;
-  --font-liebling: var(--font-inter), system-ui, sans-serif;
+  --font-liebling: 'Liebling', sans-serif;
+  /* Fixed: Removed recursive var(--font-inter) */
 }
 
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: 'Liebling', ui-sans-serif, system-ui, sans-serif;
+  /* Explicitly set Liebling first */
 
   --color-background: #0f1115;
   --color-surface: #233357;
@@ -30,10 +79,12 @@
 
 @layer base {
   html {
-    font-family: var(--font-liebling);
+    font-family: 'Liebling', sans-serif;
+    /* Hardcoded to ensure application */
   }
 
   body {
+    font-family: 'Liebling', sans-serif;
     background-color: var(--background);
     color: var(--foreground);
     -webkit-font-smoothing: antialiased;
