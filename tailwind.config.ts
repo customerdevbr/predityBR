@@ -8,6 +8,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Liebling", "var(--font-inter)", "sans-serif"],
+      },
       colors: {
         background: "#0f1115", // Almost black
         surface: "#233357", // Console dark blue/gray

@@ -38,8 +38,7 @@ export default function Header() {
 
                 {/* Logo Area */}
                 <Link href="/" className="flex items-center gap-2">
-                    <img src="/logo.png" alt="PredityBR Logo" className="w-8 h-8 rounded-full" />
-                    <span className="font-bold text-lg tracking-wider text-white md:text-xl">PREDITY<span className="text-primary">BR</span></span>
+                    <img src="/logo.png" alt="PredityBR Logo" className="h-10 w-auto" />
                 </Link>
 
                 {/* Desktop Nav (Hidden on Mobile) */}
