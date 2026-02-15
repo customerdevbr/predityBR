@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Clock, Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Users, DollarSign, TrendingUp, AlertCircle, Share2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ export default function MarketDetailPage() {
     const [amount, setAmount] = useState<string>('');
     const [placingBet, setPlacingBet] = useState(false);
     const [user, setUser] = useState<any>(null);
+    // Removed unused balance state to fix lint if needed, or keeping for potential UI use
 
     useEffect(() => {
         fetchMarket();
@@ -27,7 +28,9 @@ export default function MarketDetailPage() {
 
     const checkUser = async () => {
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user || null);
+        if (session) {
+            setUser(session.user);
+        }
     }
 
     const fetchMarket = async () => {
@@ -39,7 +42,6 @@ export default function MarketDetailPage() {
 
         if (error) {
             console.error("Error fetching market", error);
-            // Handle 404
         } else {
             setMarket(data);
         }
@@ -47,22 +49,35 @@ export default function MarketDetailPage() {
     };
 
     const calculateOdds = () => {
-        if (!market) return { yes: 1, no: 1 };
+        if (!market) return { yes: 1.0, no: 1.0, probYes: 50, probNo: 50 };
 
         const pool = market.total_pool > 0 ? market.total_pool : 1;
-        const yes = market.total_yes_amount > 0 ? market.total_yes_amount : 1;
-        const no = market.total_no_amount > 0 ? market.total_no_amount : 1;
+        const yes = market.total_yes_amount > 0 ? market.total_yes_amount : 0;
+        const no = market.total_no_amount > 0 ? market.total_no_amount : 0;
 
-        // Simple dynamic odds logic (Inverse probability * House Edge)
-        // House keep 18% -> payout 82%
+        // Probabilities based on pool ratio
+        // If pool is empty, 50/50
+        let probYes = (yes / pool);
+        let probNo = (no / pool);
+
+        if (market.total_pool === 0) {
+            probYes = 0.5;
+            probNo = 0.5;
+        }
+
+        // House Edge 18% -> Payout Ratio 0.82
         const houseEdgeInv = 0.82;
 
-        const probYes = yes / pool;
-        const probNo = no / pool;
+        // Odds = 1 / Probability * HouseEdge
+        // Safety check for 0 prob
+        const oddsYes = probYes > 0 ? (1 / probYes) * houseEdgeInv : 2.0;
+        const oddsNo = probNo > 0 ? (1 / probNo) * houseEdgeInv : 2.0;
 
         return {
-            yes: (1 / probYes) * houseEdgeInv,
-            no: (1 / probNo) * houseEdgeInv
+            yes: oddsYes,
+            no: oddsNo,
+            probYes: Math.round(probYes * 100),
+            probNo: Math.round(probNo * 100)
         };
     }
 
@@ -78,14 +93,13 @@ export default function MarketDetailPage() {
         setPlacingBet(true);
 
         try {
-            // 1. Check Balance
-            const { data: userData, error: userError } = await supabase
+            // 1. Check Balance again
+            const { data: userData } = await supabase
                 .from('users')
                 .select('balance')
                 .eq('id', user.id)
                 .single();
 
-            if (userError) throw userError;
             if ((userData?.balance || 0) < val) {
                 alert("Saldo insuficiente! Faça um depósito na carteira.");
                 setPlacingBet(false);
@@ -93,6 +107,9 @@ export default function MarketDetailPage() {
             }
 
             // 2. Insert Bet
+            const currentOdds = selectedSide === 'YES' ? odds.yes : odds.no;
+            const potentialReturn = val * currentOdds;
+
             const { error: betError } = await supabase.from('bets').insert({
                 user_id: user.id,
                 market_id: market.id,
@@ -105,20 +122,12 @@ export default function MarketDetailPage() {
 
             if (betError) throw betError;
 
-            // 3. Update User Balance (Debit)
-            const { error: balanceError } = await supabase.rpc('decrement_balance', {
-                userid: user.id,
-                amount: val
-            });
+            // 3. Update User Balance
+            await supabase.from('users').update({ balance: userData.balance - val }).eq('id', user.id);
 
-            if (balanceError) {
-                console.warn("RPC failed, trying manual update", balanceError);
-                await supabase.from('users').update({ balance: userData.balance - val }).eq('id', user.id);
-            }
-
-            alert(`Aposta de R$ ${amount} confirmada!`);
+            alert(`Aposta confirmada! Potencial de R$ ${potentialReturn.toFixed(2)}`);
             setAmount('');
-            fetchMarket(); // Refresh UI
+            fetchMarket();
 
         } catch (err: any) {
             console.error(err);
@@ -128,111 +137,124 @@ export default function MarketDetailPage() {
         }
     }
 
-    if (loading) return <div className="p-12 text-center">Carregando mercado...</div>;
-    if (!market) return <div className="p-12 text-center">Mercado não encontrado.</div>;
+    if (loading) return <div className="min-h-screen pt-20 flex justify-center text-primary">Carregando...</div>;
+    if (!market) return <div className="min-h-screen pt-20 text-center text-gray-400">Mercado não encontrado.</div>;
 
     const odds = calculateOdds();
     const currentOdds = selectedSide === 'YES' ? odds.yes : odds.no;
     const parsedAmount = parseFloat(amount) || 0;
     const potentialReturn = parsedAmount * currentOdds;
-    const potentialProfit = potentialReturn - parsedAmount;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
-            <Link href="/markets" className="text-gray-400 hover:text-white flex items-center gap-2 text-sm font-bold">
-                <ArrowLeft className="w-4 h-4" /> Voltar para Mercados
-            </Link>
+        <div className="max-w-md mx-auto pb-40">
+            {/* Navbar / Header */}
+            <div className="flex items-center justify-between py-4 mb-4">
+                <Link href="/markets" className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors">
+                    <ArrowLeft className="w-6 h-6" />
+                </Link>
+                <div className="flex gap-4">
+                    <button className="text-gray-400 hover:text-white">
+                        <Share2 className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
-                {/* Main Content */}
-                <div className="md:col-span-2 space-y-6">
-                    <div className="bg-surface/50 border border-surface rounded-xl overflow-hidden p-6 space-y-6">
-                        <div className="flex gap-4">
-                            <img src={market.image_url || "https://placehold.co/100x100?text=IMG"} alt={market.title} className="w-24 h-24 object-cover rounded-lg bg-gray-800" />
-                            <div className="space-y-2">
-                                <span className="text-xs font-bold text-primary border border-primary/30 px-2 py-1 rounded bg-primary/10">{market.category}</span>
-                                <h1 className="text-2xl md:text-3xl font-bold leading-tight">{market.title}</h1>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-6 text-sm text-gray-400 border-t border-surface pt-4">
-                            <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4" /> Encerra <span className="text-white font-bold">{formatDistanceToNow(new Date(market.end_date), { addSuffix: true, locale: ptBR })}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4" /> Pool: <span className="text-white font-bold">R$ {market.total_pool?.toLocaleString()}</span>
-                            </div>
-                        </div>
-
-                        <div className="prose prose-invert prose-sm text-gray-300">
-                            <h3 className="text-white font-bold">Descrição</h3>
-                            <p>{market.description}</p>
+            {/* Market Title & Icon */}
+            <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-4">
+                    <img src={market.image_url || "https://placehold.co/100x100?text=BTC"} alt={market.title} className="w-16 h-16 rounded-lg object-cover bg-surface" />
+                    <div className="space-y-1">
+                        <h1 className="text-xl font-bold leading-tight text-white">{market.title}</h1>
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <Clock className="w-3 h-3" />
+                            <span>Fecha {formatDistanceToNow(new Date(market.end_date), { addSuffix: true, locale: ptBR })}</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Betting Panel */}
-                <div className="space-y-6">
-                    <div className="bg-surface border border-surface rounded-xl p-6 space-y-6 sticky top-24">
-                        <div className="flex rounded-lg overflow-hidden border border-surface">
-                            <button
-                                onClick={() => setSelectedSide('YES')}
-                                className={`flex-1 py-3 font-bold transition-colors ${selectedSide === 'YES' ? 'bg-[#2F7C46] text-white' : 'bg-secondary hover:bg-secondary/80 text-gray-400'}`}
-                            >
-                                SIM <span className="text-xs block opacity-80">{odds.yes.toFixed(2)}x</span>
-                            </button>
-                            <button
-                                onClick={() => setSelectedSide('NO')}
-                                className={`flex-1 py-3 font-bold transition-colors ${selectedSide === 'NO' ? 'bg-red-500 text-white' : 'bg-secondary hover:bg-secondary/80 text-gray-400'}`}
-                            >
-                                NÃO <span className="text-xs block opacity-80">{odds.no.toFixed(2)}x</span>
-                            </button>
+            {/* Probability Bars */}
+            <div className="bg-surface rounded-xl p-6 border border-white/5 space-y-6 mb-8">
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Probabilidade do Mercado</h2>
+
+                <div className="space-y-4">
+                    {/* YES */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-end">
+                            <span className="font-bold text-primary text-lg">SIM</span>
+                            <span className="font-mono text-2xl text-white">{odds.probYes}%</span>
                         </div>
-
-                        <div className="space-y-4">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Seu Saldo</span>
-                                <span className="font-bold text-white">R$ 0,00</span> {/* TODO: Fetch Balance */}
-                            </div>
-
-                            <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                <input
-                                    type="number"
-                                    placeholder="Valor da aposta"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full bg-black/40 border border-surface rounded-lg pl-10 pr-4 py-3 font-bold text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                                />
-                            </div>
-
-                            <div className="bg-secondary/50 rounded-lg p-4 space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400">Odds Totais</span>
-                                    <span className="font-bold">{currentOdds.toFixed(2)}x</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400">Retorno Potencial</span>
-                                    <span className="font-bold text-green-400">R$ {potentialReturn.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between border-t border-white/10 pt-2">
-                                    <span className="text-gray-400">Lucro Estimado</span>
-                                    <span className="font-bold text-green-400">+ R$ {potentialProfit.toFixed(2)}</span>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={handleBet}
-                                disabled={placingBet || !amount || parseFloat(amount) <= 0}
-                                className="w-full py-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {user ? (placingBet ? 'Processando...' : 'Confirmar Aposta') : 'Faça Login para Apostar'}
-                            </button>
-                            <p className="text-xs text-center text-gray-500">
-                                Ao apostar, você concorda com nossos termos.
-                            </p>
+                        <div className="h-3 w-full bg-black/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary transition-all duration-500" style={{ width: `${odds.probYes}%` }}></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                            <span>R$ {market.total_yes_amount?.toLocaleString() || '0'} apostados</span>
+                            <span className="text-green-400 font-bold">{odds.yes.toFixed(2)}x Multiplicador</span>
                         </div>
                     </div>
+
+                    {/* NO */}
+                    <div className="space-y-2 pt-2">
+                        <div className="flex justify-between items-end">
+                            <span className="font-bold text-red-500 text-lg">NÃO</span>
+                            <span className="font-mono text-2xl text-white">{odds.probNo}%</span>
+                        </div>
+                        <div className="h-3 w-full bg-black/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${odds.probNo}%` }}></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                            <span>R$ {market.total_no_amount?.toLocaleString() || '0'} apostados</span>
+                            <span className="text-red-400 font-bold">{odds.no.toFixed(2)}x Multiplicador</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Betting Interface */}
+            <div className="fixed bottom-0 left-0 right-0 bg-[#0f1115] border-t border-white/10 p-4 pb-24 md:pb-4 z-40">
+                <div className="max-w-md mx-auto space-y-4">
+                    {/* Outcome Selector */}
+                    <div className="flex bg-surface rounded-lg p-1 border border-white/5">
+                        <button
+                            onClick={() => setSelectedSide('YES')}
+                            className={`flex-1 py-3 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2 ${selectedSide === 'YES' ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            Apostar SIM <span className="text-[10px] bg-black/20 px-1.5 py-0.5 rounded ml-1">{odds.yes.toFixed(2)}x</span>
+                        </button>
+                        <button
+                            onClick={() => setSelectedSide('NO')}
+                            className={`flex-1 py-3 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2 ${selectedSide === 'NO' ? 'bg-red-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            Apostar NÃO <span className="text-[10px] bg-black/20 px-1.5 py-0.5 rounded ml-1">{odds.no.toFixed(2)}x</span>
+                        </button>
+                    </div>
+
+                    {/* Input & Info */}
+                    <div className="flex gap-4">
+                        <div className="relative flex-1">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">R$</span>
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="w-full bg-surface border border-white/10 rounded-lg pl-10 pr-4 py-3 font-bold text-white focus:outline-none focus:border-white/30"
+                                placeholder="0,00"
+                            />
+                        </div>
+                        <div className="flex flex-col justify-center min-w-[100px] text-right">
+                            <span className="text-[10px] text-gray-400 uppercase">Retorno</span>
+                            <span className="text-sm font-bold text-green-400">R$ {potentialReturn.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                        onClick={handleBet}
+                        disabled={placingBet || !amount}
+                        className={`w-full py-3.5 rounded-lg font-bold text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${selectedSide === 'YES' ? 'bg-primary hover:bg-primary/90' : 'bg-red-500 hover:bg-red-600'}`}
+                    >
+                        {placingBet ? 'Processando...' : `Confirmar Aposta ${selectedSide === 'YES' ? 'SIM' : 'NÃO'}`}
+                    </button>
                 </div>
             </div>
         </div>
