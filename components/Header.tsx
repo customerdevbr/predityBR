@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
-import { LogOut, User as UserIcon, Wallet } from 'lucide-react';
+import { LogOut, User as UserIcon, Wallet, TrendingUp, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function Header() {
