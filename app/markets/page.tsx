@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Search, Filter, TrendingUp, Clock, Users } from 'lucide-react';
+import { Search, Filter, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import MarketCard from '@/components/MarketCard';
 
-const categories = ["TODOS", "CRYPTO", "ESPORTES", "TECH", "FINANÇAS", "POLÍTICA"];
+const categories = ["TODOS", "POLÍTICA", "ECONOMIA", "ESPORTE", "CRIPTO", "CLIMA"];
 
 export default function MarketsPage() {
     const [markets, setMarkets] = useState<any[]>([]);
@@ -24,7 +22,7 @@ export default function MarketsPage() {
         const { data, error } = await supabase
             .from('markets')
             .select('*')
-            .order('end_date', { ascending: true }); // Closest ending first
+            .order('end_date', { ascending: true });
 
         if (error) {
             console.error('Error fetching markets:', error);
@@ -40,127 +38,77 @@ export default function MarketsPage() {
         return matchesCategory && matchesSearch;
     });
 
-    // Helper to calculate odds (simplified version of logic)
-    const calculateOdds = (yesAmount: number, noAmount: number, pool: number) => {
-        // Avoid division by zero
-        const safePool = pool > 0 ? pool : 1;
-        const safeYes = yesAmount > 0 ? yesAmount : 1;
-        const safeNo = noAmount > 0 ? noAmount : 1;
-
-        // House fee 18%
-        const houseFeeInv = 0.82;
-
-        // Probabilities
-        const probYes = safeYes / safePool;
-        const probNo = safeNo / safePool;
-
-        return {
-            yes: (1 / probYes) * houseFeeInv,
-            no: (1 / probNo) * houseFeeInv
-        };
-    };
-
     return (
         <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                    <TrendingUp className="text-primary" /> Mercados Abertos
-                </h1>
+            {/* Header & Filters */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold">Mercados</h1>
+                    <p className="text-gray-400">Explore e negocie em eventos globais.</p>
+                </div>
 
-                <div className="flex gap-2 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-64">
+                <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                    <div className="relative flex-1 sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Buscar mercados..."
+                            placeholder="Buscar..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-surface/50 border border-surface rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                            className="w-full bg-surface border border-surface rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors text-white placeholder-gray-500"
                         />
                     </div>
-                    <button className="md:hidden p-2 bg-surface rounded-lg">
-                        <Filter className="w-5 h-5" />
-                    </button>
                 </div>
             </div>
 
-            {/* Categories */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {categories.map(cat => (
-                    <button
-                        key={cat}
-                        onClick={() => setFilter(cat)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${filter === cat
-                                ? "bg-primary text-white shadow-[0_0_10px_rgba(47,124,70,0.4)]"
-                                : "bg-surface hover:bg-surface/80 text-gray-400 hover:text-white"
-                            }`}
-                    >
-                        {cat}
-                    </button>
-                ))}
+            {/* Categories Tabs */}
+            <div className="border-b border-surface">
+                <div className="flex gap-6 overflow-x-auto pb-px scrollbar-hide">
+                    {categories.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setFilter(cat)}
+                            className={`pb-3 text-sm font-bold whitespace-nowrap transition-all border-b-2 px-1 ${filter === cat
+                                    ? "border-primary text-primary"
+                                    : "border-transparent text-gray-400 hover:text-white"
+                                }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="h-80 bg-surface/30 rounded-xl"></div>
+                    ))}
                 </div>
             ) : (
                 /* Grid */
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredMarkets.map((market) => {
-                        const odds = calculateOdds(market.total_yes_amount, market.total_no_amount, market.total_pool);
-                        const endsIn = formatDistanceToNow(new Date(market.end_date), { addSuffix: true, locale: ptBR });
+                    {filteredMarkets.map((market) => (
+                        <MarketCard
+                            key={market.id}
+                            id={market.id}
+                            title={market.title}
+                            category={market.category}
+                            imageUrl={market.image_url}
+                            endDate={market.end_date}
+                            pool={market.total_pool || 0}
+                            yesAmount={market.total_yes_amount || 0}
+                            noAmount={market.total_no_amount || 0}
+                        />
+                    ))}
 
-                        return (
-                            <Link key={market.id} href={`/markets/${market.id}`} className="block group">
-                                <div className="bg-surface/50 border border-surface group-hover:border-primary/50 rounded-xl overflow-hidden transition-all group-hover:translate-y-[-4px] group-hover:shadow-xl h-full flex flex-col">
-                                    <div className="relative h-48 bg-gray-800">
-                                        {market.image_url ? (
-                                            <img src={market.image_url} alt={market.title} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center text-gray-600 font-mono text-xs">
-                                                [IMG]
-                                            </div>
-                                        )}
-
-                                        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
-                                            {market.category}
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 space-y-4 flex-1 flex flex-col">
-                                        <h3 className="text-xl font-bold leading-tight group-hover:text-primary transition-colors">
-                                            {market.title}
-                                        </h3>
-
-                                        <div className="flex items-center justify-between text-sm text-gray-400 mt-auto">
-                                            <div className="flex items-center gap-1">
-                                                <Clock className="w-4 h-4" /> {endsIn}
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Users className="w-4 h-4" /> R$ {market.total_pool?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3 pt-2">
-                                            {/* Non-interactive preview buttons */}
-                                            <div className="flex flex-col items-center justify-center bg-[#2F7C46]/10 border border-[#2F7C46]/30 rounded-lg p-2">
-                                                <span className="text-[10px] font-bold text-[#2F7C46] uppercase">SIM</span>
-                                                <span className="text-lg font-black text-white">{odds.yes.toFixed(2)}x</span>
-                                            </div>
-                                            <div className="flex flex-col items-center justify-center bg-red-500/10 border border-red-500/30 rounded-lg p-2">
-                                                <span className="text-[10px] font-bold text-red-500 uppercase">NÃO</span>
-                                                <span className="text-lg font-black text-white">{odds.no.toFixed(2)}x</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        )
-                    })}
                     {filteredMarkets.length === 0 && (
-                        <div className="col-span-full text-center py-12 text-gray-500">
-                            Nenhum mercado encontrado.
+                        <div className="col-span-full py-20 text-center">
+                            <div className="bg-surface/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Filter className="w-8 h-8 text-gray-500" />
+                            </div>
+                            <h3 className="text-lg font-bold">Nenhum mercado encontrado</h3>
+                            <p className="text-gray-400">Tente ajustar seus filtros de busca.</p>
                         </div>
                     )}
                 </div>
