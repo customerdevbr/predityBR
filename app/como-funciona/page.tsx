@@ -94,9 +94,9 @@ export default function HowItWorksPage() {
                         {/* Pagamentos */}
                         <div className="bg-[#151921] border border-white/10 p-6 rounded-2xl hover:border-blue-500/50 transition-colors">
                             <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Depósitos e Saques</div>
-                            <div className="text-4xl font-black text-white mb-2">3%</div>
+                            <div className="text-4xl font-black text-white mb-2">R$ 2,90</div>
                             <p className="text-sm text-gray-400">
-                                Custo de processamento seguro via PIX e Gateways de Pagamento para garantir a segurança do seu saldo.
+                                Taxa fixa apenas para saques. Depósitos são gratuitos via PIX.
                             </p>
                         </div>
                     </div>
@@ -116,8 +116,8 @@ export default function HowItWorksPage() {
                             <div className="text-center group">
                                 <div className="w-20 h-20 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center mx-auto text-3xl mb-3 shadow-[0_0_20px_rgba(59,130,246,0.3)]">👷</div>
                                 <div className="font-bold text-blue-400 text-lg">Mario</div>
-                                <div className="text-sm text-gray-400">1.000 pessoas</div>
-                                <div className="text-xs text-blue-300 mt-1">Pool: R$ 100.000</div>
+                                <div className="text-sm text-gray-400">10 pessoas</div>
+                                <div className="text-xs text-blue-300 mt-1">Pool: R$ 1.000</div>
                             </div>
 
                             {/* VS */}
@@ -126,7 +126,7 @@ export default function HowItWorksPage() {
                                 <div className="h-px w-20 bg-white/10 my-4"></div>
                                 <div className="flex flex-col items-center gap-1">
                                     <span className="text-xs font-bold text-gray-500 uppercase">Pool Total (Bruto)</span>
-                                    <span className="text-2xl font-black text-white">R$ 400.000</span>
+                                    <span className="text-2xl font-black text-white">R$ 4.000</span>
                                 </div>
                             </div>
 
@@ -134,8 +134,8 @@ export default function HowItWorksPage() {
                             <div className="text-center group">
                                 <div className="w-20 h-20 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center mx-auto text-3xl mb-3 shadow-[0_0_20px_rgba(34,197,94,0.3)]">🍄</div>
                                 <div className="font-bold text-green-400 text-lg">Luigi</div>
-                                <div className="text-sm text-gray-400">3.000 pessoas</div>
-                                <div className="text-xs text-green-300 mt-1">Pool: R$ 300.000</div>
+                                <div className="text-sm text-gray-400">30 pessoas</div>
+                                <div className="text-xs text-green-300 mt-1">Pool: R$ 3.000</div>
                             </div>
                         </div>
 
