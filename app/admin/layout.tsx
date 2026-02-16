@@ -10,7 +10,7 @@ export default function AdminLayout({
         { label: "Visão Geral", icon: LayoutDashboard, href: "/admin" },
         { label: "Usuários", icon: Users, href: "/admin/users" },
         { label: "Financeiro", icon: Wallet, href: "/admin/finance" },
-        { label: "Mercados", icon: List, href: "/admin/markets" },
+        { label: "Apostas", icon: List, href: "/admin/bets" },
         { label: "Segurança", icon: Shield, href: "/admin/security" },
         { label: "Atividades", icon: Activity, href: "/admin/activity" },
         { label: "Suporte", icon: LifeBuoy, href: "/admin/support" },
