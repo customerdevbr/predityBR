@@ -29,9 +29,9 @@ export default function AdminCharts({ revenueData, categoryData, userGrowthData 
         <div className="space-y-8">
             <div className="grid lg:grid-cols-2 gap-8">
                 {/* Revenue/Volume Chart */}
-                <div className="bg-surface/30 border border-surface rounded-xl p-6 h-80 flex flex-col">
+                <div className="bg-surface/30 border border-surface rounded-xl p-6 h-96 flex flex-col">
                     <h3 className="text-white font-bold mb-4">Volume Apostado (Últimos 7 dias)</h3>
-                    <div className="flex-1 w-full min-h-0">
+                    <div className="w-full h-full min-h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={revenueData}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
@@ -61,9 +61,9 @@ export default function AdminCharts({ revenueData, categoryData, userGrowthData 
                 </div>
 
                 {/* Categories Distribution */}
-                <div className="bg-surface/30 border border-surface rounded-xl p-6 h-80 flex flex-col">
+                <div className="bg-surface/30 border border-surface rounded-xl p-6 h-96 flex flex-col">
                     <h3 className="text-white font-bold mb-4">Apostas por Categoria</h3>
-                    <div className="flex-1 w-full min-h-0">
+                    <div className="w-full h-full min-h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -91,9 +91,9 @@ export default function AdminCharts({ revenueData, categoryData, userGrowthData 
             </div>
 
             {/* User Growth Chart */}
-            <div className="bg-surface/30 border border-surface rounded-xl p-6 h-80 flex flex-col">
+            <div className="bg-surface/30 border border-surface rounded-xl p-6 h-96 flex flex-col">
                 <h3 className="text-white font-bold mb-4">Crescimento de Usuários</h3>
-                <div className="flex-1 w-full min-h-0">
+                <div className="w-full h-full min-h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={userGrowthData}>
                             <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />

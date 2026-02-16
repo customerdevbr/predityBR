@@ -19,8 +19,6 @@ export default function SupportChat({ user: initialUser }: { user: User | null }
         return () => subscription.unsubscribe();
     }, [initialUser]);
 
-    if (!user) return null;
-
     const [messages, setMessages] = useState<{ from: 'user' | 'agent', text: string }[]>([
         { from: 'agent', text: 'Olá! Bem-vindo ao suporte da PredityBR. Como posso ajudar você hoje?' }
     ]);
@@ -34,7 +32,9 @@ export default function SupportChat({ user: initialUser }: { user: User | null }
     };
 
     useEffect(() => {
-        scrollToBottom();
+        if (isOpen) {
+            scrollToBottom();
+        }
     }, [messages, isOpen]);
 
     const handleSend = () => {
@@ -48,6 +48,9 @@ export default function SupportChat({ user: initialUser }: { user: User | null }
             setMessages(prev => [...prev, { from: 'agent', text: 'Um de nossos atendentes entrará em contato em breve.' }]);
         }, 1000);
     };
+
+    // Only render if user exists, but Hooks must run first
+    if (!user) return null;
 
     return (
         <>
