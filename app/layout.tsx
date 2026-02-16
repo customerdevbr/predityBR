@@ -29,11 +29,6 @@ export default function RootLayout({
                 <BottomNav />
                 <SupportChat />
 
-                <footer className="hidden md:block border-t border-surface py-8 mt-12 bg-secondary/30">
-                    <div className="container mx-auto px-4 text-center text-sm text-gray-500">
-                        &copy; 2026 PredityBR. Todos os direitos reservados.
-                    </div>
-                </footer>
             </body>
         </html>
     );

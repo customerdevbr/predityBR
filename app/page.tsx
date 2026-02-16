@@ -121,8 +121,8 @@ export default function LandingPage() {
             {/* 1. Banner Slider (Top) */}
             <div className="w-full bg-[#0f1115] pt-16 md:pt-20"> {/* Offset for Fixed Header */}
                 <div className="container mx-auto px-4">
-                    <div className="w-full h-auto rounded-xl overflow-hidden shadow-2xl border border-white/5">
-                        <img src="/banner-pix.png" alt="Promo Banner" className="w-full h-auto object-cover" />
+                    <div className="w-full max-h-[600px] rounded-xl overflow-hidden shadow-2xl border border-white/5 flex items-center justify-center">
+                        <img src="/banner-pix.png" alt="Promo Banner" className="w-full h-full object-cover" />
                     </div>
                 </div>
             </div>
@@ -138,7 +138,7 @@ export default function LandingPage() {
             </div>
 
             {/* 3. Hero Principal */}
-            <section className="container mx-auto px-4 py-12 md:py-20 grid md:grid-cols-2 gap-12 items-center">
+            <section className="container mx-auto px-4 py-12 grid md:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8 text-left">
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight">
                         Aposte no que o Brasil está acompanhando em <span className="text-primary inline-block min-w-[2ch]">{text}<span className="animate-pulse">|</span></span>
@@ -177,10 +177,10 @@ export default function LandingPage() {
                                 <div
                                     key={card.id}
                                     className={`absolute top-0 left-0 w-full bg-surface/80 border border-white/10 rounded-2xl p-6 backdrop-blur-md shadow-2xl transition-all duration-700 ease-in-out ${isActive
-                                            ? 'z-30 opacity-100 scale-100 translate-y-0 rotate-0'
-                                            : isNext
-                                                ? 'z-20 opacity-60 scale-95 translate-y-4 rotate-2'
-                                                : 'z-10 opacity-40 scale-90 translate-y-8 rotate-4'
+                                        ? 'z-30 opacity-100 scale-100 translate-y-0 rotate-0'
+                                        : isNext
+                                            ? 'z-20 opacity-60 scale-95 translate-y-4 rotate-2'
+                                            : 'z-10 opacity-40 scale-90 translate-y-8 rotate-4'
                                         }`}
                                 >
                                     <div className="flex justify-between items-center mb-6">
@@ -207,7 +207,7 @@ export default function LandingPage() {
             </section>
 
             {/* 4. Feature Cards */}
-            <section className="container mx-auto px-4 py-16">
+            <section className="container mx-auto px-4 py-10">
                 <div className="grid md:grid-cols-3 gap-6">
                     <div className="bg-surface/30 border border-white/5 p-8 rounded-2xl hover:bg-surface/50 transition-colors group">
                         <div className="w-12 h-12 bg-primary/20 text-primary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -236,7 +236,7 @@ export default function LandingPage() {
             </section>
 
             {/* 5. Catálogo Apostas */}
-            <section className="container mx-auto px-4 py-16">
+            <section className="container mx-auto px-4 py-10">
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
                     <div>
                         <h2 className="text-3xl font-bold text-white mb-2">Todas as apostas</h2>
@@ -270,7 +270,7 @@ export default function LandingPage() {
 
                 <div className="mt-12 text-center">
                     <Link href="/markets" className="inline-flex items-center gap-2 text-primary font-bold hover:text-primary/80 transition-colors">
-                        Ver todos os mercados <ArrowRight className="w-4 h-4" />
+                        Ver todas as Apostas <ArrowRight className="w-4 h-4" />
                     </Link>
                 </div>
             </section>

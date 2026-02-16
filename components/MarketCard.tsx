@@ -54,38 +54,42 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                     </h3>
 
                     {/* Probability Bars */}
-                    <div className="space-y-3">
-                        {/* YES Bar */}
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center text-xs font-bold text-gray-400">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-primary">SIM</span>
-                                    {/* Yes Image Placeholder or Prop */}
-                                    <div className="w-5 h-5 rounded-full bg-surface border border-white/10 overflow-hidden">
-                                        <img src="https://placehold.co/20x20/2F7C46/white?text=S" alt="Sim" className="w-full h-full object-cover" />
-                                    </div>
-                                </div>
-                                <span>{yesPct}%</span>
+                    <div className="space-y-4">
+                        {/* YES Row */}
+                        <div className="flex items-center gap-3">
+                            {/* Image (Left) */}
+                            <div className="w-8 h-8 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0">
+                                <img src="https://placehold.co/32x32/2F7C46/white?text=S" alt="Sim" className="w-full h-full object-cover" />
                             </div>
-                            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: `${yesPct}%` }}></div>
+
+                            {/* Label + Bar (Right) */}
+                            <div className="flex-1 space-y-1">
+                                <div className="flex justify-between text-xs font-bold text-gray-400">
+                                    <span className="text-primary">SIM</span>
+                                    <span>{yesPct}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary" style={{ width: `${yesPct}%` }}></div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* NO Bar */}
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center text-xs font-bold text-gray-400">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-red-500">NÃO</span>
-                                    {/* No Image Placeholder or Prop */}
-                                    <div className="w-5 h-5 rounded-full bg-surface border border-white/10 overflow-hidden">
-                                        <img src="https://placehold.co/20x20/ef4444/white?text=N" alt="Não" className="w-full h-full object-cover" />
-                                    </div>
-                                </div>
-                                <span>{noPct}%</span>
+                        {/* NO Row */}
+                        <div className="flex items-center gap-3">
+                            {/* Image (Left) */}
+                            <div className="w-8 h-8 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0">
+                                <img src="https://placehold.co/32x32/ef4444/white?text=N" alt="Não" className="w-full h-full object-cover" />
                             </div>
-                            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                <div className="h-full bg-red-500" style={{ width: `${noPct}%` }}></div>
+
+                            {/* Label + Bar (Right) */}
+                            <div className="flex-1 space-y-1">
+                                <div className="flex justify-between text-xs font-bold text-gray-400">
+                                    <span className="text-red-500">NÃO</span>
+                                    <span>{noPct}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                    <div className="h-full bg-red-500" style={{ width: `${noPct}%` }}></div>
+                                </div>
                             </div>
                         </div>
                     </div>
