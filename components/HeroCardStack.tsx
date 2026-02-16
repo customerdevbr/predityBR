@@ -38,6 +38,39 @@ export default function HeroCardStack({ cards }: HeroCardStackProps) {
         return () => clearInterval(interval);
     }, []);
 
+    const [liveCards, setLiveCards] = useState(cards);
+
+    // Sync props to state (initial load)
+    useEffect(() => {
+        setLiveCards(cards);
+    }, [cards]);
+
+    // Live Odds Oscillation
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setLiveCards(prevCards => prevCards.map(card => {
+                // Determine if this card should update (30% chance)
+                if (Math.random() > 0.3) return card;
+
+                // Fluctuate odds by +/- 0.05
+                const fluctuation = (Math.random() * 0.1) - 0.05;
+                let newYes = card.yes + fluctuation;
+                let newNo = card.no - fluctuation; // Inverse correlation (approx)
+
+                // Clamp values
+                if (newYes < 1.01) newYes = 1.01;
+                if (newNo < 1.01) newNo = 1.01;
+
+                return {
+                    ...card,
+                    yes: newYes,
+                    no: newNo
+                };
+            }));
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Mock Chart Data Generator (Since we don't have real historical data yet)
     const generateChartData = () => {
         return Array.from({ length: 20 }, (_, i) => ({
@@ -49,13 +82,13 @@ export default function HeroCardStack({ cards }: HeroCardStackProps) {
 
     return (
         <div className="relative w-full max-w-sm h-80">
-            {cards.length > 0 ? cards.map((card, index) => {
-                let offset = (index - activeCardIndex + cards.length) % cards.length;
+            {liveCards.length > 0 ? liveCards.map((card, index) => {
+                let offset = (index - activeCardIndex + liveCards.length) % liveCards.length;
                 const isActive = offset === 0;
                 const isNext = offset === 1;
                 const isPrev = offset === 2;
 
-                if (cards.length > 3 && !isActive && !isNext && !isPrev) return null;
+                if (liveCards.length > 3 && !isActive && !isNext && !isPrev) return null;
 
                 return (
                     <div
