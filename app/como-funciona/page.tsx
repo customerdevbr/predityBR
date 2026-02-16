@@ -1,138 +1,173 @@
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Coins, Percent, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle, Coins, Percent, TrendingUp, Users, ShieldCheck, Banknote } from 'lucide-react';
 
 export default function HowItWorksPage() {
     return (
         <div className="min-h-screen bg-[#0d1117] text-white">
             {/* Header / Hero */}
-            <div className="bg-surface border-b border-white/5 py-12">
-                <div className="container mx-auto px-4 text-center max-w-2xl">
-                    <h1 className="text-4xl font-black mb-4 bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
+            <div className="bg-surface border-b border-white/5 py-20"> {/* Increased padding */}
+                <div className="container mx-auto px-4 text-center max-w-3xl">
+                    <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
                         Como funciona o Predity?
                     </h1>
-                    <p className="text-lg text-gray-400">
-                        Entenda a lógica por trás das suas apostas, odds dinâmicas e como calculamos seus ganhos.
+                    <p className="text-xl text-gray-400 leading-relaxed">
+                        Entenda nossa lógica de <strong>Odds Dinâmicas</strong>, taxas transparentes e porque somos a plataforma mais segura para suas previsões.
                     </p>
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-12 max-w-4xl space-y-16">
+            <div className="container mx-auto px-4 py-16 max-w-4xl space-y-20">
 
                 {/* 1. O Conceito (Pool) */}
                 <section className="space-y-6">
                     <div className="flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
-                            <Users className="w-6 h-6" />
+                        <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                            <Users className="w-7 h-7" />
                         </div>
-                        <h2 className="text-2xl font-bold">1. Apostas Mútuas (O Pool)</h2>
+                        <h2 className="text-3xl font-bold">1. Apostas Mútuas (O Pool)</h2>
                     </div>
 
-                    <div className="prose prose-invert max-w-none text-gray-400">
+                    <div className="prose prose-invert max-w-none text-gray-300 text-lg leading-relaxed">
                         <p>
-                            Diferente de casas de apostas tradicionais (Bet365, Betano) onde você joga contra a casa, no
-                            <strong className="text-white"> Predity </strong> você joga <strong className="text-white">contra outros usuários</strong>.
+                            No <strong>Predity</strong>, você não joga contra a casa. Você joga <strong className="text-white">contra outros usuários</strong>.
+                            Todo o dinheiro apostado vai para um cofre comum (Pool). Quem acerta o resultado, divide o dinheiro de quem errou.
                         </p>
-                        <p>
-                            Todo o dinheiro apostado em um evento vai para um pote comum chamado <strong className="text-white">Pool</strong>.
-                            A plataforma apenas organiza o jogo e garante o pagamento.
-                        </p>
-                    </div>
-
-                    {/* Visual Example */}
-                    <div className="bg-[#151921] border border-white/10 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-                        <div className="text-center space-y-2">
-                            <div className="w-16 h-16 rounded-full bg-blue-500/20 border border-blue-500 flex items-center justify-center mx-auto text-2xl">👷</div>
-                            <div className="font-bold text-blue-400">Mario</div>
-                            <div className="text-sm bg-surface px-2 py-1 rounded">Aposta R$ 100 no <br /><strong className="text-white">SIM</strong></div>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-2">
-                            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Piscina (Pool)</div>
-                            <div className="px-6 py-3 bg-white/5 rounded-xl border border-white/10 text-2xl font-black text-white flex items-center gap-2">
-                                <Coins className="w-6 h-6 text-yellow-500" />
-                                R$ 200
-                            </div>
-                            <div className="h-8 w-px bg-white/10"></div>
-                            <div className="text-[10px] text-gray-500">Aguardando Resultado</div>
-                        </div>
-
-                        <div className="text-center space-y-2">
-                            <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center mx-auto text-2xl">🍄</div>
-                            <div className="font-bold text-green-400">Luigi</div>
-                            <div className="text-sm bg-surface px-2 py-1 rounded">Aposta R$ 100 no <br /><strong className="text-white">NÃO</strong></div>
-                        </div>
                     </div>
                 </section>
 
                 {/* 2. Odds Dinâmicas */}
                 <section className="space-y-6">
                     <div className="flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
-                            <TrendingUp className="w-6 h-6" />
+                        <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                            <TrendingUp className="w-7 h-7" />
                         </div>
-                        <h2 className="text-2xl font-bold">2. Odds Dinâmicas</h2>
+                        <h2 className="text-3xl font-bold">2. A Matemática das Odds</h2>
                     </div>
 
-                    <div className="prose prose-invert max-w-none text-gray-400">
+                    <div className="prose prose-invert max-w-none text-gray-300 text-lg leading-relaxed space-y-4">
                         <p>
-                            Como o prêmio depende do total arrecadado, as <strong>Odds (multiplicadores) mudam em tempo real</strong> conforme mais pessoas apostam.
+                            Nossas odds não são fixas. Elas flutuam baseadas na opinião do público. A fórmula é simples e transparente:
                         </p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>Se muita gente aposta no <strong>SIM</strong>, o prêmio para quem acerta o SIM diminui (odds menores).</li>
-                            <li>Se pouca gente aposta no <strong>NÃO</strong>, o prêmio para quem acerta o NÃO aumenta (odds maiores).</li>
+
+                        <div className="bg-[#151921] border border-white/10 p-6 rounded-xl font-mono text-center text-xl text-yellow-400 my-6 shadow-inner">
+                            Odd = (Pool Total) / (Pool do Seu Lado)
+                        </div>
+
+                        <p>
+                            <strong>Por que isso é bom?</strong>
+                        </p>
+                        <ul className="list-disc pl-5 space-y-2 marker:text-primary">
+                            <li>Se todo mundo acha que o Brasil vai ganhar, a Odd do Brasil cai (pagamento menor, pois é "fácil").</li>
+                            <li>Se você aposta na zebras e acerta, você ganha uma fatia gigante do bolo, pois poucos dividiram o prêmio com você.</li>
                         </ul>
-                        <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-lg text-yellow-200 text-sm mt-4">
-                            <strong>Nota Importante:</strong> A Odd exibida no momento da aposta é uma <em>estimativa</em>.
-                            O valor final que você recebe é calculado com base nas proporções no momento que o mercado fecha.
+                    </div>
+                </section>
+
+                {/* 3. Taxas e Segurança */}
+                <section className="space-y-8">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-14 h-14 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                            <ShieldCheck className="w-7 h-7" />
+                        </div>
+                        <h2 className="text-3xl font-bold">3. Taxas e Segurança</h2>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {/* Taxa de Serviço */}
+                        <div className="bg-[#151921] border border-white/10 p-6 rounded-2xl hover:border-primary/50 transition-colors">
+                            <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Taxa de Serviço</div>
+                            <div className="text-4xl font-black text-white mb-2">18%</div>
+                            <p className="text-sm text-gray-400">
+                                Cobrada apenas sobre o <strong>lucro do pool vencedor</strong>. Usada para manter os servidores e o desenvolvimento.
+                            </p>
+                        </div>
+
+                        {/* Cash Out */}
+                        <div className="bg-[#151921] border border-white/10 p-6 rounded-2xl hover:border-yellow-500/50 transition-colors">
+                            <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Cash Out (Saída)</div>
+                            <div className="text-4xl font-black text-white mb-2">20%</div>
+                            <p className="text-sm text-gray-400">
+                                Multa sobre o valor apostado caso você decida cancelar sua aposta antes do evento encerrar.
+                            </p>
+                        </div>
+
+                        {/* Pagamentos */}
+                        <div className="bg-[#151921] border border-white/10 p-6 rounded-2xl hover:border-blue-500/50 transition-colors">
+                            <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Depósitos e Saques</div>
+                            <div className="text-4xl font-black text-white mb-2">3%</div>
+                            <p className="text-sm text-gray-400">
+                                Custo de processamento seguro via PIX e Criptografia Blockchain para garantir a segurança do seu saldo.
+                            </p>
                         </div>
                     </div>
                 </section>
 
-                {/* 3. Taxas e Ganhos */}
-                <section className="space-y-6">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
-                            <Percent className="w-6 h-6" />
-                        </div>
-                        <h2 className="text-2xl font-bold">3. Taxas e Cálculo de Ganhos</h2>
-                    </div>
+                {/* 4. Exemplo Real */}
+                <section className="space-y-8 pt-8 border-t border-white/5">
+                    <h2 className="text-2xl font-bold">Cenário Prático: Mario vs Luigi</h2>
 
-                    <div className="prose prose-invert max-w-none text-gray-400">
-                        <p>
-                            Para manter a plataforma segura, rápida e justa, cobramos uma pequena taxa administrativa sobre o <strong>lucro do Pool vencedor</strong>.
-                        </p>
-                    </div>
-
-                    <div className="bg-[#151921] border border-white/10 rounded-2xl p-8 space-y-8">
-                        <h3 className="text-lg font-bold text-white mb-4">Cenário: Mario Venceu (SIM)</h3>
-
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                                <span>Total no Pool</span>
-                                <span className="font-mono text-white">R$ 200,00</span>
+                    <div className="bg-[#151921] border border-white/10 rounded-2xl p-8 space-y-8 relative overflow-hidden">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-8 relative z-10">
+                            {/* Mario */}
+                            <div className="text-center group">
+                                <div className="w-20 h-20 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center mx-auto text-3xl mb-3 shadow-[0_0_20px_rgba(59,130,246,0.3)]">👷</div>
+                                <div className="font-bold text-blue-400 text-lg">Mario</div>
+                                <div className="text-sm text-gray-400">Aposta <strong>R$ 100</strong></div>
                             </div>
-                            <div className="flex justify-between items-center border-b border-white/5 pb-4 text-red-400">
-                                <span>Taxa da Plataforma (10%)</span>
-                                <span className="font-mono">- R$ 20,00</span>
+
+                            {/* VS */}
+                            <div className="flex flex-col items-center">
+                                <div className="text-xl font-black text-white/20">VS</div>
+                                <div className="h-px w-20 bg-white/10 my-4"></div>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs font-bold text-gray-500 uppercase">Pool Total</span>
+                                    <span className="text-2xl font-black text-white">R$ 200</span>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center pb-4 text-green-400 font-bold text-lg">
-                                <span>Prêmio Líquido para Vencedores (Mario)</span>
-                                <span className="font-mono">R$ 180,00</span>
+
+                            {/* Luigi */}
+                            <div className="text-center group">
+                                <div className="w-20 h-20 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center mx-auto text-3xl mb-3 shadow-[0_0_20px_rgba(34,197,94,0.3)]">🍄</div>
+                                <div className="font-bold text-green-400 text-lg">Luigi</div>
+                                <div className="text-sm text-gray-400">Aposta <strong>R$ 100</strong></div>
                             </div>
                         </div>
 
-                        <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-xl text-center">
-                            <p className="text-green-400 text-sm mb-1">Resultado Final para Mario</p>
-                            <div className="text-3xl font-black text-white">R$ 180,00</div>
-                            <div className="text-xs text-gray-500 mt-1">Lucro de R$ 80,00 (Retorno de 1.8x)</div>
+                        {/* Calculation Box */}
+                        <div className="bg-black/40 rounded-xl p-6 border border-white/5 space-y-4">
+                            <h4 className="font-bold text-white flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5 text-green-500" />
+                                Resultado: Mario Venceu!
+                            </h4>
+
+                            <div className="space-y-3 text-sm">
+                                <div className="flex justify-between text-gray-400">
+                                    <span>Pool Bruto Arrecadado</span>
+                                    <span>R$ 200,00</span>
+                                </div>
+                                <div className="flex justify-between text-red-400">
+                                    <span>Taxa de Serviço (18%)</span>
+                                    <span>- R$ 36,00</span>
+                                </div>
+                                <div className="h-px bg-white/10 my-1"></div>
+                                <div className="flex justify-between text-lg font-bold text-white">
+                                    <span>Prêmio Líquido Distribuído</span>
+                                    <span>R$ 164,00</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-primary/20 border border-primary/30 p-4 rounded-lg text-center mt-4">
+                                <p className="text-gray-300 text-sm">Mario recebe de volta seus R$ 100 + R$ 64 de lucro.</p>
+                                <p className="text-primary font-bold text-lg">Retorno Total: R$ 164,00 (1.64x)</p>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 {/* Footer CTA */}
                 <div className="pt-12 text-center">
-                    <Link href="/app/markets" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full font-bold text-lg transition-all shadow-lg hover:shadow-primary/20">
-                        Entendi! Quero Apostar <ArrowRight className="w-5 h-5" />
+                    <Link href="/app/markets" className="inline-flex items-center gap-3 bg-primary hover:bg-primary/90 text-white px-10 py-5 rounded-xl font-bold text-lg transition-all shadow-[0_10px_40px_rgba(34,197,94,0.3)] hover:-translate-y-1">
+                        Entendi a Lógica! Apostar Agora <ArrowRight className="w-6 h-6" />
                     </Link>
                 </div>
 
