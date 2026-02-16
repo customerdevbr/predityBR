@@ -9,7 +9,7 @@ export default function Footer() {
                 <div className="space-y-4">
                     <img src="/logo.png" alt="Predity" className="h-8 opacity-80" />
                     <p className="text-gray-500 text-sm leading-relaxed">
-                        A plataforma de prediction markets mais rápida do Brasil. Aposte no futuro com transparência e segurança via PIX.
+                        A plataforma de prediction markets mais rápida do Brasil. Preveja o futuro com transparência e segurança via PIX.
                     </p>
                     <div className="flex gap-4 pt-2">
                         <Link href="#" className="p-2 bg-surface rounded-full text-gray-400 hover:text-white transition-colors">
@@ -57,7 +57,7 @@ export default function Footer() {
 
             <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/5 text-center text-xs text-gray-600">
                 <p>&copy; 2024 PredityBR. Todos os direitos reservados.</p>
-                <p className="mt-2">Proibido para menores de 18 anos. Aposte com moderação.</p>
+                <p className="mt-2">Proibido para menores de 18 anos. Jogue com moderação.</p>
             </div>
         </footer>
     );
