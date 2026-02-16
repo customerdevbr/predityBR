@@ -10,7 +10,18 @@ export default function NewBetPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string;
+        description: string;
+        category: string;
+        end_date: string;
+        image_url: string;
+        yes_image_url: string;
+        no_image_url: string;
+        initial_pool: number;
+        outcomes: string[];
+        outcome_images: string[];
+    }>({
         title: '',
         description: '',
         category: 'POLÍTICA',
@@ -19,7 +30,8 @@ export default function NewBetPage() {
         yes_image_url: '',
         no_image_url: '',
         initial_pool: 0,
-        outcomes: ['SIM', 'NÃO'] // Default Logic
+        outcomes: ['SIM', 'NÃO'],
+        outcome_images: ['', ''] // Parallel array
     });
 
     const handleChange = (e: any) => {
@@ -151,6 +163,41 @@ export default function NewBetPage() {
             alert("Erro no upload: " + error.message + "\n\nA prévia foi removida. Tente novamente.");
             // Revert the failed field to empty to prevent saving bad data
             setFormData(prev => ({ ...prev, [field]: '' }));
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleOutcomeImageUpload = async (e: any, index: number) => {
+        try {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            // Preview
+            const objectUrl = URL.createObjectURL(file);
+            const newImages = [...(formData.outcome_images || [])];
+            // Ensure array is big enough
+            while (newImages.length <= index) newImages.push('');
+            newImages[index] = objectUrl;
+            setFormData(prev => ({ ...prev, outcome_images: newImages }));
+
+            setUploading(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `outcome_${new Date().getTime()}_${index}.${fileExt}`;
+
+            const { data, error } = await supabase.storage.from('images').upload(fileName, file);
+            if (error) throw error;
+
+            const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+
+            // Update with Real URL
+            const finalImages = [...(formData.outcome_images || [])];
+            while (finalImages.length <= index) finalImages.push('');
+            finalImages[index] = publicUrl;
+            setFormData(prev => ({ ...prev, outcome_images: finalImages }));
+
+        } catch (error: any) {
+            alert("Erro upload: " + error.message);
         } finally {
             setUploading(false);
         }
