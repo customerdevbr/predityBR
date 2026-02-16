@@ -23,6 +23,11 @@ export default function WalletPage() {
     const [depositAmount, setDepositAmount] = useState<string>('');
     const [pixKey] = useState("00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540410.005802BR5913Predity Pagamentos6008Brasilia62070503***6304E2CA");
 
+    // Withdrawal Modal State
+    const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+    const [withdrawPixKey, setWithdrawPixKey] = useState('');
+
     useEffect(() => {
         checkUser();
     }, []);
@@ -169,25 +174,102 @@ export default function WalletPage() {
         const val = parseFloat(depositAmount);
 
         try {
-            // Update Balance
-            const newBalance = balance + val;
+            // Fee Calculation (3%)
+            const fee = val * 0.03;
+            const netAmount = val - fee;
+
+            // Update Balance (Net)
+            const newBalance = balance + netAmount;
             await supabase.from('users').update({ balance: newBalance }).eq('id', user.id);
 
-            // Log Transaction
+            // Log Transaction (Deposit)
             await supabase.from('transactions').insert({
                 user_id: user.id,
                 type: 'DEPOSIT',
-                amount: val,
+                amount: val, // Log gross amount
                 status: 'COMPLETED',
                 description: 'Depósito via PIX'
             });
 
-            alert(`Depósito de R$ ${val.toFixed(2)} confirmado!`);
+            // Log Transaction (Fee)
+            await supabase.from('transactions').insert({
+                user_id: user.id,
+                type: 'FEE',
+                amount: -fee, // Negative amount
+                status: 'COMPLETED',
+                description: 'Taxa de Depósito (3%)'
+            });
+
+            alert(`Depósito de R$ ${val.toFixed(2)} confirmado!\nTaxa (3%): R$ ${fee.toFixed(2)}\nSaldo Creditado: R$ ${netAmount.toFixed(2)}`);
             setIsDepositOpen(false);
             fetchWalletData();
         } catch (error) {
             console.error(error);
             alert("Erro ao processar depósito.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- WITHDRAW FLOW ---
+    const openWithdraw = () => {
+        setWithdrawAmount('');
+        setWithdrawPixKey('');
+        setIsWithdrawOpen(true);
+    };
+
+    const handleWithdraw = async () => {
+        if (!user) return;
+        const val = parseFloat(withdrawAmount);
+        if (!val || val <= 0) {
+            alert("Valor inválido.");
+            return;
+        }
+        if (!withdrawPixKey) {
+            alert("Digite sua chave PIX.");
+            return;
+        }
+
+        const fee = val * 0.03;
+        const totalDeduction = val + fee;
+
+        if (totalDeduction > balance) {
+            alert(`Saldo insuficiente.\nPara sacar R$ ${val}, você precisa de R$ ${totalDeduction.toFixed(2)} (incl. 3% taxa).`);
+            return;
+        }
+
+        if (!confirm(`Confirmar saque?\n\nValor: R$ ${val.toFixed(2)}\nTaxa (3%): R$ ${fee.toFixed(2)}\nTotal Debitado: R$ ${totalDeduction.toFixed(2)}`)) return;
+
+        setLoading(true);
+        try {
+            // Update Balance
+            const newBalance = balance - totalDeduction;
+            await supabase.from('users').update({ balance: newBalance }).eq('id', user.id);
+
+            // Log Withdrawal
+            await supabase.from('transactions').insert({
+                user_id: user.id,
+                type: 'WITHDRAWAL',
+                amount: -val,
+                status: 'PENDING',
+                description: `Saque para ${withdrawPixKey}`
+            });
+
+            // Log Fee
+            await supabase.from('transactions').insert({
+                user_id: user.id,
+                type: 'FEE',
+                amount: -fee,
+                status: 'COMPLETED',
+                description: 'Taxa de Saque (3%)'
+            });
+
+            alert("Solicitação de saque enviada com sucesso! Processamento em até 24h.");
+            setIsWithdrawOpen(false);
+            fetchWalletData();
+
+        } catch (error: any) {
+            alert("Erro no saque: " + error.message);
         } finally {
             setLoading(false);
         }
@@ -220,7 +302,7 @@ export default function WalletPage() {
                         <ArrowDownLeft className="w-5 h-5" /> Depositar
                     </button>
                     <button
-                        onClick={() => alert('Saques processados em até 24h via chave PIX CPF.')}
+                        onClick={openWithdraw}
                         className="flex items-center justify-center gap-2 bg-secondary hover:bg-surface border border-white/10 text-white py-3 rounded-xl font-bold transition-all"
                     >
                         <ArrowUpRight className="w-5 h-5" /> Sacar
@@ -325,6 +407,7 @@ export default function WalletPage() {
                 </div>
             </div>
 
+            {/* --- DEPOSIT BOTTOM SHEET (MODAL) --- */}
             {/* --- DEPOSIT BOTTOM SHEET (MODAL) --- */}
             {isDepositOpen && (
                 <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
@@ -434,6 +517,78 @@ export default function WalletPage() {
                                 </button>
                             </>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* --- WITHDRAW MODAL --- */}
+            {isWithdrawOpen && (
+                <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsWithdrawOpen(false)}></div>
+
+                    <div className="relative bg-surface border-t md:border border-white/10 w-full md:max-w-md md:rounded-2xl rounded-t-2xl p-6 space-y-6 animate-in slide-in-from-bottom duration-300 shadow-2xl">
+                        <button onClick={() => setIsWithdrawOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="text-center space-y-2">
+                            <h3 className="text-xl font-bold text-white">Solicitar Saque</h3>
+                            <p className="text-sm text-gray-400">Taxa de 3% por operação</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                                <label className="text-xs text-gray-500 block mb-1">Valor do Saque</label>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-400 font-bold">R$</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={withdrawAmount}
+                                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                                        className="bg-transparent text-3xl font-bold text-white w-full focus:outline-none placeholder-gray-600"
+                                        placeholder="0,00"
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                                <label className="text-xs text-gray-500 block mb-1">Chave PIX</label>
+                                <input
+                                    type="text"
+                                    value={withdrawPixKey}
+                                    onChange={(e) => setWithdrawPixKey(e.target.value)}
+                                    className="bg-transparent text-lg text-white w-full focus:outline-none placeholder-gray-600"
+                                    placeholder="CPF, Email ou Telefone..."
+                                />
+                            </div>
+
+                            {parseFloat(withdrawAmount) > 0 && (
+                                <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg space-y-1">
+                                    <div className="flex justify-between text-xs text-gray-400">
+                                        <span>Valor Solicitado</span>
+                                        <span>R$ {parseFloat(withdrawAmount).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-red-400">
+                                        <span>Taxa (3%)</span>
+                                        <span>+ R$ {(parseFloat(withdrawAmount) * 0.03).toFixed(2)}</span>
+                                    </div>
+                                    <div className="border-t border-white/10 my-1"></div>
+                                    <div className="flex justify-between text-sm font-bold text-white">
+                                        <span>Total Debitado</span>
+                                        <span>R$ {(parseFloat(withdrawAmount) * 1.03).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleWithdraw}
+                                className="w-full py-4 bg-secondary hover:bg-secondary/90 text-white rounded-xl font-bold text-lg shadow-lg transition-all"
+                            >
+                                Confirmar Saque
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
