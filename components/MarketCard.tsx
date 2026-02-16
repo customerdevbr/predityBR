@@ -55,13 +55,18 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                     </h3>
 
                     {/* Probability Bars */}
+                    {/* Probability Bars */}
                     <div className="space-y-4">
                         {/* YES Row */}
                         <div className="flex items-center gap-3">
                             {/* Image (Left) */}
-                            <div className="w-8 h-8 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0">
-                                <img src="https://placehold.co/32x32/2F7C46/white?text=S" alt="Sim" className="w-full h-full object-cover" />
-                            </div>
+                            {metadata?.yes_image ? (
+                                <img src={metadata.yes_image} alt="Sim" className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0 flex items-center justify-center text-[10px] text-gray-500">
+                                    S
+                                </div>
+                            )}
 
                             {/* Label + Bar (Right) */}
                             <div className="flex-1 space-y-1">
@@ -78,9 +83,13 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                         {/* NO Row */}
                         <div className="flex items-center gap-3">
                             {/* Image (Left) */}
-                            <div className="w-8 h-8 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0">
-                                <img src="https://placehold.co/32x32/ef4444/white?text=N" alt="Não" className="w-full h-full object-cover" />
-                            </div>
+                            {metadata?.no_image ? (
+                                <img src={metadata.no_image} alt="Não" className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0 flex items-center justify-center text-[10px] text-gray-500">
+                                    N
+                                </div>
+                            )}
 
                             {/* Label + Bar (Right) */}
                             <div className="flex-1 space-y-1">
