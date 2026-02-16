@@ -3,11 +3,24 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Paperclip } from 'lucide-react';
 
+import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
-export default function SupportChat({ user }: { user: User | null }) {
-    if (!user) return null;
+export default function SupportChat({ user: initialUser }: { user: User | null }) {
+    const [user, setUser] = useState<User | null>(initialUser);
     const [isOpen, setIsOpen] = useState(false);
+
+    // Sync with auth changes for immediate visibility
+    useEffect(() => {
+        setUser(initialUser);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+        return () => subscription.unsubscribe();
+    }, [initialUser]);
+
+    if (!user) return null;
+
     const [messages, setMessages] = useState<{ from: 'user' | 'agent', text: string }[]>([
         { from: 'agent', text: 'Olá! Bem-vindo ao suporte da PredityBR. Como posso ajudar você hoje?' }
     ]);

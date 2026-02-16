@@ -100,8 +100,32 @@ export default function AdminDashboard() {
 
         if (logs) setRecentActivity(logs);
 
+        if (logs) setRecentActivity(logs);
+
         setLoading(false);
     };
+
+    // Realtime Subscription
+    useEffect(() => {
+        const channel = supabase
+            .channel('admin_dashboard')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'transactions' },
+                (payload) => {
+                    // Refresh data on new transaction
+                    console.log('New Transaction:', payload);
+                    fetchDashboardData();
+
+                    // Optional: Optimistic update could happen here, but Refetch is safer for aggregations
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
     return (
         <div className="space-y-8">

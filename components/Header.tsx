@@ -12,13 +12,20 @@ export default function Header({ user: initialUser }: { user: User | null }) {
     const [user, setUser] = useState<User | null>(initialUser);
     const [isAdmin, setIsAdmin] = useState(false);
 
+    const [balance, setBalance] = useState(0);
+
     useEffect(() => {
-        // Sync state with prop if it changes (rare in root layout but good practice)
+        // Sync state with prop
         setUser(initialUser);
     }, [initialUser]);
 
+    // Fetch Balance
+    const fetchBalance = async (userId: string) => {
+        const { data } = await supabase.from('users').select('balance').eq('id', userId).single();
+        if (data) setBalance(data.balance);
+    };
+
     useEffect(() => {
-        // Check Admin Status
         const checkRole = async (uid: string) => {
             const { data } = await supabase
                 .from('users')
@@ -28,21 +35,46 @@ export default function Header({ user: initialUser }: { user: User | null }) {
             if (data?.role === 'ADMIN') setIsAdmin(true);
         };
 
-        if (user) checkRole(user.id);
+        if (user) {
+            checkRole(user.id);
+            fetchBalance(user.id);
+        }
 
-        // Listen for auth changes (Login/Logout)
+        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
             setIsAdmin(false);
             if (session?.user) {
                 checkRole(session.user.id);
+                fetchBalance(session.user.id);
             } else {
-                // If logout, ensure we verify
+                setBalance(0);
                 setIsAdmin(false);
             }
         });
 
-        return () => subscription.unsubscribe();
+        // Listen for Balance Updates (Realtime)
+        const channel = supabase
+            .channel('header_balance_updates')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'users',
+                    filter: user ? `id=eq.${user.id}` : undefined
+                },
+                (payload) => {
+                    const newBal = (payload.new as any).balance;
+                    if (newBal !== undefined) setBalance(newBal);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+            supabase.removeChannel(channel);
+        };
     }, [user?.id]); // specific dependency to avoid loops
 
     const handleLogout = async () => {
@@ -67,7 +99,7 @@ export default function Header({ user: initialUser }: { user: User | null }) {
                         <>
                             {/* Balance Badge (Visible Mobile & Desktop) */}
                             <Link href="/app/wallet" className="flex items-center gap-2 bg-surface/50 hover:bg-surface border border-primary/20 hover:border-primary/50 px-3 py-1.5 rounded-full transition-all group">
-                                <span className="text-primary font-bold text-xs group-hover:text-primary/80">R$ 0,00</span>
+                                <span className="text-primary font-bold text-xs group-hover:text-primary/80">R$ {balance.toFixed(2)}</span>
                                 <div className="bg-primary text-white text-[10px] font-bold px-1.5 rounded">+</div>
                             </Link>
 

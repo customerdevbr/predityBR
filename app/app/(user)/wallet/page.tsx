@@ -220,6 +220,11 @@ export default function WalletPage() {
             alert("Valor mínimo de saque: R$ 10,00");
             return;
         }
+        // Max Withdraw Check
+        if (val > 5000) {
+            alert("Limite máximo por operação: R$ 5.000,00");
+            return;
+        }
         if (!withdrawPixKey) {
             alert("Digite sua chave PIX.");
             return;
