@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Clock, TrendingUp, ArrowUpRight } from 'lucide-react';
 import { formatDistanceToNow, differenceInDays } from 'date-fns';
+import { supabase } from '@/lib/supabase';
 import { ptBR } from 'date-fns/locale';
 import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip, LineChart, Line } from 'recharts';
 import { useEffect, useState } from 'react';
@@ -25,68 +26,83 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
     const [isHovered, setIsHovered] = useState(false);
     const [ticker, setTicker] = useState<{ id: number, value: number, type: 'yes' | 'no', top: number, left: number }[]>([]);
 
+    // Live Ticker Effect & Realtime Odds
+    const [livePool, setLivePool] = useState(pool);
+    const [liveYes, setLiveYes] = useState(yesAmount);
+    const [liveNo, setLiveNo] = useState(noAmount);
+    const [liveOutcomePools, setLiveOutcomePools] = useState(outcomePools);
+
+    // Sync props to state if they change from parent refresh
+    useEffect(() => {
+        setLivePool(pool);
+        setLiveYes(yesAmount);
+        setLiveNo(noAmount);
+        setLiveOutcomePools(outcomePools);
+    }, [pool, yesAmount, noAmount, outcomePools]);
+
+    useEffect(() => {
+        // Ticker Logic
+        const interval = setInterval(() => {
+            // ... existing ticker logic ...
+            if (Math.random() > 0.5) return;
+            const tickerId = Date.now();
+            const value = Math.floor(Math.random() * 200) + 10;
+            const type = Math.random() > 0.5 ? 'yes' : 'no';
+            const top = Math.random() * 40 + 30;
+            const left = Math.random() * 60 + 20;
+
+            setTicker(prev => [...prev.slice(-3), { id: tickerId, value, type, top, left }]);
+
+            setTimeout(() => {
+                setTicker(prev => prev.filter(t => t.id !== tickerId));
+            }, 1200);
+        }, 3000);
+
+        // Realtime Subscription
+        const channel = supabase
+            .channel(`market-${id}`)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'markets', filter: `id=eq.${id}` },
+                (payload) => {
+                    const newMarket = payload.new;
+                    setLivePool(newMarket.total_pool);
+                    setLiveYes(newMarket.total_yes_amount);
+                    setLiveNo(newMarket.total_no_amount);
+                    // outcome_pools is a JSONB column, might need parsing if it comes as string, but usually object in payload
+                    if (newMarket.outcome_pools) {
+                        setLiveOutcomePools(newMarket.outcome_pools);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            clearInterval(interval);
+            supabase.removeChannel(channel);
+        };
+    }, [id]);
+
+    // Use live values for calculation
+    const currentPool = livePool;
+    const currentYes = liveYes;
+    const currentNo = liveNo;
+    const currentOutcomePools = liveOutcomePools;
+
     // Odds Calculation
-    const safePool = pool > 0 ? pool : 2; // Avoid div by zero
-    // Ensure we have at least 1 in amounts to avoid infinity
-    const safeYes = yesAmount > 0 ? yesAmount : 1;
-    const safeNo = noAmount > 0 ? noAmount : 1;
+    const safePool = currentPool > 0 ? currentPool : 2;
+    const safeYes = currentYes > 0 ? currentYes : 1;
+    const safeNo = currentNo > 0 ? currentNo : 1;
 
     const probYes = safeYes / safePool;
     const probNo = safeNo / safePool;
 
-    // Odds (Payout Multiplier) = Total Pool / Amount on Outcome
+    // Odds (Payout Multiplier)
     const oddsYes = (safePool / safeYes).toFixed(2);
     const oddsNo = (safePool / safeNo).toFixed(2);
 
     const yesPct = Math.round(probYes * 100);
     const noPct = Math.round(probNo * 100);
-
-    // Synthetic Chart Data (Two lines "fighting")
-    const [chartData] = useState(() => {
-        const points = 20;
-        const data = [];
-        let currentYes = yesPct;
-
-        // Generate backwards
-        for (let i = 0; i < points; i++) {
-            const currentNo = 100 - currentYes;
-            data.unshift({ yes: currentYes, no: currentNo });
-
-            // Random walk
-            currentYes = currentYes + (Math.random() * 10 - 5);
-            if (currentYes < 10) currentYes = 10;
-            if (currentYes > 90) currentYes = 90;
-        }
-        return data;
-    });
-
-    // Time Remaining Logic
-    const end = new Date(endDate);
-    const now = new Date();
-    const daysLeft = differenceInDays(end, now);
-    const timeDisplay = formatDistanceToNow(end, { locale: ptBR, addSuffix: false });
-    const isUrgent = daysLeft < 2;
-
-    // Live Ticker Effect
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (Math.random() > 0.5) return;
-
-            const id = Date.now();
-            const value = Math.floor(Math.random() * 200) + 10;
-            const type = Math.random() > 0.5 ? 'yes' : 'no';
-            const top = Math.random() * 40 + 30; // confine to middle area
-            const left = Math.random() * 60 + 20;
-
-            setTicker(prev => [...prev.slice(-3), { id, value, type, top, left }]);
-
-            setTimeout(() => {
-                setTicker(prev => prev.filter(t => t.id !== id));
-            }, 1200);
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, []);
 
     return (
         <Link
@@ -153,12 +169,12 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                         {/* Dynamic Outcomes Mapping */}
                         {(outcomes && outcomes.length > 0 ? outcomes : ['SIM', 'NÃO']).slice(0, 4).map((outcome) => {
                             // Logic to get pool for this specific outcome
-                            let amount = outcomePools ? outcomePools[outcome] || 0 : 0;
+                            let amount = currentOutcomePools ? currentOutcomePools[outcome] || 0 : 0;
 
                             // Fallback for Legacy Yes/No if pools are missing
-                            if (!outcomePools) {
-                                if ((outcome === 'SIM' || outcome === 'YES') && yesAmount) amount = yesAmount;
-                                if ((outcome === 'NÃO' || outcome === 'NO') && noAmount) amount = noAmount;
+                            if (!currentOutcomePools) {
+                                if ((outcome === 'SIM' || outcome === 'YES') && currentYes) amount = currentYes;
+                                if ((outcome === 'NÃO' || outcome === 'NO') && currentNo) amount = currentNo;
                             }
 
                             // Safe math

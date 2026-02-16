@@ -149,10 +149,73 @@ export default function HowItWorksPage() {
                                 Como menos pessoas escolheram o Mario, o prêmio (que veio do montante de quem escolheu o Luigi) é dividido entre poucos participantes.
                             </p>
 
-                            <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg text-center">
-                                <div className="text-xs text-blue-300 uppercase font-bold mb-1">Quem escolheu Mario (A Zebra)</div>
-                                <div className="text-white font-bold">Recebe uma fatia maior do bolo</div>
-                                <div className="text-xs text-gray-400 mt-1">Multiplicador alto (ex: 2.5x, 3.0x...)</div>
+                            {/* Detailed Math Explanation */}
+                            <div className="bg-black/40 rounded-xl p-6 border border-white/5 space-y-6">
+                                <h4 className="font-bold text-white flex items-center gap-2">
+                                    <Banknote className="w-5 h-5 text-green-500" />
+                                    Entendendo seus Ganhos (Matemática)
+                                </h4>
+
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="text-xs text-gray-500 uppercase bg-white/5">
+                                            <tr>
+                                                <th className="px-4 py-3 rounded-l-lg">Cenário</th>
+                                                <th className="px-4 py-3">Sua Aposta</th>
+                                                <th className="px-4 py-3">Odd Final</th>
+                                                <th className="px-4 py-3">Cálculo</th>
+                                                <th className="px-4 py-3 rounded-r-lg text-right">Resultado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {/* Scenario 1: Mario Wins */}
+                                            <tr className="bg-blue-500/5">
+                                                <td className="px-4 py-4 font-bold text-blue-400">Mario Venceu (Zebra)</td>
+                                                <td className="px-4 py-4 text-white">R$ 100</td>
+                                                <td className="px-4 py-4 text-white font-mono">4.00x</td>
+                                                <td className="px-4 py-4 text-gray-400">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span>Odd = 4000 (Total) / 1000 (Mario)</span>
+                                                        <span>Retorno = 100 * 4.00</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 text-right font-bold text-green-400">+ R$ 400,00</td>
+                                            </tr>
+
+                                            {/* Scenario 2: Luigi Wins */}
+                                            <tr>
+                                                <td className="px-4 py-4 font-bold text-green-400">Luigi Venceu (Favorito)</td>
+                                                <td className="px-4 py-4 text-white">R$ 100</td>
+                                                <td className="px-4 py-4 text-white font-mono">1.33x</td>
+                                                <td className="px-4 py-4 text-gray-400">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span>Odd = 4000 (Total) / 3000 (Luigi)</span>
+                                                        <span>Retorno = 100 * 1.33</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 text-right font-bold text-green-400">+ R$ 133,00</td>
+                                            </tr>
+
+                                            {/* Scenario 3: Lost */}
+                                            <tr className="bg-red-500/5">
+                                                <td className="px-4 py-4 font-bold text-red-500">Você Perdeu</td>
+                                                <td className="px-4 py-4 text-white">R$ 100</td>
+                                                <td className="px-4 py-4 text-white font-mono">-</td>
+                                                <td className="px-4 py-4 text-gray-400">
+                                                    <span>Você apostou no lado errado.</span>
+                                                </td>
+                                                <td className="px-4 py-4 text-right font-bold text-red-500">R$ 0,00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg text-sm text-yellow-200 flex gap-3 items-start">
+                                    <Percent className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <div>
+                                        <strong>Nota sobre o Risco:</strong> Apostar na Zebra (Mario) paga muito mais (4x) porque é mais arriscado. Apostar no Favorito (Luigi) é "mais seguro", mas o lucro é pequeno (1.33x) porque o prêmio é dividido por muita gente.
+                                    </div>
+                                </div>
                             </div>
 
                             <p className="text-xs text-center text-gray-500 mt-2">
