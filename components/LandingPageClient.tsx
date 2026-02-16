@@ -65,7 +65,7 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
             <section className="container mx-auto px-4 py-12 grid md:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8 text-left">
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight">
-                        Aposte no que o Brasil está acompanhando em <span className="text-primary inline-block min-w-[2ch]">{text}<span className="animate-pulse">|</span></span>
+                        Dê seu palpite no que o Brasil está acompanhando em <span className="text-primary inline-block min-w-[2ch]">{text}<span className="animate-pulse">|</span></span>
                     </h1>
 
                     <p className="text-lg text-gray-400 max-w-lg leading-relaxed">

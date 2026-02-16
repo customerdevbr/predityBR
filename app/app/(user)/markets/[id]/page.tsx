@@ -254,21 +254,52 @@ export default function MarketDetailPage() {
                         </button>
                     </div>
 
-                    {/* Input & Info */}
-                    <div className="flex gap-4">
-                        <div className="relative flex-1">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">R$</span>
-                            <input
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="w-full bg-surface border border-white/10 rounded-lg pl-10 pr-4 py-3 font-bold text-white focus:outline-none focus:border-white/30"
-                                placeholder="0,00"
-                            />
+                    {/* Input, Chips & Info */}
+                    <div className="space-y-3">
+                        {/* Quick Chips */}
+                        <div className="flex gap-2 justify-between">
+                            {[10, 20, 50, 100].map(val => (
+                                <button
+                                    key={val}
+                                    onClick={() => setAmount(val.toString())}
+                                    className="flex-1 py-1.5 bg-surface border border-white/10 rounded-md text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                                >
+                                    R$ {val}
+                                </button>
+                            ))}
                         </div>
-                        <div className="flex flex-col justify-center min-w-[100px] text-right">
-                            <span className="text-[10px] text-gray-400 uppercase">Retorno</span>
-                            <span className="text-sm font-bold text-green-400">R$ {potentialReturn.toFixed(2)}</span>
+
+                        <div className="flex gap-4">
+                            <div className="relative flex-1 flex items-center">
+                                <button
+                                    onClick={() => setAmount(Math.max(0, (parseFloat(amount) || 0) - 10).toString())}
+                                    className="w-10 h-full absolute left-0 bg-surface border border-white/10 rounded-l-lg text-gray-400 hover:text-white flex items-center justify-center z-10"
+                                >
+                                    -
+                                </button>
+
+                                <span className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 font-bold z-10">R$</span>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="w-full bg-surface border border-white/10 rounded-lg pl-16 pr-12 py-3 font-bold text-white focus:outline-none focus:border-white/30 text-center"
+                                    placeholder="0"
+                                />
+
+                                <button
+                                    onClick={() => setAmount(((parseFloat(amount) || 0) + 10).toString())}
+                                    className="w-10 h-full absolute right-0 bg-surface border border-white/10 rounded-r-lg text-gray-400 hover:text-white flex items-center justify-center z-10"
+                                >
+                                    +
+                                </button>
+                            </div>
+                            <div className="flex flex-col justify-center min-w-[90px] text-right">
+                                <span className="text-[10px] text-gray-400 uppercase">Retorno</span>
+                                <span className="text-sm font-bold text-green-400">R$ {potentialReturn.toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
 

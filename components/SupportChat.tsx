@@ -41,7 +41,7 @@ export default function SupportChat({ user }: { user: User | null }) {
             {/* Floating Button */}
             <button
                 onClick={toggleChat}
-                className="fixed bottom-20 md:bottom-24 right-4 z-50 bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 flex items-center justify-center"
+                className="fixed bottom-24 md:bottom-8 right-4 z-[100] bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 flex items-center justify-center"
             >
                 <MessageCircle className="w-6 h-6" />
             </button>

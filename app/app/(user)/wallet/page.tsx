@@ -174,9 +174,9 @@ export default function WalletPage() {
         const val = parseFloat(depositAmount);
 
         try {
-            // Fee Calculation (3%)
-            const fee = val * 0.03;
-            const netAmount = val - fee;
+            // Fee Calculation (0% - Free)
+            const fee = 0;
+            const netAmount = val;
 
             // Update Balance (Net)
             const newBalance = balance + netAmount;
@@ -186,21 +186,14 @@ export default function WalletPage() {
             await supabase.from('transactions').insert({
                 user_id: user.id,
                 type: 'DEPOSIT',
-                amount: val, // Log gross amount
+                amount: val,
                 status: 'COMPLETED',
                 description: 'Depósito via PIX'
             });
 
-            // Log Transaction (Fee)
-            await supabase.from('transactions').insert({
-                user_id: user.id,
-                type: 'FEE',
-                amount: -fee, // Negative amount
-                status: 'COMPLETED',
-                description: 'Taxa de Depósito (3%)'
-            });
+            // No Fee Log needed if 0, or log 0 if tracking is desired. We skip for now.
 
-            alert(`Depósito de R$ ${val.toFixed(2)} confirmado!\nTaxa (3%): R$ ${fee.toFixed(2)}\nSaldo Creditado: R$ ${netAmount.toFixed(2)}`);
+            alert(`Depósito de R$ ${val.toFixed(2)} confirmado!\nSaldo Creditado: R$ ${netAmount.toFixed(2)}`);
             setIsDepositOpen(false);
             fetchWalletData();
         } catch (error) {
@@ -221,8 +214,10 @@ export default function WalletPage() {
     const handleWithdraw = async () => {
         if (!user) return;
         const val = parseFloat(withdrawAmount);
-        if (!val || val <= 0) {
-            alert("Valor inválido.");
+
+        // Min Withdraw Check
+        if (!val || val < 10) {
+            alert("Valor mínimo de saque: R$ 10,00");
             return;
         }
         if (!withdrawPixKey) {
@@ -230,15 +225,15 @@ export default function WalletPage() {
             return;
         }
 
-        const fee = val * 0.03;
+        const fee = 2.90; // Fixed Fee
         const totalDeduction = val + fee;
 
         if (totalDeduction > balance) {
-            alert(`Saldo insuficiente.\nPara sacar R$ ${val}, você precisa de R$ ${totalDeduction.toFixed(2)} (incl. 3% taxa).`);
+            alert(`Saldo insuficiente.\nPara sacar R$ ${val.toFixed(2)}, você precisa de R$ ${totalDeduction.toFixed(2)} (incl. taxa R$ 2,90).`);
             return;
         }
 
-        if (!confirm(`Confirmar saque?\n\nValor: R$ ${val.toFixed(2)}\nTaxa (3%): R$ ${fee.toFixed(2)}\nTotal Debitado: R$ ${totalDeduction.toFixed(2)}`)) return;
+        if (!confirm(`Confirmar saque?\n\nValor: R$ ${val.toFixed(2)}\nTaxa Fixa: R$ ${fee.toFixed(2)}\nTotal Debitado: R$ ${totalDeduction.toFixed(2)}`)) return;
 
         setLoading(true);
         try {
@@ -261,7 +256,7 @@ export default function WalletPage() {
                 type: 'FEE',
                 amount: -fee,
                 status: 'COMPLETED',
-                description: 'Taxa de Saque (3%)'
+                description: 'Taxa de Saque (Fixa)'
             });
 
             alert("Solicitação de saque enviada com sucesso! Processamento em até 24h.");
@@ -533,17 +528,17 @@ export default function WalletPage() {
 
                         <div className="text-center space-y-2">
                             <h3 className="text-xl font-bold text-white">Solicitar Saque</h3>
-                            <p className="text-sm text-gray-400">Taxa de 3% por operação</p>
+                            <p className="text-sm text-gray-400">Taxa fixa de R$ 2,90 por operação</p>
                         </div>
 
                         <div className="space-y-4">
                             <div className="bg-black/30 rounded-xl p-4 border border-white/5">
-                                <label className="text-xs text-gray-500 block mb-1">Valor do Saque</label>
+                                <label className="text-xs text-gray-500 block mb-1">Valor do Saque (mín. R$ 10)</label>
                                 <div className="flex items-center gap-2">
                                     <span className="text-gray-400 font-bold">R$</span>
                                     <input
                                         type="number"
-                                        min="0"
+                                        min="10"
                                         value={withdrawAmount}
                                         onChange={(e) => setWithdrawAmount(e.target.value)}
                                         className="bg-transparent text-3xl font-bold text-white w-full focus:outline-none placeholder-gray-600"
@@ -571,13 +566,13 @@ export default function WalletPage() {
                                         <span>R$ {parseFloat(withdrawAmount).toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-red-400">
-                                        <span>Taxa (3%)</span>
-                                        <span>+ R$ {(parseFloat(withdrawAmount) * 0.03).toFixed(2)}</span>
+                                        <span>Taxa Fixa</span>
+                                        <span>+ R$ 2,90</span>
                                     </div>
                                     <div className="border-t border-white/10 my-1"></div>
                                     <div className="flex justify-between text-sm font-bold text-white">
                                         <span>Total Debitado</span>
-                                        <span>R$ {(parseFloat(withdrawAmount) * 1.03).toFixed(2)}</span>
+                                        <span>R$ {(parseFloat(withdrawAmount) + 2.90).toFixed(2)}</span>
                                     </div>
                                 </div>
                             )}

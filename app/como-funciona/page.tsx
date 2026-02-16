@@ -139,46 +139,24 @@ export default function HowItWorksPage() {
                             </div>
                         </div>
 
-                        {/* Calculation Box */}
+                        {/* Calculation Box - REMOVED per request to avoid misleading profit expectations */}
                         <div className="bg-black/40 rounded-xl p-6 border border-white/5 space-y-4">
                             <h4 className="font-bold text-white flex items-center gap-2">
                                 <CheckCircle className="w-5 h-5 text-blue-500" />
-                                Resultado: Mario Venceu! (A Zebra Pagou Bem)
+                                Como funciona a divisão?
                             </h4>
                             <p className="text-sm text-gray-400">
-                                Como pouca gente escolheu o Mario, o prêmio (que veio do dinheiro de quem escolheu o Luigi) é dividido entre poucas pessoas.
+                                Como menos pessoas escolheram o Mario, o prêmio (que veio do montante de quem escolheu o Luigi) é dividido entre poucos participantes.
                             </p>
 
-                            <div className="space-y-3 text-sm font-mono bg-black/30 p-4 rounded border border-white/5">
-                                <div className="flex justify-between text-gray-400">
-                                    <span>Pool Total</span>
-                                    <span>R$ 400.000,00</span>
-                                </div>
-                                <div className="flex justify-between text-red-500">
-                                    <span>Taxa da Casa (35%)</span>
-                                    <span>- R$ 140.000,00</span>
-                                </div>
-                                <div className="h-px bg-white/10 my-1"></div>
-                                <div className="flex justify-between text-lg font-bold text-white">
-                                    <span>Prêmio Líquido a Distribuir</span>
-                                    <span>R$ 260.000,00</span>
-                                </div>
+                            <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg text-center">
+                                <div className="text-xs text-blue-300 uppercase font-bold mb-1">Quem escolheu Mario (A Zebra)</div>
+                                <div className="text-white font-bold">Recebe uma fatia maior do bolo</div>
+                                <div className="text-xs text-gray-400 mt-1">Multiplicador alto (ex: 2.5x, 3.0x...)</div>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg text-center">
-                                    <div className="text-xs text-blue-300 uppercase font-bold mb-1">Se você colocou R$ 100 no Mario</div>
-                                    <div className="text-2xl font-black text-white">Recebe R$ 260,00</div>
-                                    <div className="text-xs text-gray-400 mt-1">Lucro de R$ 160 (2.6x)</div>
-                                </div>
-                                <div className="bg-green-500/5 border border-white/5 p-4 rounded-lg text-center opacity-50">
-                                    <div className="text-xs text-gray-500 uppercase font-bold mb-1">Se Luigi tivesse vencido</div>
-                                    <div className="text-xl font-bold text-gray-400">Receberia R$ 86,66</div>
-                                    <div className="text-xs text-gray-500 mt-1">Prejuízo (0.86x) pois era muito favorito</div>
-                                </div>
-                            </div>
                             <p className="text-xs text-center text-gray-500 mt-2">
-                                *Nota: Entrar no favorito absoluto pode render menos que o valor aportado após as taxas, fique atento às Odds!
+                                *Nota: Prever o favorito absoluto (muita gente escolhendo) rende menos, pois o prêmio é dividido por mais pessoas.
                             </p>
                         </div>
                     </div>
