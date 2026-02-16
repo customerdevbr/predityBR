@@ -104,6 +104,32 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
     const yesPct = Math.round(probYes * 100);
     const noPct = Math.round(probNo * 100);
 
+    // Synthetic Chart Data (Two lines "fighting")
+    const [chartData] = useState(() => {
+        const points = 20;
+        const data = [];
+        let currentYes = yesPct;
+
+        // Generate backwards
+        for (let i = 0; i < points; i++) {
+            const currentNo = 100 - currentYes;
+            data.unshift({ yes: currentYes, no: currentNo });
+
+            // Random walk
+            currentYes = currentYes + (Math.random() * 10 - 5);
+            if (currentYes < 10) currentYes = 10;
+            if (currentYes > 90) currentYes = 90;
+        }
+        return data;
+    });
+
+    // Time Remaining Logic
+    const end = new Date(endDate);
+    const now = new Date();
+    const daysLeft = differenceInDays(end, now);
+    const timeDisplay = formatDistanceToNow(end, { locale: ptBR, addSuffix: false });
+    const isUrgent = daysLeft < 2;
+
     return (
         <Link
             href={`/app/markets/${id}`}
