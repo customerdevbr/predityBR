@@ -1,120 +1,64 @@
-"use client";
+import { createClient } from '@/lib/supabase/server';
+import RegisterForm from '@/components/RegisterForm';
+import HeroCardStack from '@/components/HeroCardStack';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Mail, Lock, ArrowRight, User } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+export const dynamic = 'force-dynamic';
 
-export default function RegisterPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [fullName, setFullName] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
+export default async function RegisterPage() {
+    const supabase = await createClient();
 
-    const handleRegister = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
+    // Fetch Trending for Hero Card Stack
+    const { data: trending } = await supabase
+        .from('markets')
+        .select('*')
+        .eq('status', 'OPEN')
+        .order('total_pool', { ascending: false })
+        .limit(3);
 
-        try {
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`, // Auto-generate avatar
-                    },
-                },
-            });
+    // Process Hero Cards Data
+    const heroCards = trending ? trending.map(m => {
+        const pool = m.total_pool || 0;
+        const yes = m.total_yes_amount || 0;
+        const no = m.total_no_amount || 0;
+        const yesPct = pool > 0 ? (yes / pool) * 100 : 50;
+        const yesOdds = yes > 0 ? pool / yes : 2;
+        const noOdds = no > 0 ? pool / no : 2;
 
-            if (error) throw error;
+        const end = new Date(m.end_date);
+        const now = new Date();
+        const diffTime = Math.abs(end.getTime() - now.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const isToday = end.getDate() === now.getDate() && end.getMonth() === now.getMonth();
 
-            alert('Cadastro realizado! Verifique seu email para confirmar.');
-            router.push('/login');
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+        let expireLabel = `Expira em ${diffDays} dias`;
+        if (isToday) expireLabel = "EXPIRA HOJE";
+        else if (diffDays === 1) expireLabel = "EXPIRA AMANHÃ";
+
+        return {
+            id: m.id,
+            title: m.title,
+            category: m.category,
+            yes: yesOdds,
+            no: noOdds,
+            pct: yesPct,
+            expireLabel,
+            metadata: m.metadata
+        };
+    }) : [];
 
     return (
-        <div className="max-w-md mx-auto py-12">
-            <div className="bg-surface border border-surface rounded-xl p-8 space-y-6 shadow-2xl">
-                <div className="text-center space-y-2">
-                    <h1 className="text-2xl font-bold">Criar Conta</h1>
-                    <p className="text-gray-400 text-sm">Junte-se a milhares de apostadores</p>
+        <div className="min-h-screen py-12 flex flex-col items-center justify-center relative overflow-hidden">
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/20 blur-[150px] rounded-full opacity-20 pointer-events-none"></div>
+
+            <div className="w-full max-w-md space-y-8 relative z-10 px-4">
+                {/* Hero Stack Above Form */}
+                <div className="flex justify-center mb-8 h-48 sm:h-64">
+                    <HeroCardStack cards={heroCards} />
                 </div>
 
-                {error && (
-                    <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg text-center">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleRegister} className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase">Nome Completo</label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                            <input
-                                type="text"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                className="w-full bg-black/40 border border-surface rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary transition-all"
-                                placeholder="Seu Nome"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-black/40 border border-surface rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary transition-all"
-                                placeholder="seu@email.com"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase">Senha</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-black/40 border border-surface rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary transition-all"
-                                placeholder="••••••••"
-                                required
-                                minLength={6}
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {loading ? 'Criando conta...' : 'Registrar'} <ArrowRight className="w-4 h-4" />
-                    </button>
-                </form>
-
-                <div className="text-center text-sm text-gray-400">
-                    Já tem uma conta? <Link href="/login" className="text-primary hover:underline">Fazer login</Link>
-                </div>
+                {/* Register Form */}
+                <RegisterForm />
             </div>
         </div>
     );

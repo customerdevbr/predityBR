@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Zap, Trophy } from 'lucide-react';
 import MarketCard from '@/components/MarketCard';
 import Footer from '@/components/Footer';
+import HeroCardStack from '@/components/HeroCardStack';
 
 const TYPING_WORDS = ["Política", "Futebol", "BBB", "Economia", "Oscar"];
 
@@ -17,16 +18,7 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
     const [text, setText] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
     const [wordIndex, setWordIndex] = useState(0);
-    const [activeCardIndex, setActiveCardIndex] = useState(0);
-
-    // Card Rotation Interval
-    useEffect(() => {
-        if (heroCards.length === 0) return;
-        const interval = setInterval(() => {
-            setActiveCardIndex((prev) => (prev + 1) % heroCards.length);
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [heroCards.length]);
+    // Card Rotation Interval (Moved to HeroCardStack)
 
     // Typewriter Effect
     useEffect(() => {
@@ -91,70 +83,9 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                 </div>
 
                 {/* Hero Feature Visual (Stacking Cards) */}
-                <div className="relative hidden md:block h-[400px] flex items-center justify-center">
+                <div className="relative hidden md:flex h-[400px] items-center justify-center">
                     <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full opacity-30"></div>
-
-                    {/* Cards Stack */}
-                    <div className="relative w-full max-w-sm h-64">
-                        {heroCards.length > 0 ? heroCards.map((card, index) => {
-                            // Calculate position relative to active card
-                            let offset = (index - activeCardIndex + heroCards.length) % heroCards.length;
-
-                            // Visual States
-                            const isActive = offset === 0;
-                            const isNext = offset === 1;
-                            const isPrev = offset === 2;
-
-                            if (heroCards.length > 3 && !isActive && !isNext && !isPrev) return null;
-
-                            return (
-                                <div
-                                    key={card.id}
-                                    className={`absolute top-0 left-0 w-full bg-surface/80 border border-white/10 rounded-2xl p-6 backdrop-blur-md shadow-2xl transition-all duration-700 ease-in-out ${isActive
-                                        ? 'z-30 opacity-100 scale-100 translate-y-0 rotate-0'
-                                        : isNext
-                                            ? 'z-20 opacity-60 scale-95 translate-y-4 rotate-2'
-                                            : 'z-10 opacity-40 scale-90 translate-y-8 rotate-4'
-                                        }`}
-                                >
-                                    <div className="flex justify-between items-center mb-6">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{card.category}</span>
-                                        <div className="px-2 py-1 bg-red-500/20 text-red-500 text-[10px] font-bold rounded animate-pulse uppercase">{card.expireLabel}</div>
-                                    </div>
-                                    <h4 className="text-xl font-bold text-white mb-4 line-clamp-2">{card.title}</h4>
-
-                                    <div className="flex gap-2 mb-4">
-                                        <div className="flex-1 bg-surface h-2 rounded-full overflow-hidden">
-                                            <div className="bg-green-500 h-full transition-all duration-500" style={{ width: `${card.pct}%` }}></div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        <div className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg text-center font-bold text-sm relative overflow-hidden group">
-                                            {card.metadata?.yes_image ? (
-                                                <img src={card.metadata.yes_image} className="absolute left-0 top-0 h-full w-10 object-cover opacity-20 group-hover:opacity-40 transition-opacity" />
-                                            ) : (
-                                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">S</div>
-                                            )}
-                                            <span className="relative z-10">SIM {card.yes.toFixed(2)}x</span>
-                                        </div>
-                                        <div className="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-lg text-center font-bold text-sm relative overflow-hidden group">
-                                            {card.metadata?.no_image ? (
-                                                <img src={card.metadata.no_image} className="absolute right-0 top-0 h-full w-10 object-cover opacity-20 group-hover:opacity-40 transition-opacity" />
-                                            ) : (
-                                                <div className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">N</div>
-                                            )}
-                                            <span className="relative z-10">NÃO {card.no.toFixed(2)}x</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        }) : (
-                            <div className="absolute top-0 left-0 w-full bg-surface/80 border border-white/10 rounded-2xl p-6 backdrop-blur-md shadow-2xl flex items-center justify-center">
-                                <p className="text-gray-400">Carregando eventos...</p>
-                            </div>
-                        )}
-                    </div>
+                    <HeroCardStack cards={heroCards} />
                 </div>
             </section>
 
