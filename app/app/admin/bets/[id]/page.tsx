@@ -175,6 +175,27 @@ export default function EditBetPage() {
         }
     };
 
+    const handleVoid = async () => {
+        if (!confirm("ATENÇÃO: Tem certeza que deseja ANULAR esta aposta?\n\nIsso irá:\n1. Cancelar o mercado.\n2. Estornar 100% do valor apostado para as contas dos usuários.\n\nEssa ação não pode ser desfeita.")) return;
+
+        setResolving(true);
+        try {
+            const { error } = await supabase.rpc('void_market', {
+                p_market_id: id
+            });
+
+            if (error) throw error;
+
+            alert("Aposta anulada e valores estornados com sucesso!");
+            router.push('/app/admin/bets');
+        } catch (error: any) {
+            console.error("Void Error:", error);
+            alert("Erro ao anular: " + error.message);
+        } finally {
+            setResolving(false);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-gray-500">Carregando detalhes...</div>;
 
     return (
@@ -291,29 +312,52 @@ export default function EditBetPage() {
                                     <p>Atenção: A resolução é irreversível. Certifique-se do resultado oficial antes de confirmar.</p>
                                 </div>
 
-                                <button
-                                    onClick={() => handleResolve('YES')}
-                                    disabled={resolving}
-                                    className="w-full py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-                                >
-                                    <CheckCircle className="w-4 h-4" />
-                                    Venceu SIM
-                                </button>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => handleResolve('YES')}
+                                        disabled={resolving}
+                                        className="py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <CheckCircle className="w-4 h-4" />
+                                        Sim
+                                    </button>
 
-                                <button
-                                    onClick={() => handleResolve('NO')}
-                                    disabled={resolving}
-                                    className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-                                >
-                                    <XCircle className="w-4 h-4" /> {/* Wait, imported XCircle? No, imported Ban contextually above, let me import XCircle */}
-                                    Venceu NÃO
-                                </button>
+                                    <button
+                                        onClick={() => handleResolve('NO')}
+                                        disabled={resolving}
+                                        className="py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <XCircle className="w-4 h-4" />
+                                        Não
+                                    </button>
+                                </div>
+
+                                <div className="pt-4 border-t border-white/5">
+                                    <button
+                                        onClick={handleVoid}
+                                        disabled={resolving}
+                                        className="w-full py-3 bg-gray-500/10 hover:bg-gray-500/20 border border-gray-500/30 text-gray-400 hover:text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <Ban className="w-4 h-4" />
+                                        Anular Aposta (Estorno Total)
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="text-center py-6 bg-black/20 rounded-lg border border-white/5">
-                                <CheckCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                                <p className="text-white font-bold">Aposta Resolvida</p>
-                                <p className="text-sm text-gray-500">Resultado: {formData.resolution_result === 'YES' ? 'SIM' : 'NÃO'}</p>
+                                {formData.status === 'CANCELED' ? (
+                                    <>
+                                        <Ban className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                                        <p className="text-white font-bold">Aposta Anulada</p>
+                                        <p className="text-sm text-gray-500">Valores estornados.</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                                        <p className="text-white font-bold">Aposta Resolvida</p>
+                                        <p className="text-sm text-gray-500">Resultado: {formData.resolution_result === 'YES' ? 'SIM' : 'NÃO'}</p>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

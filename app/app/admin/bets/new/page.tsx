@@ -21,6 +21,7 @@ export default function NewBetPage() {
         initial_pool: number;
         outcomes: string[];
         outcome_images: string[];
+        slug: string;
     }>({
         title: '',
         description: '',
@@ -31,7 +32,8 @@ export default function NewBetPage() {
         no_image_url: '',
         initial_pool: 0,
         outcomes: ['SIM', 'NÃO'],
-        outcome_images: ['', ''] // Parallel array
+        outcome_images: ['', ''], // Parallel array
+        slug: ''
     });
 
     const handleChange = (e: any) => {
@@ -103,7 +105,8 @@ export default function NewBetPage() {
                 // Deprecated but keep for now just in case
                 total_yes_amount: 0,
                 total_no_amount: 0,
-                created_by: user.id
+                created_by: user.id,
+                slug: formData.slug || undefined // If empty, let trigger handle it
             });
 
             // Race Condition
@@ -224,12 +227,35 @@ export default function NewBetPage() {
                             <input
                                 name="title"
                                 value={formData.title}
-                                onChange={handleChange}
+                                onChange={(e) => {
+                                    const title = e.target.value;
+                                    const slug = title
+                                        .toLowerCase()
+                                        .normalize("NFD")
+                                        .replace(/[\u0300-\u036f]/g, "")
+                                        .replace(/[^a-z0-9]+/g, "-")
+                                        .replace(/^-+|-+$/g, "");
+
+                                    setFormData(prev => ({ ...prev, title, slug }));
+                                }}
                                 type="text"
                                 placeholder="Ex: O dólar vai cair amanhã?"
                                 className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
                                 required
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-400">Slug (URL Amigável)</label>
+                            <input
+                                name="slug"
+                                value={formData.slug}
+                                onChange={handleChange}
+                                type="text"
+                                placeholder="ex: lula-sera-eleito-2026"
+                                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-gray-300 focus:outline-none focus:border-primary"
+                            />
+                            <p className="text-xs text-gray-500">Link final: https://preditybr.com/app/markets/{formData.slug || '...'}</p>
                         </div>
 
                         <div className="space-y-2">

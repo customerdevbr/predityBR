@@ -21,7 +21,7 @@ export default function WalletPage() {
     const [isDepositOpen, setIsDepositOpen] = useState(false);
     const [depositStep, setDepositStep] = useState(1); // 1: Amount, 2: PIX
     const [depositAmount, setDepositAmount] = useState<string>('');
-    const [pixKey] = useState("00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540410.005802BR5913Predity Pagamentos6008Brasilia62070503***6304E2CA");
+    const [pixKey, setPixKey] = useState(""); // Empty initially, populated by API
 
     // Withdrawal Modal State
     const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
@@ -159,49 +159,47 @@ export default function WalletPage() {
         setIsDepositOpen(true);
     };
 
-    const confirmDepositAmount = () => {
+    const confirmDepositAmount = async () => {
         const val = parseFloat(depositAmount);
         if (!val || val < 1) {
             alert("Valor mínimo de R$ 1,00");
             return;
         }
-        setDepositStep(2);
-    };
 
-    const finalizeDeposit = async () => {
-        if (!user) return;
         setLoading(true);
-        const val = parseFloat(depositAmount);
-
         try {
-            // Fee Calculation (0% - Free)
-            const fee = 0;
-            const netAmount = val;
-
-            // Update Balance (Net)
-            const newBalance = balance + netAmount;
-            await supabase.from('users').update({ balance: newBalance }).eq('id', user.id);
-
-            // Log Transaction (Deposit)
-            await supabase.from('transactions').insert({
-                user_id: user.id,
-                type: 'DEPOSIT',
-                amount: val,
-                status: 'COMPLETED',
-                description: 'Depósito via PIX'
+            const res = await fetch('/api/deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: val,
+                    userId: user.id
+                })
             });
+            const data = await res.json();
 
-            // No Fee Log needed if 0, or log 0 if tracking is desired. We skip for now.
+            if (!res.ok) throw new Error(data.error || "Falha ao gerar PIX");
 
-            alert(`Depósito de R$ ${val.toFixed(2)} confirmado!\nSaldo Creditado: R$ ${netAmount.toFixed(2)}`);
-            setIsDepositOpen(false);
-            fetchWalletData();
-        } catch (error) {
-            console.error(error);
-            alert("Erro ao processar depósito.");
+            if (data.qrCode) {
+                setPixKey(data.qrCode);
+                setDepositStep(2);
+            } else {
+                alert("Ocorreu um erro: API não retornou o código PIX.");
+            }
+
+        } catch (err: any) {
+            alert(err.message);
         } finally {
             setLoading(false);
         }
+    };
+
+    const finalizeDeposit = async () => {
+        // In the real flow, we wait for webhook.
+        // But users might want a "Check Status" button.
+        alert("Aguardando confirmação do pagamento... O saldo será atualizado automaticamente assim que o banco confirmar.");
+        setIsDepositOpen(false);
+        fetchWalletData();
     };
 
     // --- WITHDRAW FLOW ---

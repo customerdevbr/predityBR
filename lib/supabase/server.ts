@@ -14,9 +14,12 @@ export async function createClient() {
                 },
                 setAll(cookiesToSet) {
                     try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        )
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            // Note: We can't easily check hostname here without request context
+                            // But usually server components don't set auth cookies directly (middleware/auth routes do).
+                            // We'll keep standard behavior but ensure SameSite is lax
+                            cookieStore.set(name, value, { ...options, sameSite: 'lax' })
+                        })
                     } catch {
                         // The `setAll` method was called from a Server Component.
                         // This can be ignored if you have middleware refreshing

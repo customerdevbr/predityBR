@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Mail, MessageCircle, MoreVertical, Search, User } from 'lucide-react';
+import { Mail, MessageCircle, MoreVertical, Search, User, CheckCircle, Paperclip } from 'lucide-react';
 
 export default function AdminSupportPage() {
     const [tickets, setTickets] = useState<any[]>([]);
@@ -25,6 +25,145 @@ export default function AdminSupportPage() {
             if (data.length > 0) setSelectedTicket(data[0]);
         }
         setLoading(false);
+    };
+
+    // Chat Logic
+    const [messages, setMessages] = useState<any[]>([]);
+    const [reply, setReply] = useState("");
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Fetch Messages when Ticket Selected
+    useEffect(() => {
+        if (!selectedTicket) return;
+
+        const fetchMessages = async () => {
+            const { data } = await supabase
+                .from('support_messages')
+                .select('*')
+                .eq('ticket_id', selectedTicket.id)
+                .order('created_at', { ascending: true });
+            if (data) setMessages(data);
+        };
+
+        fetchMessages();
+
+        // Subscribe to this ticket's messages
+        const channel = supabase
+            .channel(`admin_ticket_${selectedTicket.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'support_messages',
+                    filter: `ticket_id=eq.${selectedTicket.id}`
+                },
+                (payload) => {
+                    setMessages((prev) => [...prev, payload.new]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [selectedTicket]);
+
+    // Auto-scroll
+    useEffect(() => {
+        if (selectedTicket) {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, selectedTicket]);
+
+    const handleSendReply = async () => {
+        if (!reply.trim() || !selectedTicket) return;
+
+        const text = reply;
+        setReply("");
+
+        // Optimistic Update
+        const tempMsg = {
+            id: 'temp-' + Date.now(),
+            ticket_id: selectedTicket.id,
+            user_id: selectedTicket.user_id,
+            message: text,
+            sender: 'agent',
+            created_at: new Date().toISOString()
+        };
+        setMessages((prev) => [...prev, tempMsg]);
+
+        try {
+            // 1. Insert Message
+            const { error: msgError } = await supabase.from('support_messages').insert({
+                ticket_id: selectedTicket.id,
+                user_id: selectedTicket.user_id, // Important for RLS if user reads by own ID
+                message: text,
+                sender: 'agent'
+            });
+
+            if (msgError) throw msgError;
+
+            // 2. Update Ticket Status if needed (OPTIONAL)
+            if (selectedTicket.status === 'OPEN') {
+                await supabase
+                    .from('support_tickets')
+                    .update({ status: 'IN_PROGRESS' })
+                    .eq('id', selectedTicket.id);
+                // Ideally update local state too
+            }
+
+        } catch (err: any) {
+            alert("Erro ao enviar: " + err.message);
+            setReply(text); // Revert
+            setMessages((prev) => prev.filter(m => m.id !== tempMsg.id)); // Remove temp
+        }
+    };
+
+    const handleResolve = async () => {
+        if (!selectedTicket) return;
+        if (!confirm("Marcar ticket como RESOLVIDO?")) return;
+
+        // Optimistic Update
+        const tempMsg = {
+            id: 'temp-' + Date.now(),
+            ticket_id: selectedTicket.id,
+            user_id: selectedTicket.user_id,
+            message: "Chamado finalizado pelo suporte.",
+            sender: 'agent',
+            created_at: new Date().toISOString()
+        };
+        setMessages((prev) => [...prev, tempMsg]);
+        setSelectedTicket((prev: any) => ({ ...prev, status: 'RESOLVED' }));
+
+        try {
+            // 1. Insert "Finalized" System Message
+            // Using 'agent' sender to comply with DB constraints, 
+            // UI detects the specific message text to style it as system.
+            const { error: msgError } = await supabase.from('support_messages').insert({
+                ticket_id: selectedTicket.id,
+                user_id: selectedTicket.user_id,
+                message: "Chamado finalizado pelo suporte.",
+                sender: 'agent'
+            });
+
+            if (msgError) throw msgError;
+
+            // 2. Update Status
+            const { error } = await supabase
+                .from('support_tickets')
+                .update({ status: 'RESOLVED' })
+                .eq('id', selectedTicket.id);
+
+            if (error) throw error;
+
+            // Refresh list
+            fetchTickets();
+
+        } catch (error: any) {
+            alert("Erro: " + error.message);
+            // Revert state if possible or just alert
+        }
     };
 
     return (
@@ -61,7 +200,7 @@ export default function AdminSupportPage() {
                                             {new Date(ticket.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-gray-400 line-clamp-2">{ticket.description || 'Sem descrição.'}</p>
+                                    <p className="text-xs text-gray-400 line-clamp-2">{ticket.status}</p>
                                     <div className="mt-2 flex items-center gap-2">
                                         <div className="w-5 h-5 rounded-full bg-surface border border-white/10 flex items-center justify-center text-[8px] text-gray-400">
                                             <User className="w-3 h-3" />
@@ -91,28 +230,57 @@ export default function AdminSupportPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <button className="text-gray-400 hover:text-white">
-                                    <MoreVertical className="w-5 h-5" />
+                                <button
+                                    onClick={handleResolve}
+                                    className="text-gray-400 hover:text-green-500 flex items-center gap-2 text-xs border border-white/10 px-3 py-1.5 rounded transition-colors"
+                                >
+                                    <CheckCircle className="w-4 h-4" /> Resolver
                                 </button>
                             </div>
 
                             {/* Messages */}
                             <div className="flex-1 p-4 overflow-y-auto space-y-4">
-                                <div className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-surface border border-white/10 flex-shrink-0"></div>
-                                    <div className="bg-surface border border-white/10 p-3 rounded-r-xl rounded-bl-xl max-w-[80%]">
-                                        <p className="text-sm text-gray-300">{selectedTicket.description || '...'}</p>
-                                        <span className="text-[10px] text-gray-500 block mt-1">
-                                            {new Date(selectedTicket.created_at).toLocaleTimeString()}
-                                        </span>
-                                    </div>
-                                </div>
-                                {/* System response placeholder */}
-                                <div className="flex gap-3 justify-end">
-                                    <div className="bg-white/5 p-3 rounded-lg max-w-[80%] text-center">
-                                        <p className="text-xs text-gray-500">Histórico de mensagens não implementado no MVP.</p>
-                                    </div>
-                                </div>
+                                {messages.length === 0 && (
+                                    <div className="text-center text-gray-500 text-sm mt-10">Histórico vazio.</div>
+                                )}
+                                {messages.map((msg) => {
+                                    const isSystemMessage = msg.message === "Chamado finalizado pelo suporte.";
+                                    return (
+                                        <div key={msg.id} className={`flex gap-3 ${msg.sender === 'agent' && !isSystemMessage ? 'justify-end' : isSystemMessage ? 'justify-center' : 'justify-start'}`}>
+                                            {msg.sender !== 'agent' && !isSystemMessage && <div className="w-8 h-8 rounded-full bg-surface border border-white/10 flex-shrink-0 flex items-center justify-center text-xs"><User className="w-4 h-4" /></div>}
+
+                                            <div className={`p-3 rounded-lg max-w-[80%] ${msg.sender === 'agent' && !isSystemMessage
+                                                ? 'bg-primary text-white rounded-tr-none'
+                                                : isSystemMessage
+                                                    ? 'bg-white/10 text-gray-400 text-xs italic py-1 px-4 rounded-full my-2'
+                                                    : 'bg-surface border border-white/10 text-gray-300 rounded-tl-none'
+                                                }`}>
+
+                                                {msg.attachment_url ? (
+                                                    msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                        <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                                                            <img src={msg.attachment_url} alt="Anexo" className="rounded-md max-w-full h-auto border border-white/10 mb-2" />
+                                                        </a>
+                                                    ) : (
+                                                        <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs underline mb-2">
+                                                            <div className="w-4 h-4"><Paperclip className="w-3 h-3" /></div> Ver Anexo
+                                                        </a>
+                                                    )
+                                                ) : null}
+
+                                                <p className="text-sm">{msg.message}</p>
+                                                {!isSystemMessage && (
+                                                    <span className="text-[10px] opacity-50 block mt-1 text-right">
+                                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {msg.sender === 'agent' && !isSystemMessage && <div className="w-8 h-8 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center text-xs text-primary font-bold">A</div>}
+                                        </div>
+                                    );
+                                })}
+                                <div ref={messagesEndRef} />
                             </div>
 
                             {/* Input */}
@@ -120,11 +288,18 @@ export default function AdminSupportPage() {
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
+                                        value={reply}
+                                        onChange={(e) => setReply(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSendReply()}
                                         placeholder="Digite sua resposta..."
-                                        disabled
-                                        className="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-primary opacity-50 cursor-not-allowed"
+                                        disabled={selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'}
+                                        className="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
-                                    <button disabled className="bg-primary hover:bg-primary/90 text-white p-3 rounded-lg transition-colors opacity-50 cursor-not-allowed">
+                                    <button
+                                        onClick={handleSendReply}
+                                        disabled={!reply.trim() || selectedTicket.status === 'RESOLVED'}
+                                        className="bg-primary hover:bg-primary/90 text-white p-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
                                         <MessageCircle className="w-5 h-5" />
                                     </button>
                                 </div>

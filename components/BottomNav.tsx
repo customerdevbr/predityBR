@@ -36,14 +36,19 @@ export default function BottomNav() {
                 {navItems.map(({ label, href, icon: Icon }) => {
                     const isActive = pathname === href;
                     return (
-                        <Link
+                        <a
                             key={href}
-                            href={href}
+                            href={
+                                process.env.NODE_ENV === 'production' && !window.location.hostname.includes('vercel.app')
+                                    ? `https://app.preditybr.com${href}`
+                                    : href
+                            }
+                            // Use <a> instead of Link to force full page load
                             className={`flex flex-col items-center gap-1 transition-colors ${isActive ? 'text-primary' : 'text-gray-500 hover:text-gray-300'}`}
                         >
                             <Icon className={`w-6 h-6 ${isActive ? 'fill-primary/20' : ''}`} />
                             <span className="text-[10px] font-bold uppercase tracking-wide">{label}</span>
-                        </Link>
+                        </a>
                     )
                 })}
             </div>

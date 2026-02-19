@@ -100,6 +100,7 @@ export default function MarketsPage() {
                             yesAmount={market.total_yes_amount || 0}
                             noAmount={market.total_no_amount || 0}
                             metadata={market.metadata}
+                            slug={market.slug}
                         />
                     ))}
 

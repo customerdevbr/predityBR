@@ -26,8 +26,17 @@ export default function LoginForm() {
 
             if (error) throw error;
 
-            router.push('/app/markets');
-            router.refresh(); // Refresh to update auth state in UI
+            if (error) throw error;
+
+            // Force hard redirect to App subdomain to avoid client-side routing issues across domains
+            // and ensure cookies are properly recognized on the new subdomain.
+            const targetUrl = process.env.NODE_ENV === 'production'
+                ? 'https://app.preditybr.com/app/markets'
+                : '/app/markets'; // Localhost fallback
+
+            window.location.href = targetUrl;
+            // router.push('/app/markets');
+            // router.refresh();
         } catch (err: any) {
             setError(err.message === "Invalid login credentials" ? "Email ou senha incorretos." : err.message);
         } finally {

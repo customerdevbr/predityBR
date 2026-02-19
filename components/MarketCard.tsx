@@ -20,9 +20,10 @@ interface MarketCardProps {
     outcomes?: string[]; // New
     outcomePools?: Record<string, number>; // New
     metadata?: any;
+    slug?: string;
 }
 
-export default function MarketCard({ id, title, category, imageUrl, endDate, pool, yesAmount, noAmount, outcomes, outcomePools, metadata }: MarketCardProps) {
+export default function MarketCard({ id, title, category, imageUrl, endDate, pool, yesAmount, noAmount, outcomes, outcomePools, metadata, slug }: MarketCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [ticker, setTicker] = useState<{ id: number, value: number, type: 'yes' | 'no', top: number, left: number }[]>([]);
 
@@ -132,7 +133,7 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
 
     return (
         <Link
-            href={`/app/markets/${id}`}
+            href={`/app/markets/${slug || id}`}
             className="block group relative"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

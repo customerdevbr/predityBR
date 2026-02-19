@@ -15,15 +15,28 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                    cookiesToSet.forEach(({ name, value, options }) => {
                         request.cookies.set(name, value)
-                    )
+                    })
                     supabaseResponse = NextResponse.next({
                         request,
                     })
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    )
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        // Dynamic Cookie Domain Logic
+                        const hostname = request.headers.get('host') || '';
+                        let domainOption = {};
+
+                        // Only set cross-subdomain cookie if we are strictly on the official domain
+                        if (hostname.includes('preditybr.com')) {
+                            domainOption = { domain: '.preditybr.com' };
+                        }
+
+                        supabaseResponse.cookies.set(name, value, {
+                            ...options,
+                            ...domainOption,
+                            sameSite: 'lax', // Required for cross-subdomain
+                        })
+                    })
                 },
             },
         }
