@@ -144,6 +144,24 @@ export default function XGateDebugPage() {
     const [userDetail, setUserDetail] = useState<any>(null);
     const [userDetailLoading, setUserDetailLoading] = useState(false);
     const [userSearch, setUserSearch] = useState('');
+    const [discoverResult, setDiscoverResult] = useState<any>(null);
+    const [discovering, setDiscovering] = useState(false);
+
+    const runDiscover = async () => {
+        setDiscovering(true);
+        setDiscoverResult(null);
+        try {
+            const res = await fetch('/api/xgate-discover', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: users[0]?.email }),
+            });
+            setDiscoverResult(await res.json());
+        } catch (e: any) {
+            setDiscoverResult({ error: e.message });
+        }
+        setDiscovering(false);
+    };
 
     const runDiagnostic = async () => {
         setLoading(true);
@@ -223,7 +241,15 @@ export default function XGateDebugPage() {
                     <h1 className="text-2xl font-black text-white">🔍 PIX Debug — XGate</h1>
                     <p className="text-xs text-gray-500 mt-1">Página oculta de diagnóstico — não indexada</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                    <button
+                        onClick={runDiscover}
+                        disabled={discovering}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg disabled:opacity-50"
+                    >
+                        <Search className={`w-4 h-4 ${discovering ? 'animate-spin' : ''}`} />
+                        {discovering ? 'Sondando XGate...' : '🔍 Descobrir Customer IDs'}
+                    </button>
                     <button
                         onClick={runSyncAll}
                         disabled={syncing}
@@ -242,6 +268,58 @@ export default function XGateDebugPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Discovery Result */}
+            {discoverResult && (
+                <div className="bg-surface border border-blue-500/20 rounded-xl p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h2 className="font-bold text-white">🔍 Resultado da Sondagem XGate</h2>
+                        <button onClick={() => setDiscoverResult(null)} className="text-gray-500 hover:text-white text-xs">✕</button>
+                    </div>
+                    {discoverResult.error ? (
+                        <p className="text-red-400 text-sm">{discoverResult.error}</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {/* Per-deposit lookup results */}
+                            {discoverResult.report?.per_deposit_lookup?.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-gray-400 uppercase mb-2">Customer IDs encontrados por depósito:</p>
+                                    <div className="space-y-2">
+                                        {discoverResult.report.per_deposit_lookup.map((r: any, i: number) => (
+                                            <div key={i} className="bg-black/30 rounded-lg p-3 text-xs space-y-1">
+                                                <div className="flex items-center justify-between">
+                                                    <code className="text-gray-400">charge: {r.xgate_charge_id?.slice(0, 16)}...</code>
+                                                    {r.customer_id_found
+                                                        ? <span className="text-primary font-bold">✅ Customer ID: {r.customer_id_found}</span>
+                                                        : <span className="text-red-400">❌ Customer ID não encontrado</span>}
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-1 text-gray-600">
+                                                    <span>GET /deposit/<span>{'{' + 'id}'}</span>: <b className="text-gray-400">{r['GET /deposit/{id}']?.status}</b></span>
+                                                    <span>GET /deposits/<span>{'{' + 'id}'}</span>: <b className="text-gray-400">{r['GET /deposits/{id}']?.status}</b></span>
+                                                    <span>GET /transaction/<span>{'{' + 'id}'}</span>: <b className="text-gray-400">{r['GET /transaction/{id}']?.status}</b></span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {/* Endpoint scan */}
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Endpoints testados:</p>
+                                <div className="space-y-1">
+                                    {Object.entries(discoverResult.report || {}).filter(([k]) => k !== 'per_deposit_lookup').map(([endpoint, result]: any) => (
+                                        <div key={endpoint} className="flex items-center justify-between text-xs bg-black/20 rounded p-2">
+                                            <code className="text-gray-400">{endpoint}</code>
+                                            <span className={`font-bold ${result.ok ? 'text-primary' : 'text-red-400'}`}>HTTP {result.status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <JsonBlock data={discoverResult.report} />
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Sync All Result */}
             {syncResult && (
