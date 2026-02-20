@@ -71,51 +71,30 @@ export async function GET() {
         report.steps.currencies = { error: e.message };
     }
 
-    // ── STEP 3: Dry-run deposit payload (do NOT actually send — just show what we'd send) ──
+    // ── STEP 3: Show what a deposit payload would look like (DRY RUN — NOT SENT) ──
+    // ⚠️ We do NOT actually call /deposit here — that would create real charges.
     const dryRunPayload = {
+        _note: "SIMULAÇÃO APENAS — nenhuma cobrança é criada aqui",
         amount: 10,
         currency: brlCurrency,
         customer: {
-            name: 'Test User Predity',
-            email: 'debug@predity.com',
-            phone: '5511999999999',
-            document: '00000000000', // placeholder, real flow uses userData.document
+            name: "<<nome_real_do_usuario>>",
+            email: "<<email_real_do_usuario>>",
+            document: "<<cpf_real_do_usuario>>",  // NUNCA hardcoded
+            phone: "<<telefone_real_do_usuario>>",
         },
     };
-    report.steps.dry_run_payload = dryRunPayload;
+    report.steps.dry_run_payload = {
+        note: "⚠️ Este payload NÃO é enviado à XGate. É apenas para inspeção visual.",
+        payload: dryRunPayload,
+    };
 
-    // ── STEP 4: Attempt a REAL dry-run (small amount) to see the actual response ──
-    try {
-        const t0 = Date.now();
-        const depRes = await fetch(`${BASE_URL}/deposit`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(dryRunPayload),
-        });
-        const depDuration = Date.now() - t0;
-        const depBody = await depRes.json().catch(() => depRes.text());
-
-        // Detect where the QR code lives in the response
-        const d = (typeof depBody === 'object' && depBody?.data) ? depBody.data : depBody;
-        const possibleQrFields = ['code', 'qrCode', 'payload', 'pixKey', 'qrCodeText', 'paymentCode', 'pixCopiaECola', 'emv', 'codigoPix'];
-        const qrField = possibleQrFields.find(f => d?.[f]);
-
-        report.steps.deposit_attempt = {
-            status: depRes.status,
-            ok: depRes.ok,
-            duration_ms: depDuration,
-            qr_field_found: qrField || '❌ none — check response structure',
-            qr_value_preview: qrField ? String(d[qrField]).slice(0, 60) + '...' : null,
-            full_response: depBody,
-            top_level_keys: typeof depBody === 'object' ? Object.keys(depBody) : [],
-            data_keys: typeof d === 'object' ? Object.keys(d) : [],
-        };
-    } catch (e: any) {
-        report.steps.deposit_attempt = { error: e.message };
-    }
+    // ── STEP 4: NOT EXECUTED — safe mode ─────────────────────────────────────
+    report.steps.deposit_attempt = {
+        skipped: true,
+        reason: "Desabilitado no modo debug para evitar cobranças reais com CPF placeholder.",
+        instruction: "Use o fluxo normal de depósito na wallet para testar com um usuário real.",
+    };
 
     return NextResponse.json(report, { status: 200 });
 }
