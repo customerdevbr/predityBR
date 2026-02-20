@@ -99,6 +99,8 @@ export default function MarketsPage() {
                             pool={market.total_pool || 0}
                             yesAmount={market.total_yes_amount || 0}
                             noAmount={market.total_no_amount || 0}
+                            outcomes={market.outcomes}
+                            outcomePools={market.outcome_pools}
                             metadata={market.metadata}
                             slug={market.slug}
                         />

@@ -91,18 +91,14 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
     const currentOutcomePools = liveOutcomePools;
 
     // Odds Calculation
-    const safePool = currentPool > 0 ? currentPool : 2;
-    const safeYes = currentYes > 0 ? currentYes : 1;
-    const safeNo = currentNo > 0 ? currentNo : 1;
-
     // Simplified probabilities (ignoring margin for raw % display if desired, or using identical approach)
     // To match MarketDetailClient EXACTLY:
-    const probYes = safePool === 0 ? 0.5 : (safeYes / safePool);
-    const probNo = safePool === 0 ? 0.5 : (safeNo / safePool);
+    const probYes = currentPool === 0 ? 0.5 : ((currentYes || 1) / currentPool);
+    const probNo = currentPool === 0 ? 0.5 : ((currentNo || 1) / currentPool);
 
     // Odds (Payout Multiplier) with 18% margin, exact same as MarketDetailClient
-    const oddsYes = (safePool === 0 || safeYes === 0) ? (2 * 0.82) : ((safePool * 0.82) / safeYes);
-    const oddsNo = (safePool === 0 || safeNo === 0) ? (2 * 0.82) : ((safePool * 0.82) / safeNo);
+    const oddsYes = (currentPool === 0 || currentYes === 0) ? (2 * 0.82) : ((currentPool * 0.82) / currentYes);
+    const oddsNo = (currentPool === 0 || currentNo === 0) ? (2 * 0.82) : ((currentPool * 0.82) / currentNo);
 
     const formatOdds = (val: number) => (val < 1.01 ? 1.01 : val).toFixed(2);
 
@@ -209,10 +205,10 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                                 }
 
                                 // Safe math matching MarketDetailClient EXACTLY
-                                const pctRaw = safePool === 0 ? (100 / availableOutcomes.length) : ((amount / safePool) * 100);
+                                const pctRaw = currentPool === 0 ? (100 / availableOutcomes.length) : ((amount / currentPool) * 100);
                                 const pct = Math.round(pctRaw) || 0;
 
-                                let oddsRaw = (safePool === 0 || amount === 0) ? (availableOutcomes.length * 0.82) : ((safePool * 0.82) / amount);
+                                let oddsRaw = (currentPool === 0 || amount === 0) ? (availableOutcomes.length * 0.82) : ((currentPool * 0.82) / amount);
                                 const odds = (oddsRaw < 1.01 ? 1.01 : oddsRaw).toFixed(2);
 
                                 let textColors = 'text-gray-400';

@@ -37,20 +37,36 @@ export default function RegisterForm() {
         }
 
         try {
+            const cleanCpf = cpf.replace(/\D/g, '');
+
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: {
                         full_name: fullName,
-                        cpf: cpf.replace(/\D/g, ''),
+                        cpf: cleanCpf,
                         dob: dob,
-                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`, // Auto-generate avatar
+                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
                     },
                 },
             });
 
             if (error) throw error;
+
+            // Also write CPF and DOB directly to the public.users table
+            // The trigger may not always run synchronously, so we force-write these values
+            if (data.user) {
+                await supabase
+                    .from('users')
+                    .upsert({
+                        id: data.user.id,
+                        email,
+                        full_name: fullName,
+                        cpf: cleanCpf,
+                        dob,
+                    }, { onConflict: 'id' });
+            }
 
             alert('Cadastro realizado! Verifique seu email para confirmar.');
             router.push('/login');
