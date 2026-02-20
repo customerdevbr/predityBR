@@ -53,10 +53,13 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
     const outcomeStats = useMemo(() => {
         if (!market || !market.outcomes) return [];
         const totalPool = market.total_pool || 0;
+        // 35% house commission: payouts come from 65% of the accumulated pool
+        const payablePool = totalPool * 0.65;
         return market.outcomes.map((outcome: string, index: number) => {
             const outcomePool = market.outcome_pools?.[outcome] || 0;
             let prob = totalPool === 0 ? (100 / market.outcomes.length) : ((outcomePool / totalPool) * 100);
-            let odds = (totalPool === 0 || outcomePool === 0) ? (market.outcomes.length * 0.82) : ((totalPool * 0.82) / outcomePool);
+            // Odd = payablePool / outcomePool (never pay more than 65% of total)
+            let odds = (totalPool === 0 || outcomePool === 0) ? (market.outcomes.length * 0.65) : (payablePool / outcomePool);
             if (odds < 1.01) odds = 1.01;
             return {
                 name: outcome,

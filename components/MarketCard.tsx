@@ -97,9 +97,11 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
     const probYes = currentPool === 0 ? 0.5 : ((currentYes || 1) / currentPool);
     const probNo = currentPool === 0 ? 0.5 : ((currentNo || 1) / currentPool);
 
-    // Odds (Payout Multiplier) with 18% margin, exact same as MarketDetailClient
-    const oddsYes = (currentPool === 0 || currentYes === 0) ? (2 * 0.82) : ((currentPool * 0.82) / currentYes);
-    const oddsNo = (currentPool === 0 || currentNo === 0) ? (2 * 0.82) : ((currentPool * 0.82) / currentNo);
+    // Odds (Payout Multiplier) with 35% house commission: payouts = 65% of pool
+    const payableYes = currentPool * 0.65;
+    const payableNo = currentPool * 0.65;
+    const oddsYes = (currentPool === 0 || currentYes === 0) ? (2 * 0.65) : (payableYes / currentYes);
+    const oddsNo = (currentPool === 0 || currentNo === 0) ? (2 * 0.65) : (payableNo / currentNo);
 
     const formatOdds = (val: number) => (val < 1.01 ? 1.01 : val).toFixed(2);
 
@@ -207,7 +209,7 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                                 const pctRaw = currentPool === 0 ? (100 / availableOutcomes.length) : ((amount / currentPool) * 100);
                                 const pct = Math.round(pctRaw) || 0;
 
-                                let oddsRaw = (currentPool === 0 || amount === 0) ? (availableOutcomes.length * 0.82) : ((currentPool * 0.82) / amount);
+                                let oddsRaw = (currentPool === 0 || amount === 0) ? (availableOutcomes.length * 0.65) : ((currentPool * 0.65) / amount);
                                 const odds = (oddsRaw < 1.01 ? 1.01 : oddsRaw).toFixed(2);
 
                                 const norm = outcome.toUpperCase();
