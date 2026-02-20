@@ -283,8 +283,8 @@ export default function XGateDebugPage() {
                             {/* Summary */}
                             {discoverResult.summary && (
                                 <div className={`rounded-lg p-3 text-sm font-bold border ${discoverResult.summary.startsWith('✅')
-                                        ? 'bg-primary/10 border-primary/20 text-primary'
-                                        : 'bg-red-500/10 border-red-500/20 text-red-300'
+                                    ? 'bg-primary/10 border-primary/20 text-primary'
+                                    : 'bg-red-500/10 border-red-500/20 text-red-300'
                                     }`}>{discoverResult.summary}</div>
                             )}
 
@@ -295,8 +295,8 @@ export default function XGateDebugPage() {
                                     <div className="space-y-2">
                                         {discoverResult.report.customer_lookup_by_transaction_id.map((r: any, i: number) => (
                                             <div key={i} className={`rounded-lg p-3 text-xs space-y-1 border ${r.try_as_customer_id?.['GET /customer/{id}']?.ok
-                                                    ? 'bg-primary/10 border-primary/20'
-                                                    : 'bg-black/30 border-white/5'
+                                                ? 'bg-primary/10 border-primary/20'
+                                                : 'bg-black/30 border-white/5'
                                                 }`}>
                                                 <div className="flex items-center justify-between">
                                                     <code className="text-gray-400">{r.xgate_transaction_id?.slice(0, 20)}...</code>
@@ -355,16 +355,47 @@ export default function XGateDebugPage() {
                                     </div>
                                 ))}
                             </div>
-                            <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                            <div className="space-y-2 max-h-96 overflow-y-auto">
                                 {syncResult.results?.map((r: any, i: number) => (
-                                    <div key={i} className={`flex items-center justify-between text-xs rounded-lg p-2 ${r.status === 'synced' ? 'bg-primary/10' : r.status === 'error' ? 'bg-red-500/10' : 'bg-black/20'}`}>
-                                        <span className="text-gray-300">{r.email}</span>
-                                        <div className="flex items-center gap-2">
-                                            {r.customerId && <code className="text-gray-600">{r.customerId.slice(0, 10)}...</code>}
-                                            <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${r.status === 'synced' ? 'text-primary' : r.status === 'locked' ? 'text-yellow-400' : r.status === 'error' ? 'text-red-400' : 'text-gray-500'}`}>
-                                                {r.status === 'synced' ? '✅ sync' : r.status === 'locked' ? '🔒 bloqueado' : r.status === 'error' ? `❌ ${r.xgate || r.error}` : `⏭ ${r.reason}`}
+                                    <div key={i} className={`text-xs rounded-lg p-3 space-y-1.5 border ${r.status === 'synced' ? 'bg-primary/10 border-primary/20'
+                                            : r.status === 'locked' ? 'bg-yellow-500/5 border-yellow-500/20'
+                                                : r.status === 'error' ? 'bg-red-500/10 border-red-500/20'
+                                                    : 'bg-black/20 border-white/5'
+                                        }`}>
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-white">{r.email}</span>
+                                            <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${r.status === 'synced' ? 'text-primary bg-primary/20'
+                                                    : r.status === 'locked' ? 'text-yellow-400 bg-yellow-500/10'
+                                                        : r.status === 'error' ? 'text-red-400 bg-red-500/10'
+                                                            : 'text-gray-500'
+                                                }`}>
+                                                {r.status === 'synced' ? '✅ sync'
+                                                    : r.status === 'locked' ? '🔒 bloqueado'
+                                                        : r.status === 'error' ? `❌ erro HTTP ${r.http_status}`
+                                                            : `⏭ ${r.reason || 'skipped'}`}
                                             </span>
                                         </div>
+                                        {/* CPF sent + XGate response */}
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="bg-black/30 rounded p-2">
+                                                <span className="text-gray-500">CPF enviado:</span>
+                                                <code className="block text-white font-bold mt-0.5">
+                                                    {r.payload_sent?.document || '❌ não enviado'}
+                                                </code>
+                                            </div>
+                                            <div className="bg-black/30 rounded p-2">
+                                                <span className="text-gray-500">XGate respondeu:</span>
+                                                <code className="block text-sm mt-0.5">
+                                                    {r.xgate_message || r.error || '(sem mensagem)'}
+                                                </code>
+                                            </div>
+                                        </div>
+                                        {r.customer_id && (
+                                            <div className="text-gray-600">Customer ID: {r.customer_id}</div>
+                                        )}
+                                        {r.note && (
+                                            <div className="text-yellow-400">{r.note}</div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
