@@ -51,9 +51,12 @@ export default function AdminDashboard() {
             .select('amount, type, status, created_at')
             .order('created_at', { ascending: true });
 
-        const volume = transactions
-            ?.filter(t => t.type === 'BET_PLACED')
-            .reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+        // Accurate Volume: Sum of all bets ever placed
+        const { data: bets } = await supabase
+            .from('bets')
+            .select('amount, created_at');
+
+        const volume = bets?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
 
         const revenue = transactions
             ?.filter(t => t.type === 'DEPOSIT' && t.status === 'COMPLETED')
@@ -61,9 +64,9 @@ export default function AdminDashboard() {
 
         // Revenue/Volume Chart Aggregation (Last 7 Days)
         const volumeMap: Record<string, number> = {};
-        transactions?.filter(t => t.type === 'BET_PLACED').forEach(t => {
-            const date = new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            volumeMap[date] = (volumeMap[date] || 0) + t.amount;
+        bets?.forEach(b => {
+            const date = new Date(b.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            volumeMap[date] = (volumeMap[date] || 0) + b.amount;
         });
         const revenueData = Object.keys(volumeMap).map(date => ({ date, amount: volumeMap[date] })).slice(-7);
 

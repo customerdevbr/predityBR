@@ -95,13 +95,18 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
     const safeYes = currentYes > 0 ? currentYes : 1;
     const safeNo = currentNo > 0 ? currentNo : 1;
 
-    const probYes = safeYes / safePool;
-    const probNo = safeNo / safePool;
+    // Simplified probabilities (ignoring margin for raw % display if desired, or using identical approach)
+    // To match MarketDetailClient EXACTLY:
+    const probYes = safePool === 0 ? 0.5 : (safeYes / safePool);
+    const probNo = safePool === 0 ? 0.5 : (safeNo / safePool);
 
-    // Odds (Payout Multiplier)
-    const oddsYes = (safePool / safeYes).toFixed(2);
-    const oddsNo = (safePool / safeNo).toFixed(2);
+    // Odds (Payout Multiplier) with 18% margin, exact same as MarketDetailClient
+    const oddsYes = (safePool === 0 || safeYes === 0) ? (2 * 0.82) : ((safePool * 0.82) / safeYes);
+    const oddsNo = (safePool === 0 || safeNo === 0) ? (2 * 0.82) : ((safePool * 0.82) / safeNo);
 
+    const formatOdds = (val: number) => (val < 1.01 ? 1.01 : val).toFixed(2);
+
+    // Fallback percentages for binary display
     const yesPct = Math.round(probYes * 100);
     const noPct = Math.round(probNo * 100);
 
@@ -203,20 +208,22 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                                     if ((outcome === 'NÃO' || outcome === 'NO') && currentNo) amount = currentNo;
                                 }
 
-                                const safeAmount = amount > 0 ? amount : 1;
-                                const oddsVal = (safePool / safeAmount);
-                                const odds = (oddsVal < 1.01 ? 1.01 : oddsVal).toFixed(2);
-                                const pct = Math.round((safeAmount / safePool) * 100) || 0;
+                                // Safe math matching MarketDetailClient EXACTLY
+                                const pctRaw = safePool === 0 ? (100 / availableOutcomes.length) : ((amount / safePool) * 100);
+                                const pct = Math.round(pctRaw) || 0;
+
+                                let oddsRaw = (safePool === 0 || amount === 0) ? (availableOutcomes.length * 0.82) : ((safePool * 0.82) / amount);
+                                const odds = (oddsRaw < 1.01 ? 1.01 : oddsRaw).toFixed(2);
 
                                 let textColors = 'text-gray-400';
                                 let bgBarColor = 'bg-gray-500/20';
                                 const norm = outcome.toUpperCase();
                                 if (norm === 'SIM' || norm === 'YES') {
-                                    textColors = 'text-green-500'; bgBarColor = 'bg-green-500/20';
+                                    textColors = 'text-green-500'; bgBarColor = 'bg-green-500/20 bg-opacity-30';
                                 } else if (norm === 'NÃO' || norm === 'NO') {
-                                    textColors = 'text-red-500'; bgBarColor = 'bg-red-500/20';
+                                    textColors = 'text-red-500'; bgBarColor = 'bg-red-500/20 bg-opacity-30';
                                 } else {
-                                    textColors = 'text-blue-500'; bgBarColor = 'bg-blue-500/20';
+                                    textColors = 'text-blue-500'; bgBarColor = 'bg-blue-500/20 bg-opacity-30';
                                 }
 
                                 return { outcome, amount, odds, pct, textColors, bgBarColor };
@@ -225,7 +232,7 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                             if (availableOutcomes.length <= 2) {
                                 // DEFAULT GRID (Side-By-Side)
                                 return (
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-3 mt-auto">
                                         {sortedStats.map((stat) => (
                                             <div key={stat.outcome} className={`bg-surface hover:bg-white/5 border border-white/5 hover:border-white/10 rounded-lg p-2 text-center transition-all group/btn`}>
                                                 <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 truncate px-1" title={stat.outcome}>{stat.outcome}</div>
@@ -243,7 +250,7 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                                 const remainingCount = sortedStats.length - 3;
 
                                 return (
-                                    <div className="space-y-1.5 flex flex-col justify-end">
+                                    <div className="space-y-1.5 flex flex-col justify-end mt-auto">
                                         {top3.map((stat, idx) => (
                                             <div key={stat.outcome} className="relative z-0 bg-black/40 border border-white/5 rounded pl-3 pr-2 py-1.5 flex items-center justify-between overflow-hidden group/row hover:bg-white/[0.04] transition-colors">
                                                 {/* Progress Bar Background */}
@@ -252,11 +259,11 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                                                     style={{ width: `${stat.pct}%` }}
                                                 />
 
-                                                <div className="flex items-center gap-2 max-w-[65%]">
-                                                    <span className="text-gray-500 text-[10px] font-bold w-3 text-right">{idx + 1}</span>
+                                                <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                                                    <span className="text-gray-500 text-[10px] font-bold w-3 text-right flex-shrink-0">{idx + 1}</span>
                                                     <span className="text-sm font-bold text-gray-200 truncate" title={stat.outcome}>{stat.outcome}</span>
                                                 </div>
-                                                <div className="flex flex-col items-end">
+                                                <div className="flex flex-col items-end flex-shrink-0">
                                                     <span className={`text-sm font-black ${stat.textColors}`}>{stat.odds}x</span>
                                                     <span className="text-[9px] text-gray-500 font-bold -mt-1">{stat.pct}%</span>
                                                 </div>

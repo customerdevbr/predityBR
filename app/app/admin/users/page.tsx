@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Shield, User, DollarSign, MoreVertical } from 'lucide-react';
+import { Search, Shield, User, DollarSign, MoreVertical, Eye, X } from 'lucide-react';
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedUser, setSelectedUser] = useState<any | null>(null);
 
     useEffect(() => {
         fetchUsers();
@@ -147,6 +148,13 @@ export default function AdminUsersPage() {
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-2">
                                                 <button
+                                                    onClick={() => setSelectedUser(user)}
+                                                    className="p-2 hover:bg-white/10 rounded text-blue-400 hover:text-blue-300 transition-colors"
+                                                    title="Ver Detalhes"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button
                                                     onClick={() => toggleRole(user.id, user.role)}
                                                     className="p-2 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
                                                     title="Promover/Rebaixar (Admin)"
@@ -169,6 +177,74 @@ export default function AdminUsersPage() {
                     </table>
                 </div>
             </div>
+
+            {/* User Details Modal */}
+            {selectedUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedUser(null)}></div>
+                    <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-md relative z-10 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                            <h3 className="font-bold text-lg text-white">Detalhes do Usuário</h3>
+                            <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-white">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-16 h-16 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-gray-400">
+                                    <User className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-xl text-white">{selectedUser.full_name || 'Sem nome'}</h4>
+                                    <p className="text-gray-400">{selectedUser.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">CPF</div>
+                                    <div className="font-mono text-sm text-gray-200">{selectedUser.cpf || 'Não informado'}</div>
+                                </div>
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">Nascimento</div>
+                                    <div className="text-sm text-gray-200">{selectedUser.dob ? new Date(selectedUser.dob).toLocaleDateString('pt-BR') : 'Não informado'}</div>
+                                </div>
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">ID do Usuário</div>
+                                    <div className="font-mono text-xs text-gray-400 break-all">{selectedUser.id}</div>
+                                </div>
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">Data de Cadastro</div>
+                                    <div className="text-sm text-gray-200">{new Date(selectedUser.created_at).toLocaleString('pt-BR')}</div>
+                                </div>
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">Saldo Atual</div>
+                                    <div className="text-sm font-bold text-green-400">R$ {(selectedUser.balance || 0).toFixed(2)}</div>
+                                </div>
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">Status / Papel</div>
+                                    <div className="flex gap-2 mt-1">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${selectedUser.status === 'BANNED' ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
+                                            {selectedUser.status || 'ACTIVE'}
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-white/10 text-gray-300">
+                                            {selectedUser.role || 'USER'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-white/5 bg-black/40 flex justify-end gap-3">
+                            <button
+                                onClick={() => setSelectedUser(null)}
+                                className="px-4 py-2 bg-surface hover:bg-white/10 text-white rounded-lg text-sm font-bold transition-colors"
+                            >
+                                Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
