@@ -29,6 +29,13 @@ export default function SupportChat({ user: initialUser }: { user: User | null }
 
     const toggleChat = () => setIsOpen(!isOpen);
 
+    // Listen for the mobile BottomNav support button event
+    useEffect(() => {
+        const handler = () => setIsOpen(prev => !prev);
+        window.addEventListener('toggle-support-chat', handler);
+        return () => window.removeEventListener('toggle-support-chat', handler);
+    }, []);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -249,10 +256,10 @@ export default function SupportChat({ user: initialUser }: { user: User | null }
 
     return (
         <>
-            {/* Floating Button */}
+            {/* Floating Button — desktop only, mobile uses BottomNav icon */}
             <button
                 onClick={toggleChat}
-                className="fixed bottom-[120px] md:bottom-8 right-4 z-[90] bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 flex items-center justify-center"
+                className="hidden md:flex fixed bottom-8 right-4 z-[90] bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 items-center justify-center"
             >
                 <MessageCircle className="w-6 h-6" />
             </button>
