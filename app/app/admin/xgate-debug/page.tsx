@@ -210,14 +210,17 @@ export default function XGateDebugPage() {
                     </div>
 
                     {/* Webhook note */}
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 text-sm text-yellow-200 space-y-2">
-                        <p className="font-bold flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Webhook de Confirmação</p>
-                        <p className="text-xs text-yellow-300/80">
-                            Para confirmar pagamentos automaticamente, a XGate precisa chamar de volta a URL:<br />
-                            <code className="bg-black/40 px-2 py-0.5 rounded">https://app.preditybr.com/api/xgate-debug</code>
-                            {' '}(POST)<br />
-                            Configure esse endpoint no painel da XGate como Webhook URL.
-                            Por enquanto, os logs aparecem no servidor quando um POST chegar aqui.
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-sm text-red-200 space-y-2">
+                        <p className="font-bold flex items-center gap-2"><AlertCircle className="w-4 h-4 text-red-400" /> ⚠️ Ação necessária: Atualizar Webhook no XGate</p>
+                        <p className="text-xs text-red-300/80">
+                            A URL de webhook atual (<code className="bg-black/40 px-1 rounded">/api/xgate-debug</code>) só faz eco.
+                            <strong className="text-white"> Vá ao painel XGate e troque a URL do Webhook para:</strong>
+                        </p>
+                        <code className="block bg-black/60 border border-red-500/20 px-3 py-2 rounded-lg text-primary font-mono text-xs break-all select-all">
+                            https://app.preditybr.com/api/xgate-webhook
+                        </code>
+                        <p className="text-xs text-red-300/60">
+                            Essa nova URL processa o pagamento: encontra a transação PENDING por xgate_id e credita o saldo do usuário automaticamente.
                         </p>
                     </div>
                 </div>
@@ -243,8 +246,8 @@ export default function XGateDebugPage() {
                                 <div className="flex items-center justify-between">
                                     <span className="font-mono text-gray-500">{tx.id?.slice(0, 12)}...</span>
                                     <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${tx.status === 'COMPLETED' ? 'bg-primary/20 text-primary' :
-                                            tx.status === 'FAILED' ? 'bg-red-500/20 text-red-400' :
-                                                'bg-yellow-500/20 text-yellow-400'
+                                        tx.status === 'FAILED' ? 'bg-red-500/20 text-red-400' :
+                                            'bg-yellow-500/20 text-yellow-400'
                                         }`}>{tx.status}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-400">
