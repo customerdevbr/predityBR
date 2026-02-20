@@ -76,6 +76,65 @@ export async function POST(req: Request) {
                 .eq('id', tx.user_id);
 
             if (balanceError) console.error("Error updating user balance:", balanceError);
+
+            // Affiliate commission: 15% on first deposit
+            try {
+                // Check if this is user's first completed deposit
+                const { count: priorDeposits } = await supabaseAdmin
+                    .from('transactions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', tx.user_id)
+                    .eq('type', 'DEPOSIT')
+                    .eq('status', 'COMPLETED')
+                    .neq('id', tx.id);
+
+                if ((priorDeposits ?? 0) === 0) {
+                    // First deposit — check if user was referred
+                    const { data: referredUser } = await supabaseAdmin
+                        .from('users')
+                        .select('referred_by, balance')
+                        .eq('id', tx.user_id)
+                        .single();
+
+                    if (referredUser?.referred_by) {
+                        const commission = Number(tx.amount) * 0.15;
+                        console.log(`[Affiliate] Paying R$ ${commission.toFixed(2)} commission to referrer ${referredUser.referred_by}`);
+
+                        // Credit referrer
+                        const { data: referrer } = await supabaseAdmin
+                            .from('users')
+                            .select('balance')
+                            .eq('id', referredUser.referred_by)
+                            .single();
+
+                        if (referrer) {
+                            await supabaseAdmin.from('users').update({
+                                balance: (Number(referrer.balance) || 0) + commission
+                            }).eq('id', referredUser.referred_by);
+                        }
+
+                        // Log commission
+                        await supabaseAdmin.from('referral_commissions').insert({
+                            referrer_id: referredUser.referred_by,
+                            referred_id: tx.user_id,
+                            deposit_id: tx.id,
+                            amount: commission,
+                            status: 'PAID',
+                        });
+
+                        // Log as transaction for referrer
+                        await supabaseAdmin.from('transactions').insert({
+                            user_id: referredUser.referred_by,
+                            type: 'COMMISSION',
+                            amount: commission,
+                            status: 'COMPLETED',
+                            description: `Comissão de afiliado (15%)`
+                        });
+                    }
+                }
+            } catch (affErr) {
+                console.error("[Affiliate] Error processing commission:", affErr);
+            }
         } else {
             console.error("Error fetching user for balance update:", userError);
         }

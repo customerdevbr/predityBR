@@ -311,7 +311,7 @@ export default function WalletPage() {
             {/* My Predictions */}
             <div>
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                    <History className="w-5 h-5 text-gray-400" /> Minhas Apostas
+                    <History className="w-5 h-5 text-gray-400" /> Minhas Previsões
                 </h2>
 
                 {/* Tabs */}

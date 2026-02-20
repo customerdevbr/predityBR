@@ -36,23 +36,10 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
     useEffect(() => {
         const channel = supabase
             .channel(`market_${market.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'markets',
-                    filter: `id=eq.${market.id}`
-                },
-                (payload) => {
-                    setMarket(payload.new);
-                }
-            )
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'markets', filter: `id=eq.${market.id}` },
+                (payload) => { setMarket(payload.new); })
             .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        return () => { supabase.removeChannel(channel); };
     }, [market.id]);
 
     useEffect(() => {
@@ -88,11 +75,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
         const walks: Record<string, number[]> = {};
         outcomeStats.forEach((stat: any) => {
             const targetProb = parseFloat(stat.prob);
-            const walk = [];
-            for (let i = 0; i < dataPoints; i++) {
-                walk.push(targetProb);
-            }
-            walks[stat.name] = walk;
+            walks[stat.name] = Array(dataPoints).fill(targetProb);
         });
 
         for (let i = 0; i < dataPoints; i++) {
@@ -113,24 +96,15 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
     const potentialReturn = selectedStat ? parsedAmount * parseFloat(selectedStat.odds) : 0;
 
     const handleBet = async () => {
-        if (!user) {
-            router.push('/login');
-            return;
-        }
-        if (!selectedOutcome) {
-            alert("Selecione uma opção para apostar.");
-            return;
-        }
+        if (!user) { router.push('/login'); return; }
+        if (!selectedOutcome) { alert("Selecione uma opção para apostar."); return; }
         const val = parseFloat(amount);
         if (isNaN(val) || val <= 0) return;
 
         setPlacingBet(true);
         try {
             const { data: userData, error: userError } = await supabase
-                .from('users')
-                .select('balance')
-                .eq('id', user.id)
-                .single();
+                .from('users').select('balance').eq('id', user.id).single();
             if (userError || !userData) throw userError || new Error("User data not found");
 
             if ((userData.balance || 0) < val) {
@@ -151,14 +125,9 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                 potential_payout: expectedReturn,
                 status: 'ACTIVE'
             });
-
             if (betError) throw betError;
 
-            const { error: balanceError } = await supabase.rpc('decrement_balance', {
-                userid: user.id,
-                amount: val
-            });
-
+            const { error: balanceError } = await supabase.rpc('decrement_balance', { userid: user.id, amount: val });
             if (balanceError) {
                 await supabase.from('users').update({ balance: userData.balance - val }).eq('id', user.id);
             }
@@ -168,10 +137,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
 
             await supabase.from('markets').update({
                 total_pool: newTotalPool,
-                outcome_pools: {
-                    ...market.outcome_pools,
-                    [selectedOutcome]: newOutcomePool
-                }
+                outcome_pools: { ...market.outcome_pools, [selectedOutcome]: newOutcomePool }
             }).eq('id', market.id);
 
             alert(`Aposta confirmada!`);
@@ -187,18 +153,11 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
     const handleShare = async () => {
         const url = window.location.href;
         if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: market.title,
-                    text: `Faça sua previsão no mercado: ${market.title}`,
-                    url: url,
-                });
-            } catch (err) {
-                console.log('Erro ao compartilhar:', err);
-            }
+            try { await navigator.share({ title: market.title, text: `Faça sua previsão: ${market.title}`, url }); }
+            catch (err) { console.log('Erro ao compartilhar:', err); }
         } else {
             navigator.clipboard.writeText(url);
-            alert("Link copiado para a área de transferência!");
+            alert("Link copiado!");
         }
     };
 
@@ -208,7 +167,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
         <div className="max-w-[1200px] mx-auto p-4 lg:p-8 pb-40 lg:pb-8">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
 
-                {/* LEFT COLUMN: Chart & Options */}
+                {/* LEFT COLUMN */}
                 <div className="space-y-6">
 
                     {/* Header */}
@@ -239,39 +198,14 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                         </div>
 
                         {/* Line Chart */}
-                        <div className="h-[280px] w-full -ml-4">
+                        <div className="h-[220px] w-full -ml-4">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <XAxis
-                                        dataKey="timeLabel"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: '#6B7280', fontSize: 10 }}
-                                        dy={10}
-                                    />
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: '#6B7280', fontSize: 10 }}
-                                        tickFormatter={(val) => `${Math.round(val)}%`}
-                                        domain={[0, 100]}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1F2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
-                                        itemStyle={{ color: '#fff' }}
-                                        labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
-                                    />
+                                    <XAxis dataKey="timeLabel" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 10 }} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 10 }} tickFormatter={(val) => `${Math.round(val)}%`} domain={[0, 100]} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '12px' }} />
                                     {outcomeStats.map((stat: any) => (
-                                        <Line
-                                            key={stat.name}
-                                            type="monotone"
-                                            dataKey={stat.name}
-                                            stroke={stat.color}
-                                            strokeWidth={2}
-                                            dot={false}
-                                            activeDot={{ r: 4, strokeWidth: 0, fill: stat.color }}
-                                            isAnimationActive={false}
-                                        />
+                                        <Line key={stat.name} type="monotone" dataKey={stat.name} stroke={stat.color} strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: stat.color }} isAnimationActive={false} />
                                     ))}
                                 </LineChart>
                             </ResponsiveContainer>
@@ -280,168 +214,110 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                         {/* Time Filters */}
                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                             {['Ao Vivo', '1H', '6H', '1D', '1S', '1M', 'Tudo'].map(tf => (
-                                <button
-                                    key={tf}
-                                    onClick={() => setTimeFilter(tf)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${timeFilter === tf ? 'bg-green-500/10 text-green-500' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                                >
+                                <button key={tf} onClick={() => setTimeFilter(tf)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${timeFilter === tf ? 'bg-green-500/10 text-green-500' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
                                     {tf}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* OUTCOMES LIST (Below chart) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3">
-                        {outcomeStats.map((stat: any) => {
-                            const isSelected = selectedOutcome === stat.name;
-                            return (
-                                <button
-                                    key={stat.name}
-                                    onClick={() => setSelectedOutcome(stat.name)}
-                                    className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between ${isSelected ? 'bg-white/5 border-green-500/50 ring-1 ring-green-500/50' : 'bg-surface border-white/5 hover:bg-white/5 hover:border-white/10'}`}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-lg bg-surface flex items-center justify-center overflow-hidden border border-white/5 relative flex-shrink-0">
-                                            {stat.name === 'SIM' && market.metadata?.yes_image ? (
-                                                <img src={market.metadata.yes_image} className="w-full h-full object-cover" alt="Sim" />
-                                            ) : stat.name === 'NÃO' && market.metadata?.no_image ? (
-                                                <img src={market.metadata.no_image} className="w-full h-full object-cover" alt="Não" />
-                                            ) : (
-                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stat.color }}></div>
-                                            )}
-                                            {isSelected && (
-                                                <div className="absolute inset-0 bg-green-500/10 flex items-center justify-center">
-                                                    <Check className="w-6 h-6 text-green-500" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-white text-lg leading-tight line-clamp-1">{stat.name}</div>
-                                            <div className="text-sm text-gray-400 mt-0.5">Retorno esperado: <span className="text-green-400 font-bold">{stat.odds}x</span></div>
-                                        </div>
-                                    </div>
-
-                                    {/* Circular Gauge approximation */}
-                                    <div className="relative w-12 h-12 flex items-center justify-center flex-shrink-0 ml-4">
-                                        <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.05)" strokeWidth="4" fill="none" />
-                                            <circle cx="24" cy="24" r="20" stroke={stat.color} strokeWidth="4" fill="none" strokeDasharray={`${parseFloat(stat.prob) * 1.25} 125`} />
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="text-[10px] font-bold text-white leading-none">{Math.round(parseFloat(stat.prob))}%</span>
-                                        </div>
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    {/* DESCRIPTION CARD (below chart) */}
+                    {market.description && (
+                        <div className="bg-surface rounded-xl border border-white/5 p-4 md:p-6 shadow-lg shadow-black/50">
+                            <div className="font-bold text-white mb-2 text-sm uppercase tracking-wider text-gray-400">Detalhes do Mercado</div>
+                            <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{market.description}</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* RIGHT COLUMN: Bet Slip */}
                 <div className="relative w-full pb-24 lg:pb-0">
-                    <div className="fixed bottom-0 left-0 right-0 z-50 lg:sticky lg:top-24 bg-surface lg:rounded-xl border-t lg:border border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:shadow-2xl">
+                    <div className="fixed bottom-0 left-0 right-0 z-50 lg:sticky lg:top-24 bg-surface lg:rounded-xl border-t lg:border border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:shadow-2xl overflow-auto lg:max-h-[calc(100vh-6rem)]">
 
-                        {/* Accordion Top (Desktop only) */}
-                        {market.description && (
-                            <div className="hidden lg:block p-4 border-b border-white/5 text-sm text-gray-400 bg-white/[0.02]">
-                                <div className="font-bold text-white mb-1">Detalhes</div>
-                                <p className="whitespace-pre-wrap">{market.description}</p>
-                            </div>
-                        )}
+                        <div className="p-4 md:p-5 space-y-4">
 
-                        {/* Slip Content */}
-                        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-
-                            <div className="flex justify-between items-start">
-                                <div className="space-y-1">
-                                    <div className="text-xs text-gray-400">Sua previsão</div>
-                                    <div className="font-bold text-base md:text-lg text-white">
-                                        {selectedStat ? (
-                                            <div className="flex flex-col md:gap-1">
-                                                <span className="text-gray-400 font-normal break-words">{market.title}</span>
-                                                <span className="text-green-500 line-clamp-2 md:line-clamp-none break-words">{selectedStat.name}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-gray-600">Selecione uma opção</span>
-                                        )}
-                                    </div>
+                            {/* OUTCOME SELECTOR — inside the card */}
+                            <div className="space-y-2">
+                                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Sua previsão</div>
+                                <div className={`grid gap-2 ${outcomeStats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                    {outcomeStats.map((stat: any) => {
+                                        const isSelected = selectedOutcome === stat.name;
+                                        return (
+                                            <button
+                                                key={stat.name}
+                                                onClick={() => setSelectedOutcome(stat.name)}
+                                                className={`relative p-3 rounded-xl border transition-all text-left overflow-hidden ${isSelected ? 'bg-white/5 border-green-500/60 ring-1 ring-green-500/40' : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10'}`}
+                                            >
+                                                {/* Progress bg */}
+                                                <div className="absolute left-0 top-0 bottom-0 opacity-20 transition-all" style={{ width: `${stat.prob}%`, backgroundColor: stat.color }} />
+                                                <div className="relative flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        {isSelected && <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />}
+                                                        <span className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>{stat.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                        <span className={`text-sm font-black ${isSelected ? 'text-green-400' : 'text-gray-400'}`}>{stat.odds}x</span>
+                                                        <span className="text-[10px] text-gray-500">{stat.prob}%</span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                                <div className="text-right space-y-1 flex-shrink-0 ml-4">
-                                    <div className="text-xs text-gray-400">Retorno estimado</div>
-                                    <div className="font-bold text-white text-sm">
-                                        {selectedStat ? `${selectedStat.odds}x - ${selectedStat.prob}% chance` : '-'}
-                                    </div>
-                                </div>
                             </div>
 
-                            {/* Amount Input exactly like print */}
+                            <div className="border-t border-white/5" />
+
+                            {/* AMOUNT INPUT */}
                             <div className="space-y-3">
-                                <div className="hidden md:block text-center text-gray-400 text-sm">Quantia</div>
-                                <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-2 gap-2 md:gap-4">
-                                    <button
-                                        onClick={() => setAmount(Math.max(0, (parseFloat(amount) || 0) - 10).toString())}
-                                        className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                                    >
+                                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Quantia</div>
+                                <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-2 gap-2">
+                                    <button onClick={() => setAmount(Math.max(0, (parseFloat(amount) || 0) - 10).toString())}
+                                        className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg font-bold">
                                         -
                                     </button>
-
                                     <div className="flex-1 flex items-center justify-center gap-1">
-                                        <span className="text-xl md:text-2xl font-bold text-white">R$</span>
-                                        <input
-                                            type="number"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                            className="w-20 md:w-24 bg-transparent text-2xl md:text-3xl font-bold text-white focus:outline-none text-center p-0"
-                                            placeholder="0"
-                                        />
+                                        <span className="text-xl font-bold text-white">R$</span>
+                                        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+                                            className="w-20 bg-transparent text-2xl font-bold text-white focus:outline-none text-center p-0"
+                                            placeholder="0" />
                                     </div>
-
-                                    <button
-                                        onClick={() => setAmount(((parseFloat(amount) || 0) + 10).toString())}
-                                        className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                                    >
+                                    <button onClick={() => setAmount(((parseFloat(amount) || 0) + 10).toString())}
+                                        className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg font-bold">
                                         +
                                     </button>
                                 </div>
 
-                                {/* Chips */}
                                 <div className="flex gap-2">
                                     {[10, 20, 50, 100].map(val => (
-                                        <button
-                                            key={val}
-                                            onClick={() => setAmount(val.toString())}
-                                            className="flex-1 py-1.5 md:py-2 rounded-lg bg-white/5 border border-white/5 text-xs font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                                        >
+                                        <button key={val} onClick={() => setAmount(val.toString())}
+                                            className="flex-1 py-1.5 rounded-lg bg-white/5 border border-white/5 text-xs font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
                                             +R$ {val}
                                         </button>
                                     ))}
-                                    <button className="flex-1 py-1.5 md:py-2 rounded-lg bg-white/5 border border-white/5 text-xs font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
-                                        MAX
-                                    </button>
                                 </div>
                             </div>
 
-                            {/* Reward Preview */}
-                            <div className="flex items-center justify-between text-sm pt-2 md:pt-4 border-t-0 md:border-t border-white/5">
+                            {/* REWARD PREVIEW */}
+                            <div className="flex items-center justify-between text-sm pt-1 border-t border-white/5">
                                 <span className="text-gray-400">Ao acertar</span>
                                 <span className="font-bold text-green-500 text-base">
                                     R$ {potentialReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
 
-                            {/* Action Button */}
+                            {/* BET BUTTON */}
                             <button
                                 onClick={handleBet}
                                 disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
-                                className="w-full py-3.5 md:py-4 rounded-xl font-bold text-base md:text-lg text-black bg-[#4ADE80] hover:bg-[#34D399] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(34,197,94,0.3)] shadow-green-500/20"
+                                className="w-full py-3.5 rounded-xl font-bold text-base text-black bg-[#4ADE80] hover:bg-[#34D399] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(34,197,94,0.3)]"
                             >
                                 {placingBet ? 'Processando...' : 'Fazer Previsão'}
                             </button>
 
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

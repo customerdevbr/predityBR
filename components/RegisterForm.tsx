@@ -66,6 +66,31 @@ export default function RegisterForm() {
             // Also write CPF and DOB directly to the public.users table
             // The trigger may not always run synchronously, so we force-write these values
             if (data.user) {
+                // Check for referral code in localStorage
+                let referredByCode: string | null = null;
+                try {
+                    const stored = localStorage.getItem('predity_ref');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        if (parsed.expires > Date.now()) {
+                            referredByCode = parsed.code;
+                        } else {
+                            localStorage.removeItem('predity_ref');
+                        }
+                    }
+                } catch { }
+
+                // Find the referrer
+                let referrerId: string | null = null;
+                if (referredByCode) {
+                    const { data: referrer } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('referral_code', referredByCode)
+                        .single();
+                    if (referrer) referrerId = referrer.id;
+                }
+
                 await supabase
                     .from('users')
                     .upsert({
@@ -74,7 +99,11 @@ export default function RegisterForm() {
                         full_name: fullName,
                         cpf: cleanCpf,
                         dob,
+                        ...(referrerId ? { referred_by: referrerId } : {}),
                     }, { onConflict: 'id' });
+
+                // Clear ref cookie after use
+                if (referredByCode) localStorage.removeItem('predity_ref');
             }
 
             alert('Cadastro realizado! Verifique seu email para confirmar.');

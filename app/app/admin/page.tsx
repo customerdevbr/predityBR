@@ -19,6 +19,7 @@ export default function AdminDashboard() {
         categoryData: [],
         userGrowthData: []
     });
+    const [commissions, setCommissions] = useState<any[]>([]);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -103,7 +104,13 @@ export default function AdminDashboard() {
 
         if (logs) setRecentActivity(logs);
 
-        if (logs) setRecentActivity(logs);
+        // 6. Affiliate Commissions
+        const { data: commissionsData } = await supabase
+            .from('referral_commissions')
+            .select('*, referrer:referrer_id(email, full_name), referred:referred_id(email, full_name)')
+            .order('created_at', { ascending: false })
+            .limit(20);
+        if (commissionsData) setCommissions(commissionsData);
 
         setLoading(false);
     };
@@ -157,6 +164,35 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Realtime Feed */}
+            </div>
+
+            {/* Affiliate Commissions */}
+            <div className="mt-10">
+                <h2 className="text-lg font-bold text-white mb-4">💸 Comissões de Afiliados</h2>
+                <div className="bg-surface/30 border border-surface rounded-xl overflow-hidden">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-white/5 text-gray-400 text-xs uppercase">
+                                <th className="p-4 text-left">Afiliado</th>
+                                <th className="p-4 text-left">Indicado</th>
+                                <th className="p-4 text-left">Comissão</th>
+                                <th className="p-4 text-left">Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {commissions.length === 0 ? (
+                                <tr><td colSpan={4} className="p-8 text-center text-gray-500">Nenhuma comissão ainda.</td></tr>
+                            ) : commissions.map((c: any) => (
+                                <tr key={c.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                                    <td className="p-4 text-white">{c.referrer?.full_name || c.referrer?.email || '-'}</td>
+                                    <td className="p-4 text-gray-300">{c.referred?.full_name || c.referred?.email || '-'}</td>
+                                    <td className="p-4 text-green-400 font-bold font-mono">R$ {Number(c.amount).toFixed(2)}</td>
+                                    <td className="p-4 text-gray-500">{format(new Date(c.created_at), 'dd/MM/yy HH:mm')}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
         </div>

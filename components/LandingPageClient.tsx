@@ -18,7 +18,16 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
     const [text, setText] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
     const [wordIndex, setWordIndex] = useState(0);
-    // Card Rotation Interval (Moved to HeroCardStack)
+
+    // Capture ?ref=CODE from URL and store in localStorage with 24h expiry
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref');
+        if (ref) {
+            const expires = Date.now() + 24 * 60 * 60 * 1000; // 24h
+            localStorage.setItem('predity_ref', JSON.stringify({ code: ref.toUpperCase(), expires }));
+        }
+    }, []);
 
     // Typewriter Effect
     useEffect(() => {
