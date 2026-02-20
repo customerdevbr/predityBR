@@ -26,8 +26,8 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
                 <div
                     key={t.id}
                     className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl border shadow-2xl backdrop-blur-md animate-in slide-in-from-right duration-300 ${t.type === 'success' ? 'bg-[#0d1a0d]/95 border-primary/30' :
-                            t.type === 'error' ? 'bg-[#1a0d0d]/95 border-red-500/30' :
-                                'bg-surface/95 border-white/10'
+                        t.type === 'error' ? 'bg-[#1a0d0d]/95 border-red-500/30' :
+                            'bg-surface/95 border-white/10'
                         }`}
                 >
                     {t.type === 'success' && <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />}
@@ -346,7 +346,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                                     <Tooltip
                                         contentStyle={{ background: '#1a1d24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
                                         labelStyle={{ color: '#9CA3AF' }}
-                                        formatter={(value: any, name: string) => [`${parseFloat(value).toFixed(1)}%`, name]}
+                                        formatter={(value: any, name: any) => [`${parseFloat(value).toFixed(1)}%`, name]}
                                     />
                                     {outcomeStats.map((stat: any) => (
                                         <Line key={stat.name} type="monotone" dataKey={stat.name} stroke={stat.color} strokeWidth={2} dot={false} />
