@@ -23,7 +23,7 @@ export async function POST() {
     const results: any[] = [];
 
     try {
-        // ── Step 1: Authenticate with XGate once ────────────────────────────
+        // ── Authenticate once ───────────────────────────────────────────────
         let token: string;
         try {
             token = await xgateLogin();
@@ -31,7 +31,7 @@ export async function POST() {
             return NextResponse.json({ error: `XGate auth failed: ${e.message}` }, { status: 500 });
         }
 
-        // ── Step 2: Get all users with CPF ──────────────────────────────────
+        // ── Get all users with CPF ──────────────────────────────────────────
         const { data: users, error: usersErr } = await supabaseAdmin
             .from('users')
             .select('id, email, full_name, phone, document');
@@ -39,7 +39,6 @@ export async function POST() {
         if (usersErr) return NextResponse.json({ error: usersErr.message }, { status: 500 });
         if (!users?.length) return NextResponse.json({ message: 'Nenhum usuário encontrado.', results: [] });
 
-        // ── Step 3: For each user, find xgate_customer_id from transactions ──
         for (const user of users) {
             const cpf = (user.document || '').replace(/\D/g, '');
             if (!cpf) {
@@ -47,7 +46,8 @@ export async function POST() {
                 continue;
             }
 
-            // Look up customer ID from most recent deposit transaction metadata
+            // ── Get xgate_id from most recent DEPOSIT transaction ───────────
+            // IMPORTANT: the xgate_id returned by POST /deposit IS the Customer ID on XGate
             const { data: txRows } = await supabaseAdmin
                 .from('transactions')
                 .select('metadata')
@@ -57,25 +57,23 @@ export async function POST() {
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            // Find first tx that has an xgate_customer_id in metadata
-            const customerId = txRows
-                ?.map(tx => tx.metadata?.xgate_customer_id)
-                .find(id => !!id);
+            // Try xgate_customer_id first (new deposits capture this explicitly),
+            // then fall back to xgate_id (which IS the customer ID on XGate)
+            const customerId =
+                txRows?.map(tx => tx.metadata?.xgate_customer_id).find(Boolean) ||
+                txRows?.map(tx => tx.metadata?.xgate_id).find(id => id && id !== 'unknown_id') ||
+                null;
 
             if (!customerId) {
-                // Also try xgate_id as a fallback reference (it IS the charge ID, not customer ID, but log it)
-                const xgateId = txRows?.[0]?.metadata?.xgate_id;
                 results.push({
                     email: user.email,
                     status: 'skipped',
-                    reason: 'Sem xgate_customer_id nas transações — usuário ainda não fez depósito, ou o ID ainda não foi capturado',
-                    xgate_charge_id: xgateId || null,
-                    note: xgateId ? '⚠️ Encontramos o charge ID mas não o customer ID. Próximo depósito vai capturá-lo.' : null,
+                    reason: 'Sem transações de depósito registradas',
                 });
                 continue;
             }
 
-            // ── Step 4: Call PUT /customer/{id} ─────────────────────────────
+            // ── Call PUT /customer/{id} ─────────────────────────────────────
             const payload: Record<string, string> = { document: cpf };
             if (user.full_name) payload.name = user.full_name;
             if (user.email) payload.email = user.email;
@@ -96,26 +94,25 @@ export async function POST() {
                 if (res.ok) {
                     results.push({
                         email: user.email,
-                        customerId,
+                        customer_id: customerId,
                         status: 'synced',
                         xgate_message: body.message,
                         payload_sent: payload,
                     });
                 } else if (res.status === 400) {
-                    // "Não é possível alterar o documento de um cliente que já possui um documento válido"
                     results.push({
                         email: user.email,
-                        customerId,
+                        customer_id: customerId,
                         status: 'locked',
                         http_status: res.status,
                         xgate_message: body.message || JSON.stringify(body),
-                        note: '⚠️ CPF está bloqueado na XGate — exclua o customer no painel XGate para resetar.',
+                        note: 'CPF bloqueado na XGate — entre em contato com suporte XGate para reset.',
                         payload_sent: payload,
                     });
                 } else {
                     results.push({
                         email: user.email,
-                        customerId,
+                        customer_id: customerId,
                         status: 'error',
                         http_status: res.status,
                         xgate_message: body.message || JSON.stringify(body),
@@ -123,10 +120,9 @@ export async function POST() {
                     });
                 }
             } catch (e: any) {
-                results.push({ email: user.email, customerId, status: 'error', error: e.message });
+                results.push({ email: user.email, customer_id: customerId, status: 'error', error: e.message });
             }
 
-            // Avoid rate limiting
             await new Promise(r => setTimeout(r, 300));
         }
 
