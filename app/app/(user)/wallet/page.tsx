@@ -362,7 +362,7 @@ export default function WalletPage() {
                                         </div>
                                         <div>
                                             <span className="text-gray-500 block text-xs">Retorno Potencial</span>
-                                            <span className="text-green-400 font-bold font-mono">R$ {bet.potential_payout.toFixed(2)}</span>
+                                            <span className="text-primary font-bold font-mono">R$ {bet.potential_payout.toFixed(2)}</span>
                                         </div>
                                     </div>
 
@@ -389,7 +389,7 @@ export default function WalletPage() {
                     {transactions.map((tx) => (
                         <div key={tx.id} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${tx.type === 'DEPOSIT' || tx.type === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                <div className={`p-2 rounded-full ${tx.type === 'DEPOSIT' || tx.type === 'WIN' ? 'bg-primary/10 text-primary' : 'bg-red-500/10 text-red-500'}`}>
                                     {tx.type === 'DEPOSIT' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                                 </div>
                                 <div>
@@ -397,7 +397,7 @@ export default function WalletPage() {
                                     <p className="text-xs text-gray-500">{format(new Date(tx.created_at), "dd/MM HH:mm", { locale: ptBR })}</p>
                                 </div>
                             </div>
-                            <span className={`font-mono font-bold ${tx.type === 'DEPOSIT' || tx.type === 'WIN' ? 'text-green-400' : 'text-white'}`}>
+                            <span className={`font-mono font-bold ${tx.type === 'DEPOSIT' || tx.type === 'WIN' ? 'text-primary' : 'text-white'}`}>
                                 {tx.type === 'DEPOSIT' || tx.type === 'WIN' ? '+' : '-'} R$ {tx.amount.toFixed(2)}
                             </span>
                         </div>
@@ -429,7 +429,7 @@ export default function WalletPage() {
 
                                 <div className="space-y-4">
                                     <div className="bg-black/30 rounded-xl p-4 border border-white/5">
-                                        <label className="text-xs text-gray-500 block mb-1">Valor do Depósito</label>
+                                        <label className="text-xs text-gray-500 block mb-1">Valor do Depósito (mín. R$ 10)</label>
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-400 font-bold">R$</span>
                                             <input
@@ -509,7 +509,7 @@ export default function WalletPage() {
 
                                 <button
                                     onClick={finalizeDeposit}
-                                    className="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-4 bg-primary hover:bg-primary/85 text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
                                 >
                                     <CheckCircle className="w-5 h-5" /> Já fiz o Pix
                                 </button>
@@ -536,7 +536,7 @@ export default function WalletPage() {
 
                         <div className="space-y-4">
                             <div className="bg-black/30 rounded-xl p-4 border border-white/5">
-                                <label className="text-xs text-gray-500 block mb-1">Valor do Saque (mín. R$ 10)</label>
+                                <label className="text-xs text-gray-500 block mb-1">Valor do Saque (mín. R$ 20)</label>
                                 <div className="flex items-center gap-2">
                                     <span className="text-gray-400 font-bold">R$</span>
                                     <input

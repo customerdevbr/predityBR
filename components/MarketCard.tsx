@@ -170,7 +170,7 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                     <div className="absolute inset-x-0 top-0 h-24 opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData}>
-                                <Line type="monotone" dataKey="yes" stroke="#22c55e" strokeWidth={2} dot={false} />
+                                <Line type="monotone" dataKey="yes" stroke="#04B305" strokeWidth={2} dot={false} />
                                 <Line type="monotone" dataKey="no" stroke="#ef4444" strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>

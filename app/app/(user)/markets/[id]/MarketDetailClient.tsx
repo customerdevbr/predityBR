@@ -186,7 +186,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                             <img src={market.image_url || "https://placehold.co/100"} alt={market.title} className="w-10 h-10 rounded-full object-cover border border-white/10 flex-shrink-0" />
                             <h1 className="text-xl font-bold leading-tight line-clamp-2 pr-4">{market.title}</h1>
                         </div>
-                        <button onClick={handleShare} className="p-2 bg-surface border border-white/5 rounded-lg text-green-500 hover:bg-white/5 transition-colors flex-shrink-0">
+                        <button onClick={handleShare} className="p-2 bg-surface border border-white/5 rounded-lg text-primary hover:bg-white/5 transition-colors flex-shrink-0">
                             <Share2 className="w-5 h-5" />
                         </button>
                     </div>
@@ -222,7 +222,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                             {['Ao Vivo', '1H', '6H', '1D', '1S', '1M', 'Tudo'].map(tf => (
                                 <button key={tf} onClick={() => setTimeFilter(tf)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${timeFilter === tf ? 'bg-green-500/10 text-green-500' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${timeFilter === tf ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
                                     {tf}
                                 </button>
                             ))}
@@ -254,17 +254,17 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                                             <button
                                                 key={stat.name}
                                                 onClick={() => setSelectedOutcome(stat.name)}
-                                                className={`relative p-3 rounded-xl border transition-all text-left overflow-hidden ${isSelected ? 'bg-white/5 border-green-500/60 ring-1 ring-green-500/40' : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10'}`}
+                                                className={`relative p-3 rounded-xl border transition-all text-left overflow-hidden ${isSelected ? 'bg-white/5 border-primary/60 ring-1 ring-primary/40' : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10'}`}
                                             >
                                                 {/* Progress bg */}
                                                 <div className="absolute left-0 top-0 bottom-0 opacity-20 transition-all" style={{ width: `${stat.prob}%`, backgroundColor: stat.color }} />
                                                 <div className="relative flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        {isSelected && <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />}
+                                                        {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
                                                         <span className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>{stat.name}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                                        <span className={`text-sm font-black ${isSelected ? 'text-green-400' : 'text-gray-400'}`}>{stat.odds}x</span>
+                                                        <span className={`text-sm font-black ${isSelected ? 'text-primary' : 'text-gray-400'}`}>{stat.odds}x</span>
                                                         <span className="text-[10px] text-gray-500">{stat.prob}%</span>
                                                     </div>
                                                 </div>
@@ -309,7 +309,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                             {/* REWARD PREVIEW */}
                             <div className="flex items-center justify-between text-sm pt-1 border-t border-white/5">
                                 <span className="text-gray-400">Ao acertar</span>
-                                <span className="font-bold text-green-500 text-base">
+                                <span className="font-bold text-primary text-base">
                                     R$ {potentialReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
@@ -318,7 +318,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                             <button
                                 onClick={handleBet}
                                 disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
-                                className="w-full py-3.5 rounded-xl font-bold text-base text-black bg-[#4ADE80] hover:bg-[#34D399] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+                                className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(4,179,5,0.3)]"
                             >
                                 {placingBet ? 'Processando...' : 'Fazer Previsão'}
                             </button>

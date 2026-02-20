@@ -224,7 +224,7 @@ export default function ProfilePage() {
                 style={{ background: 'linear-gradient(135deg, #10161e 0%, #0f1115 60%, #0a110a 100%)' }}
             >
                 {/* Top green accent bar */}
-                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #2F7C46, #4ade80, #2F7C46)' }} />
+                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #04B305, #6eff6e, #04B305)' }} />
 
                 <div className="p-5 md:p-7">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -333,8 +333,8 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {[
                                 { label: 'Total Previsões', value: totalBets.toString(), Icon: Target, accent: '#60a5fa' },
-                                { label: 'Taxa de Acerto', value: `${hitRate}%`, Icon: TrendingUp, accent: '#4ade80' },
-                                { label: 'Rendimento', value: `R$ ${revenue.toFixed(2)}`, Icon: Wallet, accent: revenue >= 0 ? '#4ade80' : '#f87171' },
+                                { label: 'Taxa de Acerto', value: `${hitRate}%`, Icon: TrendingUp, accent: '#04B305' },
+                                { label: 'Rendimento', value: `R$ ${revenue.toFixed(2)}`, Icon: Wallet, accent: revenue >= 0 ? '#04B305' : '#f87171' },
                                 { label: 'Comissões', value: `R$ ${totalCommission.toFixed(2)}`, Icon: Users, accent: '#facc15' },
                             ].map(s => (
                                 <div key={s.label} className="bg-[#0d121a] border border-white/5 rounded-xl p-4 hover:border-white/10 transition-colors">

@@ -46,6 +46,13 @@ export async function POST(req: Request) {
             }, { status: 404 });
         }
 
+        // Require real CPF — must match the PIX account holder's document
+        if (!userData.document || userData.document.trim() === '') {
+            return NextResponse.json({
+                error: 'CPF obrigatório: Adicione seu CPF (idêntico ao da conta PIX) no seu Perfil antes de depositar.'
+            }, { status: 400 });
+        }
+
         // 1. Create Charge in XGate
         const xgateRes = await XGateService.createPixCharge({
             amount,
@@ -54,7 +61,7 @@ export async function POST(req: Request) {
             user: {
                 name: userData.full_name || "Cliente Predity",
                 email: userData.email || "email@predity.com",
-                document: userData.document || undefined,
+                document: userData.document,
                 phone: userData.phone || undefined
             }
         });

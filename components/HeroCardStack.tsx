@@ -106,11 +106,11 @@ export default function HeroCardStack({ cards }: HeroCardStackProps) {
                                 <AreaChart data={data}>
                                     <defs>
                                         <linearGradient id={`grad${index}`} x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                            <stop offset="5%" stopColor="#04B305" stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor="#04B305" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <Area type="monotone" dataKey="value" stroke="#22c55e" fillOpacity={1} fill={`url(#grad${index})`} />
+                                    <Area type="monotone" dataKey="value" stroke="#04B305" fillOpacity={1} fill={`url(#grad${index})`} />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
@@ -119,7 +119,7 @@ export default function HeroCardStack({ cards }: HeroCardStackProps) {
                         {isActive && ticker.map(t => (
                             <div
                                 key={t.id}
-                                className="absolute z-50 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full shadow-lg animate-[float_2s_ease-out_forwards] pointer-events-none"
+                                className="absolute z-50 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full shadow-lg animate-[float_2s_ease-out_forwards] pointer-events-none"
                                 style={{ top: `${t.top}%`, left: `${t.left}%` }}
                             >
                                 +R$ {t.value}
@@ -146,11 +146,11 @@ export default function HeroCardStack({ cards }: HeroCardStackProps) {
                             {/* Big Odds Display */}
                             <div className="mt-auto grid grid-cols-2 gap-4">
                                 {/* YES Button */}
-                                <div className="group relative bg-[#1E293B] hover:bg-[#22c55e] border border-white/10 hover:border-[#22c55e] p-3 rounded-xl transition-all duration-300 cursor-pointer overflow-hidden">
+                                <div className="group relative bg-[#1E293B] hover:bg-[#04B305] border border-white/10 hover:border-[#04B305] p-3 rounded-xl transition-all duration-300 cursor-pointer overflow-hidden">
                                     <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     <div className="relative z-10 text-center">
                                         <div className="text-xs font-bold text-gray-400 group-hover:text-white/80 mb-1">SIM</div>
-                                        <div className="text-2xl font-black text-[#22c55e] group-hover:text-white">
+                                        <div className="text-2xl font-black text-[#04B305] group-hover:text-white">
                                             {card.yes.toFixed(2)}x
                                         </div>
                                     </div>
