@@ -9,8 +9,8 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { amount, userId, description } = body;
 
-        if (!amount || amount < 1) {
-            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+        if (!amount || amount < 10) {
+            return NextResponse.json({ error: 'Valor mínimo de depósito: R$ 10,00' }, { status: 400 });
         }
 
         const cookieStore = await cookies();

@@ -73,13 +73,18 @@ export const XGateService = {
                 amount: params.amount,
                 currency: brlCurrency, // Pass full object
                 customer: {
-                    // Use provided user details or fallbacks
+                    // Use real user data — never use test/fake CPF
                     name: params.user?.name || "Cliente Predity",
                     email: params.user?.email || "email@predity.com",
                     phone: params.user?.phone || "5511999999999",
-                    document: params.user?.document || "12345678909"
+                    // document is required by XGate — use real CPF only, blank if missing
+                    ...(params.user?.document ? { document: params.user.document } : {})
                 }
             };
+
+            if (!params.user?.document) {
+                console.warn("[XGate] WARNING: User has no CPF/document registered. Sending charge without document field.");
+            }
 
             console.log(`[XGate] Creating Deposit at ${endpoint}`, JSON.stringify(payload));
 

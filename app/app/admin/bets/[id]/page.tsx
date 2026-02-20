@@ -220,6 +220,18 @@ export default function EditBetPage() {
                                 <input name="title" value={formData.title} onChange={handleChange} className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary" />
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-400">Detalhes / Descrição</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    rows={4}
+                                    placeholder="Regras, fontes de resolução, detalhes adicionais..."
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary resize-none"
+                                />
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-gray-400">Categoria</label>
