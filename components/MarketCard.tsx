@@ -17,13 +17,14 @@ interface MarketCardProps {
     pool: number;
     yesAmount: number;
     noAmount: number;
-    outcomes?: string[]; // New
-    outcomePools?: Record<string, number>; // New
+    outcomes?: string[];
+    outcomePools?: Record<string, number>;
+    outcomeImages?: Record<string, string>; // NEW: map of outcome name -> image URL
     metadata?: any;
     slug?: string;
 }
 
-export default function MarketCard({ id, title, category, imageUrl, endDate, pool, yesAmount, noAmount, outcomes, outcomePools, metadata, slug }: MarketCardProps) {
+export default function MarketCard({ id, title, category, imageUrl, endDate, pool, yesAmount, noAmount, outcomes, outcomePools, outcomeImages, metadata, slug }: MarketCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [ticker, setTicker] = useState<{ id: number, value: number, type: 'yes' | 'no', top: number, left: number }[]>([]);
 
@@ -220,50 +221,68 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                             }).sort((a, b) => b.pct - a.pct);
 
                             if (availableOutcomes.length <= 2) {
-                                // BINARY — tall buttons with glow effect
+                                // BINARY — tall buttons with glow effect + outcome image as bg
                                 return (
                                     <div className="grid grid-cols-2 gap-2 mt-auto h-[100px]">
-                                        {sortedStats.map((stat) => (
-                                            <div
-                                                key={stat.outcome}
-                                                className={`relative overflow-hidden flex flex-col items-center justify-center rounded-xl border ${stat.color.border} bg-black/30 ${stat.color.glow} transition-all duration-300 cursor-pointer group/btn hover:scale-[1.02] active:scale-[0.98] h-full`}
-                                            >
-                                                {/* Subtle background fill by probability */}
-                                                <div className={`absolute inset-0 ${stat.color.bar} opacity-60`} />
-                                                <div className="relative z-10 flex flex-col items-center gap-0.5">
-                                                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wide">{stat.outcome}</span>
-                                                    <span className={`text-2xl font-black ${stat.color.text} group-hover/btn:scale-105 transition-transform`}>
-                                                        {stat.odds}x
-                                                    </span>
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.color.pill}`}>
-                                                        {stat.pct}%
-                                                    </span>
+                                        {sortedStats.map((stat) => {
+                                            const imgSrc = outcomeImages?.[stat.outcome] || metadata?.outcome_images?.[stat.outcome] ||
+                                                (stat.outcome === 'SIM' || stat.outcome === 'YES' ? metadata?.yes_image : metadata?.no_image) || '';
+                                            return (
+                                                <div
+                                                    key={stat.outcome}
+                                                    className={`relative overflow-hidden flex flex-col items-center justify-center rounded-xl border ${stat.color.border} ${stat.color.glow} transition-all duration-300 cursor-pointer group/btn hover:scale-[1.02] active:scale-[0.98] h-full`}
+                                                >
+                                                    {/* Bg image */}
+                                                    {imgSrc && (
+                                                        <img src={imgSrc} alt={stat.outcome} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover/btn:opacity-45 transition-opacity duration-300 scale-105" />
+                                                    )}
+                                                    {/* Color tint overlay */}
+                                                    <div className={`absolute inset-0 ${stat.color.bar} opacity-70`} />
+                                                    {/* Content */}
+                                                    <div className="relative z-10 flex flex-col items-center gap-0.5">
+                                                        <span className="text-[10px] text-gray-300 uppercase font-bold tracking-wide drop-shadow">{stat.outcome}</span>
+                                                        <span className={`text-2xl font-black ${stat.color.text} group-hover/btn:scale-105 transition-transform drop-shadow`}>
+                                                            {stat.odds}x
+                                                        </span>
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.color.pill}`}>
+                                                            {stat.pct}%
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 );
                             } else {
-                                // MULTI-OPTION LEADERBOARD — 3 rows, totals 100px like binary
+                                // MULTI-OPTION — 3 rows, avatar circle next to rank
                                 const top3 = sortedStats.slice(0, 3);
                                 const remainingCount = sortedStats.length - 3;
 
                                 return (
                                     <div className="flex flex-col gap-1 mt-auto" style={{ minHeight: 100 }}>
-                                        {top3.map((stat, idx) => (
-                                            <div key={stat.outcome} className="relative overflow-hidden bg-black/30 border border-white/5 rounded-lg px-3 py-2 flex items-center justify-between hover:bg-white/[0.04] transition-colors flex-1">
-                                                {/* Progress bar */}
-                                                <div className={`absolute left-0 top-0 bottom-0 ${stat.color.bar} transition-all duration-700`} style={{ width: `${stat.pct}%` }} />
-                                                <div className="relative flex items-center gap-2 flex-1 min-w-0 pr-2">
-                                                    <span className="text-gray-600 text-[10px] font-bold w-3 text-right flex-shrink-0">{idx + 1}</span>
-                                                    <span className="text-xs font-bold text-gray-200 truncate">{stat.outcome}</span>
+                                        {top3.map((stat, idx) => {
+                                            const imgSrc = outcomeImages?.[stat.outcome] || metadata?.outcome_images?.[stat.outcome] || '';
+                                            return (
+                                                <div key={stat.outcome} className="relative overflow-hidden bg-black/30 border border-white/5 rounded-lg px-3 py-2 flex items-center justify-between hover:bg-white/[0.04] transition-colors flex-1">
+                                                    {/* Progress bar */}
+                                                    <div className={`absolute left-0 top-0 bottom-0 ${stat.color.bar} transition-all duration-700`} style={{ width: `${stat.pct}%` }} />
+                                                    <div className="relative flex items-center gap-2 flex-1 min-w-0 pr-2">
+                                                        <span className="text-gray-600 text-[10px] font-bold w-3 text-right flex-shrink-0">{idx + 1}</span>
+                                                        {/* Avatar circle */}
+                                                        {imgSrc ? (
+                                                            <div className="w-5 h-5 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
+                                                                <img src={imgSrc} alt={stat.outcome} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        ) : null}
+                                                        <span className="text-xs font-bold text-gray-200 truncate">{stat.outcome}</span>
+                                                    </div>
+                                                    <div className="relative flex items-center gap-2 flex-shrink-0">
+                                                        <span className={`text-sm font-black ${stat.color.text}`}>{stat.odds}x</span>
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${stat.color.pill}`}>{stat.pct}%</span>
+                                                    </div>
                                                 </div>
-                                                <div className="relative flex items-center gap-2 flex-shrink-0">
-                                                    <span className={`text-sm font-black ${stat.color.text}`}>{stat.odds}x</span>
-                                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${stat.color.pill}`}>{stat.pct}%</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         {remainingCount > 0 && (
                                             <div className="text-center pt-0.5 text-[10px] uppercase font-bold text-gray-600">
                                                 +{remainingCount} mais
