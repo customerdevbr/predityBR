@@ -31,7 +31,7 @@ export async function POST(req: Request) {
         // ── Fetch user ──────────────────────────────────────────────────────
         const { data: user, error: userErr } = await supabaseAdmin
             .from('users')
-            .select('id, full_name, email, phone, document, xgate_customer_id')
+            .select('id, full_name, email, phone, document')
             .eq('id', userId)
             .single();
 
@@ -39,34 +39,43 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
         }
 
-        const customerId = user.xgate_customer_id;
-        if (!customerId) {
-            return NextResponse.json({
-                ok: false,
-                skipped: true,
-                reason: 'Usuário ainda não tem xgate_customer_id. Será criado no primeiro depósito.',
-            });
-        }
-
         const cpf = (user.document || '').replace(/\D/g, '');
         if (!cpf) {
             return NextResponse.json({ error: 'CPF não cadastrado no perfil' }, { status: 400 });
         }
 
+        // ── Get xgate_customer_id from transaction metadata ─────────────────
+        const { data: txRows } = await supabaseAdmin
+            .from('transactions')
+            .select('metadata')
+            .eq('user_id', userId)
+            .eq('type', 'DEPOSIT')
+            .not('metadata', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        const customerId = txRows
+            ?.map(tx => tx.metadata?.xgate_customer_id)
+            .find(id => !!id);
+
+        if (!customerId) {
+            return NextResponse.json({
+                ok: false,
+                skipped: true,
+                reason: 'Sem xgate_customer_id nas transações — usuário ainda não fez depósito ou o ID ainda não foi capturado. Será atualizado automaticamente no próximo depósito.',
+            });
+        }
+
         // ── Authenticate ────────────────────────────────────────────────────
         const token = await xgateLogin();
 
-        // ── Build update payload — only send fields that exist ──────────────
-        const updatePayload: Record<string, string> = {
-            document: cpf,
-        };
+        const updatePayload: Record<string, string> = { document: cpf };
         if (user.full_name) updatePayload.name = user.full_name;
         if (user.email) updatePayload.email = user.email;
         if (user.phone) updatePayload.phone = user.phone;
 
         console.log(`[xgate-sync-customer] PUT /customer/${customerId}`, JSON.stringify(updatePayload));
 
-        // ── Call XGate PUT /customer/{id} ───────────────────────────────────
         const res = await fetch(`${BASE_URL}/customer/${customerId}`, {
             method: 'PUT',
             headers: {
@@ -80,26 +89,27 @@ export async function POST(req: Request) {
         console.log(`[xgate-sync-customer] Response ${res.status}:`, JSON.stringify(resBody));
 
         if (!res.ok) {
-            // 400 "Não é possível alterar o documento de um cliente que já possou um documento válido"
-            // means the CPF is already locked — that's actually OK, means it's set correctly
             if (res.status === 400 && resBody.message?.includes('documento')) {
                 return NextResponse.json({
                     ok: true,
-                    message: 'CPF já está bloqueado na XGate (documento válido cadastrado — não pode ser alterado).',
+                    message: 'CPF já está bloqueado na XGate (documento válido cadastrado — não pode ser alterado). Exclua o customer no painel XGate para resetar.',
                     xgate_response: resBody,
                 });
             }
             return NextResponse.json({
                 ok: false,
                 error: resBody.message || `XGate error ${res.status}`,
+                http_status: res.status,
                 xgate_response: resBody,
-            }, { status: 200 }); // 200 so client doesn't retry blindly
+                payload_sent: updatePayload,
+            }, { status: 200 });
         }
 
         return NextResponse.json({
             ok: true,
             message: 'Dados sincronizados com XGate com sucesso.',
             xgate_response: resBody,
+            payload_sent: updatePayload,
         });
 
     } catch (err: any) {

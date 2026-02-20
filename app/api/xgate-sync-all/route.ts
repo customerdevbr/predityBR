@@ -15,7 +15,7 @@ async function xgateLogin(): Promise<string> {
         body: JSON.stringify({ email: process.env.XGATE_EMAIL, password: process.env.XGATE_PASSWORD }),
     });
     const data = await res.json();
-    if (!data.token) throw new Error('XGate auth failed');
+    if (!data.token) throw new Error(`XGate auth failed: ${JSON.stringify(data)}`);
     return data.token;
 }
 
@@ -23,30 +23,59 @@ export async function POST() {
     const results: any[] = [];
 
     try {
-        // ── Fetch all users that have a xgate_customer_id ──────────────────
-        const { data: users, error } = await supabaseAdmin
-            .from('users')
-            .select('id, email, full_name, phone, document, xgate_customer_id')
-            .not('xgate_customer_id', 'is', null);
-
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-        if (!users || users.length === 0) {
-            return NextResponse.json({ message: 'Nenhum usuário com xgate_customer_id encontrado.', results: [] });
+        // ── Step 1: Authenticate with XGate once ────────────────────────────
+        let token: string;
+        try {
+            token = await xgateLogin();
+        } catch (e: any) {
+            return NextResponse.json({ error: `XGate auth failed: ${e.message}` }, { status: 500 });
         }
 
-        // ── Authenticate once ───────────────────────────────────────────────
-        const token = await xgateLogin();
+        // ── Step 2: Get all users with CPF ──────────────────────────────────
+        const { data: users, error: usersErr } = await supabaseAdmin
+            .from('users')
+            .select('id, email, full_name, phone, document');
 
-        // ── Sync each user ──────────────────────────────────────────────────
+        if (usersErr) return NextResponse.json({ error: usersErr.message }, { status: 500 });
+        if (!users?.length) return NextResponse.json({ message: 'Nenhum usuário encontrado.', results: [] });
+
+        // ── Step 3: For each user, find xgate_customer_id from transactions ──
         for (const user of users) {
             const cpf = (user.document || '').replace(/\D/g, '');
-            const customerId = user.xgate_customer_id;
-
-            if (!cpf || !customerId) {
-                results.push({ email: user.email, status: 'skipped', reason: !cpf ? 'sem CPF' : 'sem xgate_customer_id' });
+            if (!cpf) {
+                results.push({ email: user.email, status: 'skipped', reason: 'sem CPF cadastrado' });
                 continue;
             }
 
+            // Look up customer ID from most recent deposit transaction metadata
+            const { data: txRows } = await supabaseAdmin
+                .from('transactions')
+                .select('metadata')
+                .eq('user_id', user.id)
+                .eq('type', 'DEPOSIT')
+                .not('metadata', 'is', null)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            // Find first tx that has an xgate_customer_id in metadata
+            const customerId = txRows
+                ?.map(tx => tx.metadata?.xgate_customer_id)
+                .find(id => !!id);
+
+            if (!customerId) {
+                // Also try xgate_id as a fallback reference (it IS the charge ID, not customer ID, but log it)
+                const xgateId = txRows?.[0]?.metadata?.xgate_id;
+                results.push({
+                    email: user.email,
+                    status: 'skipped',
+                    reason: 'Sem xgate_customer_id nas transações — usuário ainda não fez depósito, ou o ID ainda não foi capturado',
+                    xgate_charge_id: xgateId || null,
+                    note: xgateId ? '⚠️ Encontramos o charge ID mas não o customer ID. Próximo depósito vai capturá-lo.' : null,
+                });
+                continue;
+            }
+
+            // ── Step 4: Call PUT /customer/{id} ─────────────────────────────
             const payload: Record<string, string> = { document: cpf };
             if (user.full_name) payload.name = user.full_name;
             if (user.email) payload.email = user.email;
@@ -55,24 +84,49 @@ export async function POST() {
             try {
                 const res = await fetch(`${BASE_URL}/customer/${customerId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
                     body: JSON.stringify(payload),
                 });
+
                 const body = await res.json().catch(() => ({}));
 
                 if (res.ok) {
-                    results.push({ email: user.email, customerId, status: 'synced', xgate: body.message });
-                } else if (res.status === 400 && body.message?.includes('documento')) {
-                    // CPF already locked — means it was already set correctly or cannot be changed
-                    results.push({ email: user.email, customerId, status: 'locked', note: 'CPF já definido e bloqueado na XGate' });
+                    results.push({
+                        email: user.email,
+                        customerId,
+                        status: 'synced',
+                        xgate_message: body.message,
+                        payload_sent: payload,
+                    });
+                } else if (res.status === 400) {
+                    // "Não é possível alterar o documento de um cliente que já possui um documento válido"
+                    results.push({
+                        email: user.email,
+                        customerId,
+                        status: 'locked',
+                        http_status: res.status,
+                        xgate_message: body.message || JSON.stringify(body),
+                        note: '⚠️ CPF está bloqueado na XGate — exclua o customer no painel XGate para resetar.',
+                        payload_sent: payload,
+                    });
                 } else {
-                    results.push({ email: user.email, customerId, status: 'error', code: res.status, xgate: body.message || JSON.stringify(body) });
+                    results.push({
+                        email: user.email,
+                        customerId,
+                        status: 'error',
+                        http_status: res.status,
+                        xgate_message: body.message || JSON.stringify(body),
+                        payload_sent: payload,
+                    });
                 }
             } catch (e: any) {
                 results.push({ email: user.email, customerId, status: 'error', error: e.message });
             }
 
-            // Small delay to avoid rate-limiting
+            // Avoid rate limiting
             await new Promise(r => setTimeout(r, 300));
         }
 
@@ -81,14 +135,7 @@ export async function POST() {
         const errors = results.filter(r => r.status === 'error').length;
         const skipped = results.filter(r => r.status === 'skipped').length;
 
-        return NextResponse.json({
-            total: users.length,
-            synced,
-            locked,
-            errors,
-            skipped,
-            results,
-        });
+        return NextResponse.json({ total: users.length, synced, locked, errors, skipped, results });
 
     } catch (err: any) {
         return NextResponse.json({ error: err.message, results }, { status: 500 });

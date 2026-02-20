@@ -95,13 +95,18 @@ export async function POST(req: Request) {
             d.clientId ||
             null;
 
-        if (xgateCustomerId && !userData.xgate_customer_id) {
-            // First deposit — save the customer ID for future syncs
-            await supabase
-                .from('users')
-                .update({ xgate_customer_id: xgateCustomerId })
-                .eq('id', userId);
-            console.log(`[deposit] Stored xgate_customer_id=${xgateCustomerId} for user ${userId}`);
+        if (xgateCustomerId) {
+            // Store customer ID in users table (requires xgate_customer_id column — see migration SQL in supabase/migrations/)
+            // Wrapped in try/catch so it doesn't break deposits if column not yet created
+            try {
+                await supabase
+                    .from('users')
+                    .update({ xgate_customer_id: xgateCustomerId } as any)
+                    .eq('id', userId);
+                console.log(`[deposit] Stored xgate_customer_id=${xgateCustomerId} for user ${userId}`);
+            } catch {
+                console.warn(`[deposit] Could not store xgate_customer_id — column may not exist yet. Run migration: supabase/migrations/20240220_add_xgate_customer_id.sql`);
+            }
         }
 
         if (!qrCode) {
