@@ -19,19 +19,25 @@ async function xgateLogin(): Promise<string> {
     return data.token;
 }
 
+/**
+ * Given a transaction ID (xgate_id from our DB), finds the real XGate customer _id
+ * by calling GET /customer/{transactionId} and extracting the _id field from the response.
+ */
+async function resolveCustomerId(token: string, transactionId: string): Promise<string | null> {
+    const res = await fetch(`${BASE_URL}/customer/${transactionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data._id || null;
+}
+
 export async function POST() {
     const results: any[] = [];
 
     try {
-        // ── Authenticate once ───────────────────────────────────────────────
-        let token: string;
-        try {
-            token = await xgateLogin();
-        } catch (e: any) {
-            return NextResponse.json({ error: `XGate auth failed: ${e.message}` }, { status: 500 });
-        }
+        const token = await xgateLogin();
 
-        // ── Get all users with CPF ──────────────────────────────────────────
         const { data: users, error: usersErr } = await supabaseAdmin
             .from('users')
             .select('id, email, full_name, phone, document');
@@ -42,12 +48,11 @@ export async function POST() {
         for (const user of users) {
             const cpf = (user.document || '').replace(/\D/g, '');
             if (!cpf) {
-                results.push({ email: user.email, status: 'skipped', reason: 'sem CPF cadastrado' });
+                results.push({ email: user.email, status: 'skipped', reason: 'sem CPF cadastrado no perfil' });
                 continue;
             }
 
-            // ── Get xgate_id from most recent DEPOSIT transaction ───────────
-            // IMPORTANT: the xgate_id returned by POST /deposit IS the Customer ID on XGate
+            // Get most recent deposit transaction with an xgate_id
             const { data: txRows } = await supabaseAdmin
                 .from('transactions')
                 .select('metadata')
@@ -57,70 +62,74 @@ export async function POST() {
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            // Try xgate_customer_id first (new deposits capture this explicitly),
-            // then fall back to xgate_id (which IS the customer ID on XGate)
-            const customerId =
-                txRows?.map(tx => tx.metadata?.xgate_customer_id).find(Boolean) ||
-                txRows?.map(tx => tx.metadata?.xgate_id).find(id => id && id !== 'unknown_id') ||
-                null;
+            const transactionId = txRows
+                ?.map(tx => tx.metadata?.xgate_id)
+                .find(id => id && id !== 'unknown_id');
 
-            if (!customerId) {
+            if (!transactionId) {
+                results.push({ email: user.email, status: 'skipped', reason: 'Sem transações de depósito registradas' });
+                continue;
+            }
+
+            // Step 1: GET /customer/{transactionId} → extract real _id
+            const realCustomerId = await resolveCustomerId(token, transactionId);
+            if (!realCustomerId) {
                 results.push({
                     email: user.email,
+                    transaction_id: transactionId,
                     status: 'skipped',
-                    reason: 'Sem transações de depósito registradas',
+                    reason: 'Não foi possível obter o _id real do customer via GET /customer/{transactionId}',
                 });
                 continue;
             }
 
-            // ── Call PUT /customer/{id} ─────────────────────────────────────
+            // Step 2: PUT /customer/{realCustomerId}
             const payload: Record<string, string> = { document: cpf };
             if (user.full_name) payload.name = user.full_name;
             if (user.email) payload.email = user.email;
             if (user.phone) payload.phone = user.phone;
 
-            try {
-                const res = await fetch(`${BASE_URL}/customer/${customerId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                    },
-                    body: JSON.stringify(payload),
+            const res = await fetch(`${BASE_URL}/customer/${realCustomerId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const body = await res.json().catch(() => ({}));
+
+            if (res.ok) {
+                results.push({
+                    email: user.email,
+                    transaction_id: transactionId,
+                    real_customer_id: realCustomerId,
+                    status: 'synced',
+                    xgate_message: body.message,
+                    payload_sent: payload,
                 });
-
-                const body = await res.json().catch(() => ({}));
-
-                if (res.ok) {
-                    results.push({
-                        email: user.email,
-                        customer_id: customerId,
-                        status: 'synced',
-                        xgate_message: body.message,
-                        payload_sent: payload,
-                    });
-                } else if (res.status === 400) {
-                    results.push({
-                        email: user.email,
-                        customer_id: customerId,
-                        status: 'locked',
-                        http_status: res.status,
-                        xgate_message: body.message || JSON.stringify(body),
-                        note: 'CPF bloqueado na XGate — entre em contato com suporte XGate para reset.',
-                        payload_sent: payload,
-                    });
-                } else {
-                    results.push({
-                        email: user.email,
-                        customer_id: customerId,
-                        status: 'error',
-                        http_status: res.status,
-                        xgate_message: body.message || JSON.stringify(body),
-                        payload_sent: payload,
-                    });
-                }
-            } catch (e: any) {
-                results.push({ email: user.email, customer_id: customerId, status: 'error', error: e.message });
+            } else if (res.status === 400) {
+                results.push({
+                    email: user.email,
+                    transaction_id: transactionId,
+                    real_customer_id: realCustomerId,
+                    status: 'locked',
+                    http_status: res.status,
+                    xgate_message: body.message || JSON.stringify(body),
+                    note: 'CPF bloqueado na XGate — contate o suporte XGate.',
+                    payload_sent: payload,
+                });
+            } else {
+                results.push({
+                    email: user.email,
+                    transaction_id: transactionId,
+                    real_customer_id: realCustomerId,
+                    status: 'error',
+                    http_status: res.status,
+                    xgate_message: body.message || JSON.stringify(body),
+                    payload_sent: payload,
+                });
             }
 
             await new Promise(r => setTimeout(r, 300));

@@ -10,12 +10,12 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
     try {
-        const { xgateCustomerId, userId, name, email, document, phone } = await req.json();
+        const body = await req.json();
+        // Accept either: explicit xgateCustomerId (already a real _id), or lookup via userId
+        const { xgateCustomerId, transactionId, userId, name, email, document, phone } = body;
 
-        if (!xgateCustomerId) return NextResponse.json({ error: 'xgateCustomerId é obrigatório' }, { status: 400 });
-
-        // If userId is provided, pull real data from DB
         let payload: Record<string, string> = {};
+
         if (userId) {
             const { data: user } = await supabaseAdmin
                 .from('users')
@@ -30,16 +30,13 @@ export async function POST(req: Request) {
                 if (user.phone) payload.phone = user.phone;
             }
         }
-
-        // Manual overrides from request body take precedence
+        // Manual overrides
         if (document) payload.document = document.replace(/\D/g, '');
         if (name) payload.name = name;
         if (email) payload.email = email;
         if (phone) payload.phone = phone;
 
-        if (!payload.document) {
-            return NextResponse.json({ error: 'CPF (document) é obrigatório no payload ou no perfil do usuário' }, { status: 400 });
-        }
+        if (!payload.document) return NextResponse.json({ error: 'CPF (document) obrigatório' }, { status: 400 });
 
         // Authenticate
         const authRes = await fetch(`${BASE_URL}/auth/token`, {
@@ -47,22 +44,40 @@ export async function POST(req: Request) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: process.env.XGATE_EMAIL, password: process.env.XGATE_PASSWORD }),
         });
-        const authData = await authRes.json();
-        if (!authData.token) return NextResponse.json({ error: 'XGate auth failed', detail: authData }, { status: 500 });
+        const { token } = await authRes.json();
+        if (!token) return NextResponse.json({ error: 'XGate auth failed' }, { status: 500 });
 
-        // Call PUT /customer/{id}
-        const res = await fetch(`${BASE_URL}/customer/${xgateCustomerId}`, {
+        // Resolve real customer _id
+        // If xgateCustomerId was provided, try using it directly first.
+        // If that returns 404/400, treat it as a transaction ID and resolve via GET.
+        let realCustomerId = xgateCustomerId || transactionId;
+
+        if (realCustomerId) {
+            // Always resolve via GET to get the real _id from the response body
+            const getRes = await fetch(`${BASE_URL}/customer/${realCustomerId}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (getRes.ok) {
+                const customerData = await getRes.json();
+                // The _id in the response IS the real customer ID for PUT
+                realCustomerId = customerData._id || realCustomerId;
+            }
+        }
+
+        if (!realCustomerId) return NextResponse.json({ error: 'Customer ID não encontrado' }, { status: 400 });
+
+        // PUT with real _id
+        const res = await fetch(`${BASE_URL}/customer/${realCustomerId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authData.token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(payload),
         });
-
         const resBody = await res.json().catch(() => ({}));
 
         return NextResponse.json({
             ok: res.ok,
             http_status: res.status,
-            xgate_customer_id: xgateCustomerId,
+            real_customer_id: realCustomerId,
             payload_sent: payload,
             xgate_response: resBody,
         });

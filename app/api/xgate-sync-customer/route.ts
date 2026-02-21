@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         const cpf = (user.document || '').replace(/\D/g, '');
         if (!cpf) return NextResponse.json({ error: 'CPF não cadastrado no perfil' }, { status: 400 });
 
-        // xgate_id from deposit response IS the Customer ID
+        // Find most recent deposit with an xgate_id
         const { data: txRows } = await supabaseAdmin
             .from('transactions')
             .select('metadata')
@@ -34,19 +34,15 @@ export async function POST(req: Request) {
             .order('created_at', { ascending: false })
             .limit(10);
 
-        const customerId =
-            txRows?.map(tx => tx.metadata?.xgate_customer_id).find(Boolean) ||
-            txRows?.map(tx => tx.metadata?.xgate_id).find(id => id && id !== 'unknown_id') ||
-            null;
+        const transactionId = txRows
+            ?.map(tx => tx.metadata?.xgate_id)
+            .find(id => id && id !== 'unknown_id');
 
-        if (!customerId) {
-            return NextResponse.json({
-                ok: false,
-                skipped: true,
-                reason: 'Sem depósitos registrados — ID será capturado no próximo depósito.',
-            });
+        if (!transactionId) {
+            return NextResponse.json({ ok: false, skipped: true, reason: 'Sem depósitos registrados.' });
         }
 
+        // Auth
         const authRes = await fetch(`${BASE_URL}/auth/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -55,12 +51,27 @@ export async function POST(req: Request) {
         const { token } = await authRes.json();
         if (!token) throw new Error('XGate auth failed');
 
+        // Step 1: GET /customer/{transactionId} → extract real _id
+        const getRes = await fetch(`${BASE_URL}/customer/${transactionId}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!getRes.ok) {
+            return NextResponse.json({ ok: false, error: `GET /customer/${transactionId} retornou ${getRes.status}` });
+        }
+        const customerData = await getRes.json();
+        const realCustomerId = customerData._id;
+
+        if (!realCustomerId) {
+            return NextResponse.json({ ok: false, error: 'GET /customer não retornou _id no body' });
+        }
+
+        // Step 2: PUT /customer/{realCustomerId}
         const updatePayload: Record<string, string> = { document: cpf };
         if (user.full_name) updatePayload.name = user.full_name;
         if (user.email) updatePayload.email = user.email;
         if (user.phone) updatePayload.phone = user.phone;
 
-        const res = await fetch(`${BASE_URL}/customer/${customerId}`, {
+        const res = await fetch(`${BASE_URL}/customer/${realCustomerId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(updatePayload),
@@ -70,7 +81,8 @@ export async function POST(req: Request) {
         if (!res.ok && res.status === 400 && resBody.message?.includes('documento')) {
             return NextResponse.json({
                 ok: true,
-                message: 'CPF já bloqueado na XGate (documento válido registrado anteriormente).',
+                message: 'CPF já bloqueado na XGate.',
+                real_customer_id: realCustomerId,
                 xgate_response: resBody,
                 payload_sent: updatePayload,
             });
@@ -79,7 +91,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
             ok: res.ok,
             http_status: res.status,
-            customer_id: customerId,
+            real_customer_id: realCustomerId,
             xgate_response: resBody,
             payload_sent: updatePayload,
         });
