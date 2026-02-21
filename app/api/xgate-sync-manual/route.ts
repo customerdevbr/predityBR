@@ -53,15 +53,23 @@ export async function POST(req: Request) {
         let realCustomerId = xgateCustomerId || transactionId;
 
         if (realCustomerId) {
-            // Always resolve via GET to get the real _id from the response body
+            // GET /customer/{id} to resolve the real _id for PUT
             const getRes = await fetch(`${BASE_URL}/customer/${realCustomerId}`, {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
-            if (getRes.ok) {
-                const customerData = await getRes.json();
-                // The _id in the response IS the real customer ID for PUT
-                realCustomerId = customerData._id || realCustomerId;
+            const getBody = getRes.ok ? await getRes.json().catch(() => null) : null;
+            console.log(`[xgate-sync-manual] GET /customer/${realCustomerId} → ${getRes.status}`, JSON.stringify(getBody));
+
+            if (getBody && getBody._id) {
+                realCustomerId = getBody._id;
+            } else if (!getRes.ok) {
+                return NextResponse.json({
+                    ok: false,
+                    error: `GET /customer/${realCustomerId} retornou HTTP ${getRes.status}`,
+                    raw_get_body: getBody,
+                });
             }
+            // If getBody is null or missing _id, keep the original ID and try PUT anyway
         }
 
         if (!realCustomerId) return NextResponse.json({ error: 'Customer ID não encontrado' }, { status: 400 });
