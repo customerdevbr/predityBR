@@ -27,7 +27,8 @@ export default function EditBetPage() {
         no_image_url: '',
         status: '',
         total_pool: 0,
-        resolution_result: null
+        resolution_result: null,
+        outcomes: [] as string[]
     });
 
     useEffect(() => {
@@ -59,7 +60,8 @@ export default function EditBetPage() {
                 no_image_url: data.metadata?.no_image || '',
                 status: data.status,
                 total_pool: data.total_pool || 0,
-                resolution_result: data.resolution_result
+                resolution_result: data.resolution_result,
+                outcomes: data.outcomes || ['YES', 'NO']
             });
         }
         setLoading(false);
@@ -152,8 +154,8 @@ export default function EditBetPage() {
         }
     };
 
-    const handleResolve = async (outcome: 'YES' | 'NO') => {
-        if (!confirm(`Tem certeza que o resultado foi "${outcome === 'YES' ? 'SIM' : 'NÃO'}"? \nIsso encerrará a aposta e distribuirá os ganhos imediatamente.`)) return;
+    const handleResolve = async (outcome: string) => {
+        if (!confirm(`Tem certeza que o resultado foi "${outcome}"? \nIsso encerrará a aposta e distribuirá os ganhos imediatamente.`)) return;
 
         setResolving(true);
         try {
@@ -166,7 +168,11 @@ export default function EditBetPage() {
             if (error) throw error;
 
             alert("Aposta resolvida e pagamentos distribuídos!");
-            router.push('/app/admin/bets');
+            if (confirm("Deseja duplicar este mercado e criar um novo com os mesmos dados preenchidos?")) {
+                router.push(`/app/admin/bets/new?duplicate=${id}`);
+            } else {
+                router.push('/app/admin/bets');
+            }
         } catch (error: any) {
             console.error("Resolution Error:", error);
             alert("Erro ao resolver: " + error.message + "\n(Verifique se a função SQL 'resolve_market' existe)");
@@ -325,23 +331,20 @@ export default function EditBetPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        onClick={() => handleResolve('YES')}
-                                        disabled={resolving}
-                                        className="py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-                                    >
-                                        <CheckCircle className="w-4 h-4" />
-                                        Sim
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleResolve('NO')}
-                                        disabled={resolving}
-                                        className="py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-                                    >
-                                        <XCircle className="w-4 h-4" />
-                                        Não
-                                    </button>
+                                    {formData.outcomes.map((outcome, idx) => (
+                                        <button
+                                            key={outcome}
+                                            onClick={() => handleResolve(outcome)}
+                                            disabled={resolving}
+                                            className={`py-3 border rounded-lg font-bold flex items-center justify-center gap-2 transition-colors ${idx === 0 ? 'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400' :
+                                                    idx === 1 ? 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400' :
+                                                        'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 text-blue-400'
+                                                }`}
+                                        >
+                                            <CheckCircle className="w-4 h-4" />
+                                            {outcome}
+                                        </button>
+                                    ))}
                                 </div>
 
                                 <div className="pt-4 border-t border-white/5">
@@ -367,7 +370,7 @@ export default function EditBetPage() {
                                     <>
                                         <CheckCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
                                         <p className="text-white font-bold">Aposta Resolvida</p>
-                                        <p className="text-sm text-gray-500">Resultado: {formData.resolution_result === 'YES' ? 'SIM' : 'NÃO'}</p>
+                                        <p className="text-sm text-gray-500">Resultado: {formData.resolution_result}</p>
                                     </>
                                 )}
                             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Upload, X, Image as ImageIcon } from 'lucide-react';
@@ -99,11 +99,44 @@ export default function NewBetPage() {
     const activeCount = (() => {
         let count = 2; // A and B always
         for (let i = 2; i < MAX_OPTIONS; i++) {
-            if (options[i - 1].name.trim() !== '') count = i + 1;
+            if (options[i - 1]?.name.trim() !== '') count = i + 1;
             else break;
         }
         return Math.min(count, MAX_OPTIONS);
     })();
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const dupId = urlParams.get('duplicate');
+        if (dupId) {
+            fetchDuplicateData(dupId);
+        }
+    }, []);
+
+    const fetchDuplicateData = async (id: string) => {
+        setLoading(true);
+        const { data } = await supabase.from('markets').select('*').eq('id', id).single();
+        if (data) {
+            setTitle(data.title + ' (Cópia)');
+            setSlug(data.slug ? `${data.slug}-copia` : '');
+            setDescription(data.description || '');
+            setCategory(data.category || 'POLÍTICA');
+            setCoverUrl(data.image_url || '');
+
+            if (data.outcomes && data.outcomes.length > 0) {
+                const newOptions = OPTION_DEFAULTS.map((name) => ({ name, image: '' }));
+                data.outcomes.forEach((name: string, i: number) => {
+                    newOptions[i] = {
+                        name,
+                        image: data.metadata?.outcome_images?.[name] ||
+                            (i === 0 ? data.metadata?.yes_image : i === 1 ? data.metadata?.no_image : '') || ''
+                    };
+                });
+                setOptions(newOptions);
+            }
+        }
+        setLoading(false);
+    };
 
     const setOptionName = (index: number, name: string) => {
         setOptions(prev => {

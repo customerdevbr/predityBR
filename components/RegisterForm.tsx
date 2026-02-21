@@ -33,6 +33,12 @@ export default function RegisterForm() {
         setLoading(true);
         setError(null);
 
+        if (!fullName || !cpf || !dob || !email || !password || !confirmPassword) {
+            setError("Todos os campos são obrigatórios.");
+            setLoading(false);
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError("As senhas não coincidem.");
             setLoading(false);
