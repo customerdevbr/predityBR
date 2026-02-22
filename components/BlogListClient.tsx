@@ -6,7 +6,11 @@ import { FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export default function BlogListClient() {
+interface BlogListClientProps {
+    isAdmin?: boolean;
+}
+
+export default function BlogListClient({ isAdmin = false }: BlogListClientProps) {
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);

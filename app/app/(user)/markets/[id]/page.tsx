@@ -68,25 +68,26 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
             title: 'Mercado não encontrado | Predity',
             description: 'O mercado que você procura não existe ou foi removido.',
             openGraph: {
-                images: ['https://preditybr.com/logoPredityBR.png'], // Fallback
+                images: ['https://app.preditybr.com/logo.png'],
             }
         };
     }
 
-    const ogImage = market.image_url || 'https://preditybr.com/logoPredityBR.png';
-    // Use market description if available, otherwise a dynamic default
+    const ogImage = market.image_url || 'https://app.preditybr.com/logo.png';
     const description = market.description
         ? market.description.slice(0, 160) + (market.description.length > 160 ? '...' : '')
-        : `Faça sua previsão: ${market.title}. Veja as odds atuais e participe!`;
+        : `Dê o seu palpite: ${market.title}. Veja as cotações atuais, aposte via PIX e participe dessa previsão na PredityBR!`;
+
+    const title = `${market.title} | PredityBR`;
 
     return {
-        title: `${market.title} | Predity`,
+        title: title,
         description: description,
         openGraph: {
-            title: `${market.title} | Predity`,
+            title: title,
             description: description,
             url: `https://app.preditybr.com/app/markets/${market.slug || market.id}`,
-            siteName: 'Predity',
+            siteName: 'PredityBR',
             images: [
                 {
                     url: ogImage,
@@ -100,7 +101,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
         },
         twitter: {
             card: 'summary_large_image',
-            title: market.title,
+            title: title,
             description: description,
             images: [ogImage],
         }

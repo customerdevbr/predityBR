@@ -25,7 +25,7 @@ export default function Footer() {
                         <li><Link href="/app" className="hover:text-primary transition-colors">Mercados</Link></li>
                         <li><Link href="/app/wallet" className="hover:text-primary transition-colors">Minha Carteira</Link></li>
                         <li><Link href="/rankings" className="hover:text-primary transition-colors">Ranking Geral</Link></li>
-                        <li><Link href="/app/profile?tab=blog" className="hover:text-primary transition-colors">Blog & Dicas</Link></li>
+                        <li><Link href="/blog" className="hover:text-primary transition-colors">Blog & Dicas</Link></li>
                     </ul>
                 </div>
 
