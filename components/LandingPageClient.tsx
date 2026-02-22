@@ -123,8 +123,8 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                         {/* Em Alta - Mais Recentes */}
                         <div>
                             <div className="flex items-center gap-3 border-b border-white/5 pb-3 mb-4">
-                                <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0">
-                                    <Flame className="w-5 h-5 text-orange-500" />
+                                <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0 text-xl shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                                    🔥
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-bold text-white flex items-center gap-2">Em Alta <span className="text-xs font-normal text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{featuredMarkets.length} mercados</span></h2>
@@ -144,8 +144,8 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                         {featuredMarkets.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-3 border-b border-white/5 pb-3 mb-4">
-                                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                                        <ClockIcon className="w-5 h-5 text-red-500" />
+                                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0 text-xl shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                        ⏳
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-bold text-white flex items-center gap-2">Encerra em Breve <span className="text-xs font-normal text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">Corra</span></h2>
@@ -166,8 +166,8 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                         {featuredMarkets.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-3 border-b border-white/5 pb-3 mb-4">
-                                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                                        <TrendingUp className="w-5 h-5 text-blue-500" />
+                                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0 text-xl shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                                        📈
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-bold text-white flex items-center gap-2">Maior Volume 24h <span className="text-xs font-normal text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">Top</span></h2>
@@ -188,11 +188,20 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                         {LP_CATEGORIES.slice(2).map(cat => {
                             const catMarkets = featuredMarkets.filter(m => m.category === cat);
                             if (catMarkets.length === 0) return null;
+
+                            // Define Emoji based on Category
+                            let catEmoji = "🌐";
+                            if (cat === "POLÍTICA") catEmoji = "🏛️";
+                            if (cat === "ESPORTE") catEmoji = "⚽";
+                            if (cat === "ECONOMIA") catEmoji = "💰";
+                            if (cat === "CRIPTO") catEmoji = "₿";
+                            if (cat === "CLIMA") catEmoji = "☀️";
+
                             return (
                                 <div key={cat}>
                                     <div className="flex items-center gap-3 border-b border-white/5 pb-3 mb-4">
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                            <List className="w-5 h-5 text-primary" />
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-xl shadow-[0_0_15px_rgba(47,124,70,0.3)]">
+                                            {catEmoji}
                                         </div>
                                         <div className="flex-1 flex justify-between items-center pr-2">
                                             <div>
