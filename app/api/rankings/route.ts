@@ -1,13 +1,16 @@
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 
-const supabaseAdmin = createSupabaseAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Previne cache e execução estática no tempo de compilação
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
+        const supabaseAdmin = createSupabaseAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
         const authClient = await createClient();
         const { data: { session } } = await authClient.auth.getSession();
         const isAuthed = !!session;

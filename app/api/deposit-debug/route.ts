@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { validateCpf, validateFullName } from '@/lib/cpf';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Known fake/test CPFs to flag explicitly
 
 // Known fake/test CPFs to flag explicitly
 const KNOWN_TEST_CPFS = ['12345678909', '00000000000', '11111111111', '22222222222', '99999999999'];
@@ -16,7 +13,15 @@ function maskCpf(cpf: string): string {
     return `${d.slice(0, 3)}.***.***-${d.slice(9)}`;
 }
 
+// Build fix
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 

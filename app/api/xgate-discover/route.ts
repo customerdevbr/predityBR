@@ -3,11 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 
 const BASE_URL = "https://api.xgateglobal.com";
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 async function xgateLogin(): Promise<string> {
     const res = await fetch(`${BASE_URL}/auth/token`, {
         method: 'POST',
@@ -29,8 +24,16 @@ async function probe(token: string, path: string, method = 'GET', body?: any) {
     return { status: res.status, ok: res.ok, body: json };
 }
 
+// Build fix
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     try {
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
         const token = await xgateLogin();
         const report: Record<string, any> = {};
 

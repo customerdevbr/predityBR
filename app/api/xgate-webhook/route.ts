@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Use service role key so we can bypass RLS to update any transaction
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// XGate sends various status names depending on their API version
 
 // XGate sends various status names depending on their API version
 const PAID_STATUSES = [
@@ -20,7 +16,15 @@ const PAID_STATUSES = [
     'finished', 'FINISHED',
 ];
 
+// Build fix
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     let rawBody = '';
     try {
         rawBody = await req.text();
