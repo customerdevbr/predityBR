@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { LayoutDashboard, Users, Wallet, List, Shield, Activity, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, Users, Wallet, List, Shield, Activity, LifeBuoy, FileText } from 'lucide-react';
 
 export default function AdminLayout({
     children,
@@ -48,6 +48,7 @@ export default function AdminLayout({
         { label: "Segurança", icon: Shield, href: "/app/admin/security" },
         { label: "Atividades", icon: Activity, href: "/app/admin/activity" },
         { label: "Suporte", icon: LifeBuoy, href: "/app/admin/support" },
+        { label: "Blog", icon: FileText, href: "/app/admin/blog" },
     ];
 
     if (loading) return <div className="min-h-screen bg-[#0f1115]" />;

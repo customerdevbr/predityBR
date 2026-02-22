@@ -12,12 +12,9 @@ export default function Footer() {
                         A plataforma de prediction markets mais rápida do Brasil. Preveja o futuro com transparência e segurança via PIX.
                     </p>
                     <div className="flex gap-4 pt-2">
-                        <Link href="#" className="p-2 bg-surface rounded-full text-gray-400 hover:text-white transition-colors">
-                            <Globe className="w-4 h-4" />
-                        </Link>
-                        <Link href="#" className="p-2 bg-surface rounded-full text-gray-400 hover:text-white transition-colors">
-                            <Smartphone className="w-4 h-4" />
-                        </Link>
+                        <div className="p-2 bg-surface rounded-full text-2xl">
+                            🇧🇷
+                        </div>
                     </div>
                 </div>
 
@@ -28,7 +25,7 @@ export default function Footer() {
                         <li><Link href="/app" className="hover:text-primary transition-colors">Mercados</Link></li>
                         <li><Link href="/app/wallet" className="hover:text-primary transition-colors">Minha Carteira</Link></li>
                         <li><Link href="/rankings" className="hover:text-primary transition-colors">Ranking Geral</Link></li>
-                        <li><Link href="/blog" className="hover:text-primary transition-colors">Blog & Dicas</Link></li>
+                        <li><Link href="/app/profile?tab=blog" className="hover:text-primary transition-colors">Blog & Dicas</Link></li>
                     </ul>
                 </div>
 
@@ -37,7 +34,6 @@ export default function Footer() {
                     <h3 className="font-bold text-white mb-4">Suporte</h3>
                     <ul className="space-y-2 text-sm text-gray-500">
                         <li><Link href="/como-funciona" className="hover:text-primary transition-colors flex items-center gap-2"><HelpCircle className="w-3 h-3" /> Como funciona?</Link></li>
-                        <li><Link href="/help" className="hover:text-primary transition-colors flex items-center gap-2"><HelpCircle className="w-3 h-3" /> Central de Ajuda</Link></li>
                         <li><Link href="/contact" className="hover:text-primary transition-colors flex items-center gap-2"><Mail className="w-3 h-3" /> Fale Conosco</Link></li>
                         <li><Link href="/fees" className="hover:text-primary transition-colors flex items-center gap-2"><DollarSign className="w-3 h-3" /> Taxas e Limites</Link></li>
                     </ul>
@@ -56,8 +52,9 @@ export default function Footer() {
             </div>
 
             <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/5 text-center text-xs text-gray-600">
-                <p>&copy; 2024 PredityBR. Todos os direitos reservados.</p>
-                <p className="mt-2">Proibido para menores de 18 anos. Jogue com moderação.</p>
+                <p className="mb-2">Criado com <span className="text-primary text-sm">💚</span> por brasileiros para brasileiros.</p>
+                <p>PredityBR &copy; 2026. Todos os direitos reservados.</p>
+                <p className="mt-2 text-[10px] text-gray-700">Proibido para menores de 18 anos. Jogue com moderação.</p>
             </div>
         </footer>
     );

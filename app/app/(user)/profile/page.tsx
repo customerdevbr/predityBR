@@ -4,16 +4,18 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { validateCpf, validateFullName } from '@/lib/cpf';
+import RankingsList from '@/components/RankingsList';
+import BlogListClient from '@/components/BlogListClient';
 import {
     LogOut, Mail, CheckCircle, AlertCircle, Clock,
     Copy, ArrowDownLeft, ArrowUpRight, Target, TrendingUp,
     Users, Wallet, Camera, Phone, User as UserIcon, History,
-    X, Smartphone, Check, Lock, Eye, EyeOff
+    X, Smartphone, Check, Lock, Eye, EyeOff, Trophy, FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-type Tab = 'overview' | 'data' | 'bets' | 'affiliate';
+type Tab = 'overview' | 'data' | 'bets' | 'affiliate' | 'ranking' | 'blog';
 
 const formatCpf = (value: string) => {
     const d = value.replace(/\D/g, '').slice(0, 11);
@@ -240,6 +242,8 @@ export default function ProfilePage() {
         { key: 'data' as Tab, label: 'Meus Dados' },
         { key: 'bets' as Tab, label: 'Minhas Previsões' },
         { key: 'affiliate' as Tab, label: 'Programa de Afiliados' },
+        { key: 'ranking' as Tab, label: 'Ranking Geral' },
+        { key: 'blog' as Tab, label: 'Blog & Dicas' },
     ];
 
     return (
@@ -675,6 +679,32 @@ export default function ProfilePage() {
                                     <span className="text-emerald-400 font-black text-sm">+R$ {c.amount.toFixed(2)}</span>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── RANKING GERAL ── */}
+                {tab === 'ranking' && (
+                    <div className="space-y-4">
+                        <RankingsList isAuthed={true} />
+                    </div>
+                )}
+
+                {/* ── BLOG & DICAS ── */}
+                {tab === 'blog' && (
+                    <div className="space-y-4">
+                        <div className="bg-[#0d121a] border border-white/5 rounded-xl overflow-hidden p-6 space-y-6">
+                            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <FileText className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-white">Artigos e Dicas</h2>
+                                    <p className="text-xs text-gray-500 mt-0.5">Mantenha-se informado para fazer previsões melhores.</p>
+                                </div>
+                            </div>
+
+                            <BlogListClient />
                         </div>
                     </div>
                 )}
