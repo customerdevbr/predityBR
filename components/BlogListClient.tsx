@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 export default function BlogListClient() {
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     useEffect(() => {
         const loadPosts = async () => {
@@ -47,30 +48,40 @@ export default function BlogListClient() {
 
     return (
         <div className="space-y-4">
-            {posts.map(p => (
-                <div key={p.id} className="bg-black/20 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
-                    <div className="flex flex-col md:flex-row gap-5">
-                        {p.image_url && (
-                            <img
-                                src={p.image_url}
-                                alt={p.title}
-                                className="w-full md:w-48 h-32 rounded-lg object-cover flex-shrink-0 border border-white/5"
-                            />
-                        )}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                            <div>
-                                <h3 className="text-lg font-black text-white">{p.title}</h3>
-                                <div className="text-xs font-medium text-primary mt-1 mb-3">
-                                    {format(new Date(p.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+            {posts.map(p => {
+                const isExpanded = expandedId === p.id;
+                return (
+                    <div
+                        key={p.id}
+                        className={`bg-black/20 border ${isExpanded ? 'border-primary/30' : 'border-white/5'} rounded-xl p-5 hover:border-white/10 transition-all cursor-pointer`}
+                        onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                    >
+                        <div className={`flex flex-col md:flex-row gap-5 transition-all ${isExpanded ? 'items-start' : 'items-center'}`}>
+                            {p.image_url && (
+                                <img
+                                    src={p.image_url}
+                                    alt={p.title}
+                                    className={`w-full md:w-48 ${isExpanded ? 'h-auto max-h-64' : 'h-32'} rounded-lg object-cover flex-shrink-0 border border-white/5 transition-all`}
+                                />
+                            )}
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                <div>
+                                    <h3 className={`text-lg font-black transition-colors ${isExpanded ? 'text-primary' : 'text-white'}`}>{p.title}</h3>
+                                    <div className="text-xs font-medium text-gray-400 mt-1 mb-3">
+                                        {format(new Date(p.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                                    </div>
+                                    <p className={`text-sm text-gray-300 leading-relaxed whitespace-pre-wrap transition-all ${!isExpanded ? 'line-clamp-3' : ''}`}>
+                                        {p.content}
+                                    </p>
+                                    {!isExpanded && (
+                                        <div className="mt-2 text-xs font-bold text-primary/80">Ler mais...</div>
+                                    )}
                                 </div>
-                                <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap line-clamp-4">
-                                    {p.content}
-                                </p>
                             </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                )
+            })}
         </div>
     );
 }

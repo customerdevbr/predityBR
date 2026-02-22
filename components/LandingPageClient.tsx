@@ -62,10 +62,8 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
 
             {/* 2. PIX Destaque */}
             <div className="bg-[#151921] border-y border-white/5 py-3 mt-8">
-                <div className="container mx-auto px-4 flex items-center justify-center md:justify-start gap-3 text-sm">
-                    <div className="bg-[#32BCAD]/10 p-1.5 rounded text-[#32BCAD]">
-                        <Zap className="w-4 h-4" />
-                    </div>
+                <div className="container mx-auto px-4 flex items-center justify-center md:justify-start gap-4 text-sm">
+                    <img src="/pix.avif" alt="PIX" className="w-5 h-5 object-contain" />
                     <span className="font-bold text-gray-300">PIX Instantâneo — Depósito e saque 24 horas</span>
                 </div>
             </div>

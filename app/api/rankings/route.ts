@@ -1,30 +1,33 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 
-// Usamos a SERVICE_ROLE KEY para bypassar o RLS e trazer as somatórias de rankings para o público.
-// Isso evita expor os dados reais dos usuários através da anonimização de dados que não precisam ser públicos.
-const supabase = createClient(
+const supabaseAdmin = createSupabaseAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function GET(request: Request) {
     try {
+        const authClient = await createClient();
+        const { data: { session } } = await authClient.auth.getSession();
+        const isAuthed = !!session;
+
         // Trazendo os usuários
-        const { data: userData, error: userError } = await supabase
+        const { data: userData, error: userError } = await supabaseAdmin
             .from('users')
             .select('id, full_name, avatar_url');
 
         if (userError) throw userError;
 
         // Trazendo as apostas (apenas os campos necessários)
-        const { data: betsData, error: betsError } = await supabase
+        const { data: betsData, error: betsError } = await supabaseAdmin
             .from('bets')
             .select('user_id, amount, potential_payout, status');
 
         if (betsError) throw betsError;
 
         // Trazendo as comissões
-        const { data: commissionData, error: comError } = await supabase
+        const { data: commissionData, error: comError } = await supabaseAdmin
             .from('referral_commissions')
             .select('referrer_id, amount');
 
@@ -63,7 +66,16 @@ export async function GET(request: Request) {
             }
         });
 
-        const arr = Array.from(rankingMap.values());
+        let arr = Array.from(rankingMap.values());
+
+        // Anti-bypass Blur: Only send actual names/avatars to logged-in users.
+        if (!isAuthed) {
+            arr = arr.map(u => ({
+                ...u,
+                full_name: 'Jogador Oculto',
+                avatar_url: null
+            }));
+        }
 
         return new Response(JSON.stringify(arr), {
             status: 200,
