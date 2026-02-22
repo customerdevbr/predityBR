@@ -47,9 +47,9 @@ export default function Footer() {
                 <div>
                     <h4 className="font-bold text-white mb-4">Segurança</h4>
                     <ul className="space-y-2 text-sm text-gray-500">
-                        <li><Link href="/terms" className="hover:text-white transition-colors">Termos de Uso</Link></li>
+                        <li><Link href="/legal" className="hover:text-white transition-colors">Segurança Jurídica</Link></li>
                         <li><Link href="/privacy" className="hover:text-white transition-colors">Privacidade</Link></li>
-                        <li><Link href="/kyc" className="hover:text-white transition-colors">Política de KYC/AML</Link></li>
+                        <li><Link href="/kyc" className="hover:text-white transition-colors">Termos KYC / AML</Link></li>
                         <li><Link href="/responsible" className="hover:text-white transition-colors">Jogo Responsável</Link></li>
                     </ul>
                 </div>

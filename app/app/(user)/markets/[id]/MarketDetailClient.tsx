@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { format, subHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import confetti from 'canvas-confetti';
 
 interface MarketDetailClientProps {
     initialMarket: any;
@@ -147,6 +148,65 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
             setSelectedOutcome(market.outcomes[0]);
         }
     }, [market, selectedOutcome]);
+
+    // ── Festive Animation on Load ──
+    useEffect(() => {
+        if (!market || !market.category) return;
+
+        const categoryEmojiMap: Record<string, string> = {
+            'Futebol': '⚽',
+            'eSports': '🎮',
+            'Política': '⚖️',
+            'Cripto': '₿',
+            'Entretenimento': '🍿',
+            'Esportes': '🏆'
+        };
+
+        const emoji = categoryEmojiMap[market.category] || '🎯';
+        const moneyEmoji = '💵';
+
+        const duration = 2000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+            // Launch from bottom left
+            confetti({
+                particleCount: 2,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0, y: 1 },
+                colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+                shapes: ['circle', 'square'],
+                scalar: 1.2
+            });
+            // Launch from bottom right
+            confetti({
+                particleCount: 2,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1, y: 1 },
+                colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+                shapes: ['circle', 'square'],
+                scalar: 1.2
+            });
+
+            // Occasional emoji confetti
+            if (Math.random() > 0.6) {
+                confetti({
+                    particleCount: 1,
+                    angle: 90,
+                    spread: 80,
+                    origin: { x: Math.random(), y: 1 },
+                    shapes: [confetti.shapeFromText({ text: Math.random() > 0.5 ? emoji : moneyEmoji, scalar: 3 })],
+                    scalar: 2
+                });
+            }
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+    }, [market?.category]);
 
     // ── Realtime market updates ──
     useEffect(() => {
@@ -456,7 +516,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                                 <button
                                     onClick={handleBet}
                                     disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
-                                    className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(4,179,5,0.3)]"
+                                    className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/85 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(4,179,5,0.3)]"
                                 >
                                     {placingBet ? 'Processando...' : 'Fazer Previsão'}
                                 </button>

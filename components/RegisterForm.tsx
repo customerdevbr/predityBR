@@ -15,6 +15,7 @@ export default function RegisterForm() {
     const [fullName, setFullName] = useState('');
     const [cpf, setCpf] = useState('');
     const [dob, setDob] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
@@ -35,6 +36,12 @@ export default function RegisterForm() {
 
         if (!fullName || !cpf || !dob || !email || !password || !confirmPassword) {
             setError("Todos os campos são obrigatórios.");
+            setLoading(false);
+            return;
+        }
+
+        if (!acceptedTerms) {
+            setError("Você deve concordar com os Termos para criar uma conta.");
             setLoading(false);
             return;
         }
@@ -242,13 +249,38 @@ export default function RegisterForm() {
                     </div>
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                    {loading ? 'Criando conta...' : 'Registrar'} <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="space-y-4 pt-2 border-t border-white/5">
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center w-5 h-5 mt-0.5 flex-shrink-0">
+                            <input
+                                type="checkbox"
+                                checked={acceptedTerms}
+                                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                className="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-black/40 checked:bg-primary checked:border-primary transition-all cursor-pointer"
+                            />
+                            <div className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none">
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
+                        </div>
+                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
+                            Declaro que tenho mais de 18 anos e li e concordo com os <Link href="/kyc" target="_blank" className="text-primary hover:underline font-bold">Termos KYC</Link>, <Link href="/privacy" target="_blank" className="text-primary hover:underline font-bold">Privacidade</Link> e <Link href="/legal" target="_blank" className="text-primary hover:underline font-bold">Segurança Jurídica</Link>.
+                        </span>
+                    </label>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-3 bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] text-white rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
+                    >
+                        {loading ? 'Criando conta...' : 'Registrar'} <ArrowRight className="w-4 h-4" />
+                    </button>
+
+                    <div className="bg-surface/50 border border-white/5 rounded-lg p-3 text-center mb-4 mt-2">
+                        <p className="text-xs text-gray-400 leading-relaxed">
+                            Esteja atento aos riscos de dependência. Em caso de dúvida, consulte nossa área de <Link href="/responsible" target="_blank" className="text-primary hover:underline">Jogo Responsável</Link>.
+                        </p>
+                    </div>
+                </div>
             </form>
 
             <div className="text-center text-sm text-gray-400">

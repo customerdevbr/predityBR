@@ -102,7 +102,7 @@ export default function LoginForm() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3 bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] text-white rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
                 >
                     {loading ? 'Entrando...' : 'Entrar na Plataforma'} <ArrowRight className="w-4 h-4" />
                 </button>
