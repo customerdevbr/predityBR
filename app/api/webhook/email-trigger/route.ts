@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
             // 5. Send Email via Resend
             const { data, error } = await resend.emails.send({
-                from: 'PredityBR <noreply@resend.dev>', // Needs valid domain for production, resend.dev for testing testing
+                from: 'PredityBR <noreply@preditybr.com>',
                 to: [user.email],
                 subject: newStatus === 'WON' ? `🎉 Você ganhou na aposta: ${market.title}` : `Resultado: ${market.title}`,
                 react: BetResolvedEmail({
