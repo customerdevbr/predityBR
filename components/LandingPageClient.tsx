@@ -134,7 +134,7 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                             <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x scrollbar-hide">
                                 {featuredMarkets.slice(0, 10).map(m => (
                                     <div key={m.id} className="min-w-[280px] md:min-w-[320px] max-w-[320px] snap-start flex-shrink-0">
-                                        <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
+                                        <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} outcomes={m.outcomes} outcomePools={m.outcome_pools} outcomeImages={m.outcome_images} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
                                     </div>
                                 ))}
                             </div>
@@ -155,7 +155,7 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                                 <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x scrollbar-hide">
                                     {[...featuredMarkets].sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime()).slice(0, 10).map(m => (
                                         <div key={m.id} className="min-w-[280px] md:min-w-[320px] max-w-[320px] snap-start flex-shrink-0">
-                                            <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
+                                            <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} outcomes={m.outcomes} outcomePools={m.outcome_pools} outcomeImages={m.outcome_images} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
                                         </div>
                                     ))}
                                 </div>
@@ -177,7 +177,7 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                                 <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x scrollbar-hide">
                                     {[...featuredMarkets].sort((a, b) => (b.total_pool || 0) - (a.total_pool || 0)).slice(0, 10).map(m => (
                                         <div key={m.id} className="min-w-[280px] md:min-w-[320px] max-w-[320px] snap-start flex-shrink-0">
-                                            <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
+                                            <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} outcomes={m.outcomes} outcomePools={m.outcome_pools} outcomeImages={m.outcome_images} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
                                         </div>
                                     ))}
                                 </div>
@@ -215,7 +215,7 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                                     <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x scrollbar-hide">
                                         {catMarkets.map(m => (
                                             <div key={m.id} className="min-w-[280px] md:min-w-[320px] max-w-[320px] snap-start flex-shrink-0">
-                                                <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
+                                                <MarketCard {...m} pool={m.total_pool || 0} yesAmount={m.total_yes_amount || 0} noAmount={m.total_no_amount || 0} outcomes={m.outcomes} outcomePools={m.outcome_pools} outcomeImages={m.outcome_images} imageUrl={m.image_url} endDate={m.end_date} verticalLayout={true} />
                                             </div>
                                         ))}
                                     </div>

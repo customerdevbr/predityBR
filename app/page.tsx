@@ -31,11 +31,22 @@ export default async function LandingPage() {
     // Process Hero Cards Data
     const heroCards = trending ? trending.map(m => {
         const pool = m.total_pool || 0;
-        const yes = m.total_yes_amount || 0;
-        const no = m.total_no_amount || 0;
+
+        let yes = m.total_yes_amount || 0;
+        let no = m.total_no_amount || 0;
+
+        if (m.outcome_pools) {
+            yes = m.outcome_pools['SIM'] || m.outcome_pools['YES'] || 0;
+            no = m.outcome_pools['NÃO'] || m.outcome_pools['NO'] || 0;
+        }
+
         const yesPct = pool > 0 ? (yes / pool) * 100 : 50;
-        const yesOdds = yes > 0 ? pool / yes : 2;
-        const noOdds = no > 0 ? pool / no : 2;
+        const yesOddsRaw = yes > 0 ? pool / yes : 2;
+        const noOddsRaw = no > 0 ? pool / no : 2;
+
+        // Apply company margin formula
+        const yesOdds = Math.max(1.0, 1 + (yesOddsRaw - 1) * 0.65);
+        const noOdds = Math.max(1.0, 1 + (noOddsRaw - 1) * 0.65);
 
         // Expiration Logic
         const end = new Date(m.end_date);
