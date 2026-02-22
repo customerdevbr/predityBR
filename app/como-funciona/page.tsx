@@ -145,6 +145,53 @@ export default function HowItWorksPage() {
                     </div>
                 </section>
 
+                {/* 4. Por que os mercados começam em 1.65x? */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-14 h-14 rounded-2xl bg-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_30px_rgba(249,115,22,0.2)]">
+                            <TrendingUp className="w-7 h-7" />
+                        </div>
+                        <h2 className="text-3xl font-bold">4. Por que novos mercados começam em 1.65x?</h2>
+                    </div>
+
+                    <p className="text-gray-300 text-lg leading-relaxed">
+                        Muitos novos jogadores nos perguntam: <em className="text-gray-400">"Se o mercado acabou de abrir e não tem ninguém apostando, a chance não é de 50% para cada lado? Por que a cotação não é 2.00x?"</em>
+                    </p>
+
+                    <p className="text-gray-300 text-lg leading-relaxed">
+                        A resposta é simples: <strong className="text-white">A Taxa de Segurança da Plataforma (O Juice) 🧃</strong>.
+                    </p>
+
+                    <div className="bg-surface border border-white/5 rounded-2xl p-6 space-y-4">
+                        <ul className="space-y-4 text-gray-300">
+                            <li className="flex items-start gap-3">
+                                <span className="text-xl">⚖️</span>
+                                <div>
+                                    <strong className="text-white">O Ponto de Equilíbrio:</strong> Quando um mercado nasce, o sistema de fato assume o risco como 50/50 (uma moeda lançada). O multiplicador puro de 50% matematicamente é 2.00x.
+                                </div>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="text-xl">🛡️</span>
+                                <div>
+                                    <strong className="text-white">A Proteção do Ecossistema:</strong> Para que a plataforma possa existir e ser sustentável sem risco de quebrar, nós aplicamos a margem de segurança nas cotações iniciais.
+                                </div>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="text-xl">〽️</span>
+                                <div>
+                                    <strong className="text-white">O Ajuste Realista:</strong> Nós "retraímos" aquele 2.00x irreal do vácuo para cerca de <strong className="text-primary">1.65x</strong>. Assim, o primeiro corajoso que apostar estará ajudando a pavimentar a primeira camada de dinheiro (Pool).
+                                </div>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="text-xl">🌊</span>
+                                <div>
+                                    <strong className="text-white">Sabedoria das Massas:</strong> A magia acontece minutos depois da criação! À medida que dezenas de pessoas começam a colocar dinheiro de um lado e do outro, a matemática inicial do "1.65x" é engolida pelo volume de dinheiro real dos apostadores. O mercado encontra seu <strong className="text-white" style={{ textDecoration: 'underline', textUnderlineOffset: '4px' }}>preço e odd justos</strong> sozinho.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+
                 {/* 5. Taxas operacionais */}
                 <section className="space-y-6">
                     <div className="flex items-center gap-4 mb-6">
