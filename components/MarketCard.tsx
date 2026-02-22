@@ -22,9 +22,10 @@ interface MarketCardProps {
     outcomeImages?: Record<string, string>; // NEW: map of outcome name -> image URL
     metadata?: any;
     slug?: string;
+    verticalLayout?: boolean;
 }
 
-export default function MarketCard({ id, title, category, imageUrl, endDate, pool, yesAmount, noAmount, outcomes, outcomePools, outcomeImages, metadata, slug }: MarketCardProps) {
+export default function MarketCard({ id, title, category, imageUrl, endDate, pool, yesAmount, noAmount, outcomes, outcomePools, outcomeImages, metadata, slug, verticalLayout = false }: MarketCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [ticker, setTicker] = useState<{ id: number, value: number, type: 'yes' | 'no', top: number, left: number }[]>([]);
 
@@ -226,31 +227,46 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                             if (availableOutcomes.length <= 2) {
                                 // BINARY — tall buttons with glow effect + outcome image as bg
                                 return (
-                                    <div className="grid grid-cols-2 gap-2 mt-auto h-[100px]">
+                                    <div className={`grid gap-2 mt-auto ${verticalLayout ? 'grid-cols-1 grid-rows-2 h-[130px]' : 'grid-cols-2 h-[100px]'}`}>
                                         {sortedStats.map((stat) => {
                                             const imgSrc = outcomeImages?.[stat.outcome] || metadata?.outcome_images?.[stat.outcome] ||
                                                 (stat.outcome === 'SIM' || stat.outcome === 'YES' ? metadata?.yes_image : metadata?.no_image) || '';
                                             return (
                                                 <div
                                                     key={stat.outcome}
-                                                    className={`relative overflow-hidden flex flex-col items-center justify-center rounded-xl border ${stat.color.border} ${stat.color.glow} transition-all duration-300 cursor-pointer group/btn hover:scale-[1.02] active:scale-[0.98] h-full`}
+                                                    className={`relative overflow-hidden flex flex-col items-center justify-center rounded-xl border ${stat.color.border} ${stat.color.glow} transition-all duration-300 cursor-pointer group/btn hover:scale-[1.02] active:scale-[0.98] h-full ${verticalLayout ? 'flex-row justify-between px-4 py-2' : ''}`}
                                                 >
                                                     {/* Bg image */}
                                                     {imgSrc && (
-                                                        <img src={imgSrc} alt={stat.outcome} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover/btn:opacity-45 transition-opacity duration-300 scale-105" />
+                                                        <img src={imgSrc} alt={stat.outcome} className={`absolute inset-0 w-full h-full object-cover opacity-30 group-hover/btn:opacity-45 transition-opacity duration-300 scale-105 ${verticalLayout ? 'object-right' : 'object-center'}`} />
                                                     )}
                                                     {/* Color tint overlay */}
                                                     <div className={`absolute inset-0 ${stat.color.bar} opacity-70`} />
-                                                    {/* Content */}
-                                                    <div className="relative z-10 flex flex-col items-center gap-0.5">
-                                                        <span className="text-[10px] text-gray-300 uppercase font-bold tracking-wide drop-shadow">{stat.outcome}</span>
-                                                        <span className={`text-2xl font-black ${stat.color.text} group-hover/btn:scale-105 transition-transform drop-shadow`}>
-                                                            {stat.odds}x
-                                                        </span>
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.color.pill}`}>
-                                                            {stat.pct}%
-                                                        </span>
-                                                    </div>
+
+                                                    {/* Content dynamically adjusted for Vertical Layout */}
+                                                    {verticalLayout ? (
+                                                        <div className="relative z-10 flex w-full items-center justify-between gap-2">
+                                                            <span className="text-xs text-gray-300 uppercase font-bold tracking-wide drop-shadow min-w-[30px]">{stat.outcome}</span>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className={`text-xl font-black ${stat.color.text} group-hover/btn:scale-105 transition-transform drop-shadow`}>
+                                                                    {stat.odds}x
+                                                                </span>
+                                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${stat.color.pill}`}>
+                                                                    {stat.pct}%
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="relative z-10 flex flex-col items-center gap-0.5">
+                                                            <span className="text-[10px] text-gray-300 uppercase font-bold tracking-wide drop-shadow">{stat.outcome}</span>
+                                                            <span className={`text-2xl font-black ${stat.color.text} group-hover/btn:scale-105 transition-transform drop-shadow`}>
+                                                                {stat.odds}x
+                                                            </span>
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.color.pill}`}>
+                                                                {stat.pct}%
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
