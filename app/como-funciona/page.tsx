@@ -121,13 +121,13 @@ export default function HowItWorksPage() {
                     </div>
                 </section>
 
-                {/* 3. Garantias */}
+                {/* 4. Garantias */}
                 <section className="space-y-6">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="w-14 h-14 rounded-2xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
                             <ShieldCheck className="w-7 h-7" />
                         </div>
-                        <h2 className="text-3xl font-bold">3. Suas Garantias</h2>
+                        <h2 className="text-3xl font-bold">4. Suas Garantias</h2>
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-4">
@@ -145,13 +145,13 @@ export default function HowItWorksPage() {
                     </div>
                 </section>
 
-                {/* 4. Taxas operacionais */}
+                {/* 5. Taxas operacionais */}
                 <section className="space-y-6">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="w-14 h-14 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
                             <Banknote className="w-7 h-7" />
                         </div>
-                        <h2 className="text-3xl font-bold">4. Taxas Operacionais</h2>
+                        <h2 className="text-3xl font-bold">5. Taxas Operacionais</h2>
                     </div>
 
                     <div className="bg-surface border border-white/5 rounded-2xl overflow-hidden">
