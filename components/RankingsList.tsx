@@ -26,59 +26,12 @@ export default function RankingsList({ isAuthed }: RankingsListProps) {
         const loadRankings = async () => {
             setLoading(true);
             try {
-                // Fetch basic users (limit 50 randomly or active)
-                // In a highly scaled production, this should be an RPC or materialized view.
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('id, full_name, avatar_url');
-
-                if (userError) throw userError;
-
-                const { data: betsData, error: betsError } = await supabase
-                    .from('bets')
-                    .select('user_id, amount, potential_payout, status');
-
-                if (betsError) throw betsError;
-
-                const { data: commissionData, error: comError } = await supabase
-                    .from('referral_commissions')
-                    .select('referrer_id, amount');
-
-                if (comError) throw comError;
-
-                // Aggregate
-                const rankingMap = new Map<string, RankUser>();
-
-                userData?.forEach((u: any) => {
-                    rankingMap.set(u.id, {
-                        ...u,
-                        total_bets: 0,
-                        total_revenue: 0,
-                        total_commission: 0,
-                    });
-                });
-
-                betsData?.forEach((b: any) => {
-                    const u = rankingMap.get(b.user_id);
-                    if (u) {
-                        u.total_bets += 1;
-                        if (b.status === 'WON') {
-                            u.total_revenue += (b.potential_payout || 0) - (b.amount || 0);
-                        } else if (b.status === 'LOST') {
-                            u.total_revenue -= (b.amount || 0);
-                        }
-                    }
-                });
-
-                commissionData?.forEach((c: any) => {
-                    const u = rankingMap.get(c.referrer_id);
-                    if (u) {
-                        u.total_commission += (c.amount || 0);
-                    }
-                });
-
-                const arr = Array.from(rankingMap.values());
-                setUsers(arr);
+                const res = await fetch('/api/rankings');
+                if (!res.ok) {
+                    throw new Error('Falha ao buscar rankings');
+                }
+                const data = await res.json();
+                setUsers(data || []);
             } catch (err) {
                 console.error("Erro ao carregar rankings", err);
             } finally {
@@ -129,8 +82,8 @@ export default function RankingsList({ isAuthed }: RankingsListProps) {
                             key={f.key}
                             onClick={() => setViewMode(f.key as any)}
                             className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap border flex items-center gap-2 ${isActive
-                                    ? 'bg-primary text-white border-primary shadow-[0_0_12px_rgba(47,124,70,0.4)]'
-                                    : 'bg-transparent border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                                ? 'bg-primary text-white border-primary shadow-[0_0_12px_rgba(47,124,70,0.4)]'
+                                : 'bg-transparent border-white/10 text-gray-400 hover:text-white hover:border-white/20'
                                 }`}
                         >
                             <Icon className="w-4 h-4" />
@@ -161,9 +114,9 @@ export default function RankingsList({ isAuthed }: RankingsListProps) {
                         <div key={u.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors relative z-10">
                             <div className="flex items-center gap-4">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 ${i === 0 ? 'bg-amber-400 text-amber-900 shadow-[0_0_15px_rgba(251,191,36,0.5)]' :
-                                        i === 1 ? 'bg-slate-300 text-slate-900' :
-                                            i === 2 ? 'bg-orange-400 text-orange-900' :
-                                                'bg-white/5 text-gray-400 font-bold'
+                                    i === 1 ? 'bg-slate-300 text-slate-900' :
+                                        i === 2 ? 'bg-orange-400 text-orange-900' :
+                                            'bg-white/5 text-gray-400 font-bold'
                                     }`}>
                                     {i + 1}
                                 </div>
