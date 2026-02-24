@@ -3,9 +3,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, ArrowDownLeft, History, Wallet as WalletIcon, X, Copy, CheckCircle, Smartphone } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, History, Wallet as WalletIcon, X, Copy, CheckCircle, Smartphone, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import NotificationModal from '@/components/ui/NotificationModal';
+
+const TRANSLATE_TX_TYPE: Record<string, string> = {
+    'DEPOSIT': 'Depósito',
+    'WITHDRAWAL': 'Saque',
+    'BET_PLACED': 'Previsão Feita',
+    'BET_WIN': 'Prêmio', // Fallback just in case old rows still exist
+    'WIN': 'Prêmio',
+    'WITHDRAW': 'Saque',
+    'CASHOUT': 'Cashout',
+    'REFUND': 'Reembolso'
+};
 
 export default function WalletPage() {
     const router = useRouter();
@@ -16,6 +28,20 @@ export default function WalletPage() {
     const [bets, setBets] = useState<any[]>([]);
     const [tab, setTab] = useState<'OPEN' | 'CLOSED'>('OPEN');
     const [processing, setProcessing] = useState<string | null>(null);
+    const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+    // Notification State
+    const [notification, setNotification] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success'
+    });
 
     // Deposit Modal State
     const [isDepositOpen, setIsDepositOpen] = useState(false);
@@ -25,8 +51,9 @@ export default function WalletPage() {
 
     // Withdrawal Modal State
     const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
-    const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+    const [withdrawAmount, setWithdrawAmount] = useState('');
     const [withdrawPixKey, setWithdrawPixKey] = useState('');
+    const [withdrawPixKeyType, setWithdrawPixKeyType] = useState('CPF');
 
     useEffect(() => {
         checkUser();
@@ -105,7 +132,7 @@ export default function WalletPage() {
         const value = calculateCashout(bet);
         if (value <= 0) return;
 
-        if (!confirm(`Deseja encerrar esta aposta por R$ ${value.toFixed(2)}? Taxa de 20% aplicada.`)) return;
+        if (!confirm(`Deseja encerrar esta previsão por R$ ${value.toFixed(2)}? Taxa de 20% aplicada.`)) return;
 
         setProcessing(bet.id);
 
@@ -141,12 +168,22 @@ export default function WalletPage() {
                 description: `Cashout: ${bet.markets.title}`
             });
 
-            alert("Cashout realizado com sucesso!");
+            setNotification({
+                isOpen: true,
+                title: 'Cashout Realizado!',
+                message: 'Seu lucro foi creditado instantaneamente.',
+                type: 'success'
+            });
             fetchWalletData();
 
         } catch (err: any) {
             console.error(err);
-            alert("Erro ao realizar cashout: " + err.message);
+            setNotification({
+                isOpen: true,
+                title: 'Erro no Cashout',
+                message: err.message,
+                type: 'error'
+            });
         } finally {
             setProcessing(null);
         }
@@ -162,10 +199,16 @@ export default function WalletPage() {
     const confirmDepositAmount = async () => {
         const val = parseFloat(depositAmount);
         if (!val || val < 10) {
-            alert('Valor mínimo de depósito: R$ 10,00');
+            setNotification({
+                isOpen: true,
+                title: 'Valor Inválido',
+                message: 'O depósito mínimo é de R$ 10,00',
+                type: 'error'
+            });
             return;
         }
 
+        setActionMessage('Gerando código PIX...');
         setLoading(true);
         try {
             const res = await fetch('/api/deposit', {
@@ -184,20 +227,34 @@ export default function WalletPage() {
                 setPixKey(data.qrCode);
                 setDepositStep(2);
             } else {
-                alert("Ocorreu um erro: API não retornou o código PIX.");
+                setNotification({
+                    isOpen: true,
+                    title: 'Erro no PIX',
+                    message: 'A API não retornou o código PIX. Tente novamente.',
+                    type: 'error'
+                });
             }
 
         } catch (err: any) {
-            alert(err.message);
+            setNotification({
+                isOpen: true,
+                title: 'Erro no Depósito',
+                message: err.message,
+                type: 'error'
+            });
         } finally {
             setLoading(false);
+            setActionMessage(null);
         }
     };
 
     const finalizeDeposit = async () => {
-        // In the real flow, we wait for webhook.
-        // But users might want a "Check Status" button.
-        alert("Aguardando confirmação do pagamento... O saldo será atualizado automaticamente assim que o banco confirmar.");
+        setNotification({
+            isOpen: true,
+            title: 'Verificando Pagamento',
+            message: 'O saldo será atualizado automaticamente assim que o banco confirmar.',
+            type: 'info'
+        });
         setIsDepositOpen(false);
         fetchWalletData();
     };
@@ -206,6 +263,7 @@ export default function WalletPage() {
     const openWithdraw = () => {
         setWithdrawAmount('');
         setWithdrawPixKey('');
+        setWithdrawPixKeyType('CPF');
         setIsWithdrawOpen(true);
     };
 
@@ -213,20 +271,46 @@ export default function WalletPage() {
         if (!user) return;
         const val = parseFloat(withdrawAmount);
 
-        if (!val || val < 20) { alert('Valor mínimo de saque: R$ 20,00'); return; }
-        if (val > 5000) { alert('Limite máximo por operação: R$ 5.000,00'); return; }
-        if (!withdrawPixKey) { alert('Digite sua chave PIX.'); return; }
-
-        const fee = 2.90;
-        const totalDeduction = val + fee;
-
-        if (totalDeduction > balance) {
-            alert(`Saldo insuficiente.\nPara sacar R$ ${val.toFixed(2)}, você precisa de R$ ${totalDeduction.toFixed(2)} (incl. taxa R$ 2,90).`);
+        if (!val || val < 20) {
+            setNotification({ isOpen: true, title: 'Valor Mínimo', message: 'Saque mínimo de R$ 20,00', type: 'error' });
+            return;
+        }
+        if (val > 5000) {
+            setNotification({ isOpen: true, title: 'Limite Excedido', message: 'Máximo de R$ 5.000,00 por vez', type: 'error' });
+            return;
+        }
+        if (!withdrawPixKey) {
+            setNotification({ isOpen: true, title: 'Chave PIX', message: 'Informe a chave PIX de destino.', type: 'error' });
             return;
         }
 
-        if (!confirm(`Confirmar saque via PIX?\n\nValor: R$ ${val.toFixed(2)}\nTaxa Fixa: R$ ${fee.toFixed(2)}\nTotal Debitado: R$ ${totalDeduction.toFixed(2)}\nChave PIX: ${withdrawPixKey}`)) return;
+        const fee = 2.90;
+        const totalDeduction = val;
+        const netAmount = val - fee;
 
+        if (totalDeduction > balance) {
+            setNotification({
+                isOpen: true,
+                title: 'Saldo Insuficiente',
+                message: `Você tem R$ ${balance.toFixed(2)} e está tentando debitar R$ ${totalDeduction.toFixed(2)}`,
+                type: 'error'
+            });
+            return;
+        }
+
+        if (netAmount <= 0) {
+            setNotification({
+                isOpen: true,
+                title: 'Valor Baixo',
+                message: `O valor do saque deve cobrir a taxa de R$ ${fee.toFixed(2)}`,
+                type: 'error'
+            });
+            return;
+        }
+
+        if (!confirm(`Confirmar saque via PIX?\n\nValor Solicitado: R$ ${val.toFixed(2)}\nTaxa Fixa: - R$ ${fee.toFixed(2)}\nValor a Receber: R$ ${netAmount.toFixed(2)}\nChave PIX: ${withdrawPixKey}`)) return;
+
+        setActionMessage('Processando saque...');
         setLoading(true);
         try {
             const res = await fetch('/api/withdraw', {
@@ -236,21 +320,30 @@ export default function WalletPage() {
                     amount: val,
                     userId: user.id,
                     pixKey: withdrawPixKey,
-                    pixKeyType: 'CPF', // default; could be dynamic
+                    pixKeyType: withdrawPixKeyType,
                 })
             });
             const data = await res.json();
 
-            if (!res.ok) throw new Error(data.error || 'Falha ao processar saque');
-
-            alert(data.message || 'Saque solicitado com sucesso! Processamento em até 24h.');
+            setNotification({
+                isOpen: true,
+                title: 'Saque Solicitado!',
+                message: `Você receberá R$ ${netAmount.toFixed(2)} em breve.`,
+                type: 'success'
+            });
             setIsWithdrawOpen(false);
             fetchWalletData();
 
         } catch (error: any) {
-            alert('Erro no saque: ' + error.message);
+            setNotification({
+                isOpen: true,
+                title: 'Erro no Saque',
+                message: error.message,
+                type: 'error'
+            });
         } finally {
             setLoading(false);
+            setActionMessage(null);
         }
     };
 
@@ -263,6 +356,16 @@ export default function WalletPage() {
 
     return (
         <div className="max-w-md mx-auto space-y-8 pb-20">
+            {/* Fullscreen Loading Overlay */}
+            {actionMessage && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-surface/90 border border-white/10 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                        <p className="text-white font-bold text-lg">{actionMessage}</p>
+                        <p className="text-gray-500 text-xs">Aguarde...</p>
+                    </div>
+                </div>
+            )}
             {/* Balance Card */}
             <div className="bg-surface rounded-2xl p-6 border border-white/5 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -315,7 +418,7 @@ export default function WalletPage() {
                 <div className="space-y-4">
                     {filteredBets.length === 0 ? (
                         <div className="text-center py-12 text-gray-500 bg-surface/30 rounded-xl border border-white/5 border-dashed">
-                            Nenhuma aposta {tab === 'OPEN' ? 'ativa' : 'encerrada'}.
+                            Nenhuma previsão {tab === 'OPEN' ? 'ativa' : 'encerrada'}.
                         </div>
                     ) : (
                         filteredBets.map((bet) => {
@@ -353,7 +456,7 @@ export default function WalletPage() {
                                             disabled={processing === bet.id}
                                             className="w-full py-2 bg-secondary hover:bg-surface border border-white/10 rounded-lg text-sm font-bold text-gray-300 hover:text-white transition-colors flex items-center justify-center gap-2"
                                         >
-                                            {processing === bet.id ? 'Processando...' : `Encerrar Aposta (Cashout R$ ${cashoutVal.toFixed(2)})`}
+                                            {processing === bet.id ? 'Processando...' : `Encerrar Previsão (Cashout R$ ${cashoutVal.toFixed(2)})`}
                                         </button>
                                     )}
                                 </div>
@@ -370,16 +473,17 @@ export default function WalletPage() {
                     {transactions.map((tx) => (
                         <div key={tx.id} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${tx.type === 'DEPOSIT' || tx.type === 'WIN' ? 'bg-primary/10 text-primary' : 'bg-red-500/10 text-red-500'}`}>
-                                    {tx.type === 'DEPOSIT' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                                <div className={`p-2 rounded-full ${(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? 'bg-primary/10 text-primary' : 'bg-red-500/10 text-red-500'}`}>
+                                    {(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-white">{tx.description || tx.type}</p>
+                                    <p className="text-sm font-bold text-white">{TRANSLATE_TX_TYPE[tx.type] || tx.type}</p>
+                                    <p className="text-xs text-gray-500">{tx.description}</p>
                                     <p className="text-xs text-gray-500">{format(new Date(tx.created_at), "dd/MM HH:mm", { locale: ptBR })}</p>
                                 </div>
                             </div>
-                            <span className={`font-mono font-bold ${tx.type === 'DEPOSIT' || tx.type === 'WIN' ? 'text-primary' : 'text-white'}`}>
-                                {tx.type === 'DEPOSIT' || tx.type === 'WIN' ? '+' : '-'} R$ {tx.amount.toFixed(2)}
+                            <span className={`font-mono font-bold ${(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? 'text-primary' : 'text-white'}`}>
+                                {(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? '+' : '-'} R$ {tx.amount.toFixed(2)}
                             </span>
                         </div>
                     ))}
@@ -533,30 +637,44 @@ export default function WalletPage() {
                             </div>
 
                             <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                                <label className="text-xs text-gray-500 block mb-1">Tipo de Chave</label>
+                                <select
+                                    value={withdrawPixKeyType}
+                                    onChange={(e) => setWithdrawPixKeyType(e.target.value)}
+                                    className="bg-transparent text-lg text-white w-full focus:outline-none placeholder-gray-600 appearance-none"
+                                >
+                                    <option value="CPF" className="bg-surface">CPF</option>
+                                    <option value="EMAIL" className="bg-surface">E-mail</option>
+                                    <option value="PHONE" className="bg-surface">Telefone</option>
+                                    <option value="RANDOM" className="bg-surface">Chave Aleatória</option>
+                                </select>
+                            </div>
+
+                            <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                                 <label className="text-xs text-gray-500 block mb-1">Chave PIX</label>
                                 <input
                                     type="text"
                                     value={withdrawPixKey}
                                     onChange={(e) => setWithdrawPixKey(e.target.value)}
                                     className="bg-transparent text-lg text-white w-full focus:outline-none placeholder-gray-600"
-                                    placeholder="CPF, Email ou Telefone..."
+                                    placeholder={withdrawPixKeyType === 'CPF' ? "000.000.000-00" : withdrawPixKeyType === 'EMAIL' ? "seu@email.com" : "Sua chave..."}
                                 />
                             </div>
 
                             {parseFloat(withdrawAmount) > 0 && (
                                 <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg space-y-1">
                                     <div className="flex justify-between text-xs text-gray-400">
-                                        <span>Valor Solicitado</span>
+                                        <span>Valor Solicitado (Debitado)</span>
                                         <span>R$ {parseFloat(withdrawAmount).toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-red-400">
-                                        <span>Taxa Fixa</span>
-                                        <span>+ R$ 2,90</span>
+                                        <span>Taxa Fixa da Operação</span>
+                                        <span>- R$ 2,90</span>
                                     </div>
                                     <div className="border-t border-white/10 my-1"></div>
                                     <div className="flex justify-between text-sm font-bold text-white">
-                                        <span>Total Debitado</span>
-                                        <span>R$ {(parseFloat(withdrawAmount) + 2.90).toFixed(2)}</span>
+                                        <span>Você Recebe na Conta</span>
+                                        <span>R$ {Math.max(0, parseFloat(withdrawAmount) - 2.90).toFixed(2)}</span>
                                     </div>
                                 </div>
                             )}

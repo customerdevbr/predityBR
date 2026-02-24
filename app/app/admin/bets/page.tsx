@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Plus, Search, Edit, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Search, Edit, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -27,6 +27,36 @@ export default function AdminBetsPage() {
         setLoading(false);
     };
 
+    const handleDelete = async (market: any) => {
+        // Safety: check for existing bets
+        const { count } = await supabase
+            .from('bets')
+            .select('*', { count: 'exact', head: true })
+            .eq('market_id', market.id);
+
+        if ((count || 0) > 0) {
+            alert(`Este mercado tem ${count} previsões registradas. Não é possível deletar.\nUse "Anular Mercado" na página de edição para estornar e cancelar.`);
+            return;
+        }
+
+        if (!confirm(`Deletar permanentemente "${market.title}"?\n\nEsta ação não pode ser desfeita.`)) return;
+
+        // Delete related data first (transactions, odds_history, etc)
+        await supabase.from('odds_history').delete().eq('market_id', market.id);
+        await supabase.from('transactions').delete().contains('metadata', { market_id: market.id });
+
+        const { error } = await supabase
+            .from('markets')
+            .delete()
+            .eq('id', market.id);
+
+        if (error) {
+            alert('Erro ao deletar: ' + error.message);
+        } else {
+            setMarkets(prev => prev.filter(m => m.id !== market.id));
+        }
+    };
+
     const filteredMarkets = markets.filter(m =>
         m.title.toLowerCase().includes(filter.toLowerCase()) ||
         m.id.toLowerCase().includes(filter.toLowerCase())
@@ -36,11 +66,11 @@ export default function AdminBetsPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Gerenciar Apostas</h1>
-                    <p className="text-gray-400 text-sm">Crie, edite e resolva os mercados de apostas.</p>
+                    <h1 className="text-2xl font-bold text-white">Gerenciar Mercados</h1>
+                    <p className="text-gray-400 text-sm">Crie, edite e resolva os mercados de previsões.</p>
                 </div>
                 <Link href="/app/admin/bets/new" className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
-                    <Plus className="w-4 h-4" /> Nova Aposta
+                    <Plus className="w-4 h-4" /> Novo Mercado
                 </Link>
             </div>
 
@@ -78,11 +108,11 @@ export default function AdminBetsPage() {
                         <tbody className="divide-y divide-white/5">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-500">Carregando apostas...</td>
+                                    <td colSpan={6} className="p-8 text-center text-gray-500">Carregando mercados...</td>
                                 </tr>
                             ) : filteredMarkets.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-500">Nenhuma aposta encontrada.</td>
+                                    <td colSpan={6} className="p-8 text-center text-gray-500">Nenhum mercado encontrado.</td>
                                 </tr>
                             ) : (
                                 filteredMarkets.map((market) => (
@@ -118,9 +148,16 @@ export default function AdminBetsPage() {
                                         </td>
                                         <td className="p-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Link href={`/app/admin/bets/${market.id}`} className="p-2 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
+                                                <Link href={`/app/admin/bets/${market.id}`} className="p-2 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors" title="Editar">
                                                     <Edit className="w-4 h-4" />
                                                 </Link>
+                                                <button
+                                                    onClick={() => handleDelete(market)}
+                                                    className="p-2 hover:bg-red-500/20 rounded text-gray-500 hover:text-red-400 transition-colors"
+                                                    title="Deletar mercado"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

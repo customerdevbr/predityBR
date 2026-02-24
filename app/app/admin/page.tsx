@@ -148,7 +148,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KpiCard title="Receita Total (Depósitos)" value={`R$ ${stats.revenue.toFixed(2)}`} change="-" isPositive icon={DollarSign} />
                 <KpiCard title="Usuários Cadastrados" value={stats.users} change="-" isPositive icon={Users} />
-                <KpiCard title="Volume Apostado" value={`R$ ${stats.volume.toFixed(2)}`} change="Estimado" isPositive={false} icon={TrendingUp} />
+                <KpiCard title="Volume Aportado" value={`R$ ${stats.volume.toFixed(2)}`} change="Estimado" isPositive={false} icon={TrendingUp} />
                 <KpiCard title="Lucro Estimado (35%)" value={`R$ ${stats.profit.toFixed(2)}`} change="Estimado" isPositive icon={Activity} />
             </div>
 

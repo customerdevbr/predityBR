@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'; // Or ensure correct import 
 import { cookies } from 'next/headers';
 import MarketDetailClient from './MarketDetailClient';
 import { Metadata } from 'next';
+import { Lock } from 'lucide-react';
+import Link from 'next/link';
 
 // 1. Data Fetching Logic (Reusable)
 async function getMarket(rawId: string) {
@@ -132,6 +134,48 @@ export default async function MarketDetailPage(props: { params: Promise<{ id: st
 
     if (!market) {
         return <div className="min-h-screen pt-20 text-center text-gray-400">Mercado não encontrado. Verifique o link.</div>;
+    }
+
+    if (market.status === 'RESOLVED') {
+        if (!session?.user) {
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center pt-20">
+                    <div className="bg-surface border border-white/5 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+                        <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Lock className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-xl font-bold text-white mb-2">Mercado Encerrado</h2>
+                        <p className="text-gray-400 text-sm mb-6">Este mercado já foi resolvido e está disponível apenas para usuários autenticados que realizaram previsões nele.</p>
+                        <Link href="/app/markets" className="block w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-colors">Voltar aos mercados ativos</Link>
+                    </div>
+                </div>
+            );
+        }
+
+        const { count, error: countError } = await supabase
+            .from('bets')
+            .select('*', { count: 'exact', head: true })
+            .eq('market_id', market.id)
+            .eq('user_id', session.user.id);
+
+        if (countError) {
+            console.error("Error checking user bets:", countError);
+        }
+
+        if (!count || count === 0) {
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center pt-20">
+                    <div className="bg-surface border border-white/5 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+                        <div className="w-16 h-16 bg-gray-500/10 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Lock className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-xl font-bold text-white mb-2">Acesso Restrito</h2>
+                        <p className="text-gray-400 text-sm mb-6">Este mercado já foi encerrado. Apenas os usuários que participaram das previsões possuem acesso ao resultado detalhado.</p>
+                        <Link href="/app/markets" className="block w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-colors">Voltar aos mercados ativos</Link>
+                    </div>
+                </div>
+            );
+        }
     }
 
     return <MarketDetailClient initialMarket={market} currentUser={session?.user} />;

@@ -23,7 +23,7 @@ export default function PrivacyPage() {
                     <p>Coletamos os seguintes tipos de informações:</p>
                     <ul className="list-disc pl-6 space-y-2">
                         <li><strong>Dados Cadastrais:</strong> Nome, CPF, e-mail e data de nascimento, essenciais para a verificação de identidade e criação de conta.</li>
-                        <li><strong>Dados Financeiros:</strong> Histórico de transações, apostas realizadas, depósitos e saques (processados via PIX de forma segura).</li>
+                        <li><strong>Dados Financeiros:</strong> Histórico de transações, previsões realizadas, depósitos e saques (processados via PIX de forma segura).</li>
                         <li><strong>Dados de Navegação:</strong> Endereços IP, tipo de navegador, sistema operacional e informações sobre a sua interação com a plataforma (uso de cookies).</li>
                     </ul>
 
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
                     <p>As informações coletadas são utilizadas para:</p>
                     <ul className="list-disc pl-6 space-y-2">
                         <li>Criar e gerenciar sua conta na PredityBR.</li>
-                        <li>Processar transações financeiras e apostas.</li>
+                        <li>Processar transações financeiras e previsões.</li>
                         <li>Cumprir com obrigações legais e regulatórias (como KYC e AML).</li>
                         <li>Melhorar nossa plataforma, suporte ao cliente e personalizar a sua experiência.</li>
                         <li>Enviar comunicações de serviço, segurança e, com o seu consentimento, ofertas promocionais.</li>

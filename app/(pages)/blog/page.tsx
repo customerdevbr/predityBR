@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export const metadata = {
     title: 'PredityBR - Blog & Dicas',
-    description: 'Acompanhe as últimas dicas de apostas, novidades da plataforma e análises profundas sobre os mercados abertos da Predity.',
+    description: 'Acompanhe as últimas dicas do mercado, novidades da plataforma e análises profundas sobre os mercados abertos da Predity.',
 }
 
 export default async function PublicBlogPage() {
@@ -22,7 +22,7 @@ export default async function PublicBlogPage() {
                         Mural da Predity
                     </h1>
                     <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        Acompanhe dicas de apostas, estratégias para maximizar seus ganhos e novidades exclusivas da plataforma.
+                        Acompanhe dicas de mercado, estratégias para maximizar seus ganhos e novidades exclusivas da plataforma.
                     </p>
                 </div>
 

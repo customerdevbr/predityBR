@@ -248,7 +248,7 @@ export default function NewBetPage() {
             });
 
             if (error) throw error;
-            alert('Aposta criada com sucesso!');
+            alert('Mercado criado com sucesso!');
             router.push('/app/admin/bets');
         } catch (err: any) {
             alert('Erro: ' + err.message);
@@ -265,7 +265,7 @@ export default function NewBetPage() {
                 <Link href="/app/admin/bets" className="p-2 hover:bg-white/10 rounded-full transition-colors">
                     <ArrowLeft className="w-5 h-5 text-gray-400" />
                 </Link>
-                <h1 className="text-2xl font-bold text-white">Nova Previsão</h1>
+                <h1 className="text-2xl font-bold text-white">Novo Mercado</h1>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -404,7 +404,7 @@ export default function NewBetPage() {
                         disabled={loading || uploadingCover || uploading !== null}
                         className="px-8 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50"
                     >
-                        {loading ? 'Salvando...' : uploading !== null ? 'Enviando imagem...' : <><Save className="w-5 h-5" /> Criar Previsão</>}
+                        {loading ? 'Salvando...' : uploading !== null ? 'Enviando imagem...' : <><Save className="w-5 h-5" /> Criar Mercado</>}
                     </button>
                 </div>
             </form>

@@ -132,7 +132,7 @@ export default function RegisterForm() {
         <div className="bg-surface border border-surface rounded-xl p-8 space-y-6 shadow-2xl relative z-10">
             <div className="text-center space-y-2">
                 <h1 className="text-2xl font-bold">Criar Conta</h1>
-                <p className="text-gray-400 text-sm">Junte-se a milhares de apostadores</p>
+                <p className="text-gray-400 text-sm">Junte-se a milhares de participantes</p>
             </div>
 
             {error && (

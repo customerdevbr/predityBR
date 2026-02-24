@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { validateCpf, validateFullName } from '@/lib/cpf';
 import RankingsList from '@/components/RankingsList';
 import BlogListClient from '@/components/BlogListClient';
@@ -592,7 +593,11 @@ export default function ProfilePage() {
                                         <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full uppercase mb-1.5 ${bet.status === 'ACTIVE' ? 'bg-blue-500/15 text-blue-400' : bet.status === 'WON' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                                             {bet.status === 'ACTIVE' ? 'Em Aberto' : bet.status === 'WON' ? 'Acertou' : 'Perdeu'}
                                         </span>
-                                        <h3 className="font-bold text-white text-sm line-clamp-2">{bet.markets?.title}</h3>
+                                        <h3 className="font-bold text-white text-sm line-clamp-2">
+                                            <Link href={`/app/markets/${bet.market_id}`} className="hover:underline">
+                                                {bet.markets?.title}
+                                            </Link>
+                                        </h3>
                                     </div>
                                     <div className={`px-2.5 py-1 rounded-lg text-xs font-black flex-shrink-0 ${bet.side === 'SIM' || bet.side === 'YES' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                                         {bet.side}
@@ -600,7 +605,7 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="grid grid-cols-3 gap-2">
                                     {[
-                                        { label: 'Apostado', val: `R$ ${bet.amount.toFixed(2)}`, color: 'text-gray-300' },
+                                        { label: 'Aportado', val: `R$ ${bet.amount.toFixed(2)}`, color: 'text-gray-300' },
                                         { label: 'ODD', val: `${bet.odds_at_entry?.toFixed(2)}x`, color: 'text-gray-300' },
                                         { label: 'Retorno', val: `R$ ${bet.potential_payout?.toFixed(2)}`, color: 'text-emerald-400' },
                                     ].map(s => (

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
         if (userError) throw userError;
 
-        // Trazendo as apostas (apenas os campos necessários)
+        // Trazendo as previsões (apenas os campos necessários)
         const { data: betsData, error: betsError } = await supabaseAdmin
             .from('bets')
             .select('user_id, amount, potential_payout, status');

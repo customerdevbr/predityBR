@@ -29,6 +29,7 @@ export default function BottomNav() {
     };
 
     if (!isAuthenticated) return null;
+    if (pathname?.startsWith('/app/admin')) return null;
 
     const navItems = [
         { label: 'Mercados', href: '/app/markets', icon: TrendingUp },

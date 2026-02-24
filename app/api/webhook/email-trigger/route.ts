@@ -61,7 +61,7 @@ export async function POST(req: Request) {
             const { data, error } = await resend.emails.send({
                 from: 'PredityBR <noreply@preditybr.com>',
                 to: [user.email],
-                subject: newStatus === 'WON' ? `🎉 Você ganhou na aposta: ${market.title}` : `Resultado: ${market.title}`,
+                subject: newStatus === 'WON' ? `🎉 Você ganhou na previsão: ${market.title}` : `Resultado: ${market.title}`,
                 react: BetResolvedEmail({
                     userName: user.full_name || 'Jogador',
                     marketTitle: market.title,

@@ -48,8 +48,7 @@ export async function middleware(request: NextRequest) {
         if (!user && !url.pathname.startsWith('/login') && !url.pathname.startsWith('/register')) {
             // Strip 'app.' to get back to root domain (e.g. preditybr.com)
             const rootHostname = hostname.replace(/^app\./, '');
-            const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-            return NextResponse.redirect(`${protocol}://${rootHostname}/login`, 307);
+            return NextResponse.redirect(`https://${rootHostname}/login`, 307);
         }
 
         // Rewrite Logic: Mapped "app" subdomain to "/app" folder structure
@@ -84,11 +83,10 @@ export async function middleware(request: NextRequest) {
             }
 
             // If Custom Domain -> Redirect to app.preditybr.com
-            const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
             // Strip 'www.' if present to avoid app.www.preditybr.com
             const rootHostname = hostname.replace(/^www\./, '');
             const appDomain = `app.${rootHostname}`;
-            return NextResponse.redirect(`${protocol}://${appDomain}`, 307);
+            return NextResponse.redirect(`https://${appDomain}`, 307);
         }
 
         // 2. If visiting /app/*
@@ -99,11 +97,10 @@ export async function middleware(request: NextRequest) {
             }
 
             // If Custom Domain -> Redirect to App Subdomain (clean URL)
-            const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
             const rootHostname = hostname.replace(/^www\./, '');
             const appDomain = `app.${rootHostname}`;
             const cleanPath = url.pathname.replace('/app', '') || '/';
-            return NextResponse.redirect(`${protocol}://${appDomain}${cleanPath}`, 307);
+            return NextResponse.redirect(`https://${appDomain}${cleanPath}`, 307);
         }
 
         // Main domain serves Landing Page (app/page.tsx) by default.

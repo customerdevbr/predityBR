@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ArrowLeft, Share2, Check, CheckCircle, AlertCircle, X, Users, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Share2, Check, CheckCircle, AlertCircle, X, Users, TrendingUp, Loader2, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -108,7 +108,7 @@ function ParticipantRow({ marketId, totalPool }: { marketId: string; totalPool: 
 
             {/* Stats */}
             <div className="flex items-center gap-3 text-xs text-gray-400">
-                <span><strong className="text-white">{total}</strong> apostadores</span>
+                <span><strong className="text-white">{total}</strong> participantes</span>
                 <span className="text-white/10">·</span>
                 <span>Pool: <strong className="text-primary">R$ {(totalPool || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
             </div>
@@ -275,15 +275,21 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
 
     const selectedStat = outcomeStats.find((s: any) => s.name === selectedOutcome);
     const parsedAmount = parseFloat(amount) || 0;
-    const potentialReturn = selectedStat ? parsedAmount * parseFloat(selectedStat.odds) : 0;
+    const currentOddsOption = parseFloat(selectedStat?.odds || "0");
+    const estimatedReturn = selectedStat ? parsedAmount * currentOddsOption : 0;
+
+    // Calcula a participação proporcional estimada
+    const optionPool = market?.outcome_pools?.[selectedOutcome] || 0;
+    const denominator = Math.max(optionPool, 1);
+    const shareEstimate = parsedAmount / denominator;
 
     // ── Bet handler — optimistic update ──
     const handleBet = async () => {
         if (!user) { router.push('/login'); return; }
-        if (!selectedOutcome) { showToast('error', 'Selecione uma opção para apostar.'); return; }
+        if (!selectedOutcome) { showToast('error', 'Selecione uma opção para prever.'); return; }
         const val = parseFloat(amount);
         if (isNaN(val) || val < 2) {
-            showToast('error', 'Aposta mínima de R$ 2,00');
+            showToast('error', 'Previsão mínima de R$ 2,00');
             return;
         }
 
@@ -300,7 +306,6 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
             }
 
             const currentOdds = parseFloat(selectedStat!.odds);
-            const expectedReturn = val * currentOdds;
 
             const { error: betError } = await supabase.from('bets').insert({
                 user_id: user.id,
@@ -308,7 +313,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                 side: selectedOutcome,
                 amount: val,
                 odds_at_entry: currentOdds,
-                potential_payout: expectedReturn,
+                potential_payout: val * currentOdds,
                 status: 'ACTIVE'
             });
             if (betError) throw betError;
@@ -337,11 +342,11 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
             }));
 
             showToast('success', '🎯 Previsão confirmada!',
-                `R$ ${val.toFixed(2)} em "${selectedOutcome}" · Retorno potencial: R$ ${expectedReturn.toFixed(2)}`);
+                `R$ ${val.toFixed(2)} em "${selectedOutcome}"`);
             setAmount('');
         } catch (err: any) {
             console.error(err);
-            showToast('error', 'Erro ao realizar aposta', err.message);
+            showToast('error', 'Erro ao processar previsão', err.message);
         } finally {
             setPlacingBet(false);
         }
@@ -365,6 +370,16 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
             {/* Toast Layer */}
             <ToastContainer toasts={toasts} onRemove={removeToast} />
 
+            {/* Fullscreen Loading Overlay */}
+            {placingBet && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-surface/90 border border-white/10 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                        <p className="text-white font-bold text-lg">Processando previsão...</p>
+                        <p className="text-gray-500 text-xs">Aguarde...</p>
+                    </div>
+                </div>
+            )}
             <div className="max-w-[1200px] mx-auto p-4 lg:p-8 pb-40 lg:pb-8">
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
 
@@ -431,95 +446,154 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                                 {market.description}
                             </div>
                         )}
+
+                        {/* Proof of Result (visible when market is resolved and proof exists) */}
+                        {market.status === 'RESOLVED' && market.metadata?.resolution_proof && (
+                            (() => {
+                                const proof = market.metadata.resolution_proof;
+                                const hasProof = proof.text || proof.link || proof.image;
+                                if (!hasProof) return null;
+                                return (
+                                    <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-3">
+                                        <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
+                                            <CheckCircle className="w-4 h-4" />
+                                            Prova do Resultado
+                                        </div>
+                                        {proof.text && (
+                                            <p className="text-sm text-gray-300 leading-relaxed">{proof.text}</p>
+                                        )}
+                                        {proof.link && (
+                                            <a href={proof.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                                                🔗 Ver fonte oficial
+                                            </a>
+                                        )}
+                                        {proof.image && (
+                                            <img src={proof.image} alt="Prova do resultado" className="rounded-lg border border-white/10 max-w-full" />
+                                        )}
+                                    </div>
+                                );
+                            })()
+                        )}
                     </div>
 
                     {/* RIGHT COLUMN: Bet Slip */}
                     <div className="relative w-full pb-24 lg:pb-0">
-                        <div className="fixed bottom-0 left-0 right-0 z-50 lg:sticky lg:top-24 bg-surface lg:rounded-xl border-t lg:border border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:shadow-2xl overflow-auto lg:max-h-[calc(100vh-6rem)]">
+                        <div className="fixed bottom-16 left-0 right-0 z-50 lg:sticky lg:bottom-auto lg:top-24 bg-surface lg:rounded-xl border-t lg:border border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:shadow-2xl overflow-auto lg:max-h-[calc(100vh-6rem)]">
 
                             <div className="p-4 md:p-5 space-y-4">
 
                                 {/* Participant row — above outcome options */}
                                 <ParticipantRow marketId={market.id} totalPool={market.total_pool || 0} />
 
-                                {/* OUTCOME SELECTOR */}
-                                <div className="space-y-2">
-                                    <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Sua previsão</div>
-                                    <div className={`grid gap-2 ${outcomeStats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                                        {outcomeStats.map((stat: any) => {
-                                            const isSelected = selectedOutcome === stat.name;
-                                            return (
-                                                <button
-                                                    key={stat.name}
-                                                    onClick={() => setSelectedOutcome(stat.name)}
-                                                    className={`relative p-3 rounded-xl border transition-all text-left overflow-hidden ${isSelected ? 'bg-white/5 border-primary/60 ring-1 ring-primary/40' : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10'}`}
-                                                >
-                                                    {/* Progress bg */}
-                                                    <div className="absolute left-0 top-0 bottom-0 opacity-20 transition-all" style={{ width: `${stat.prob}%`, backgroundColor: stat.color }} />
-                                                    <div className="relative flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
-                                                            <span className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>{stat.name}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                                            <span className={`text-sm font-black ${isSelected ? 'text-primary' : 'text-gray-400'}`}>{stat.odds}x</span>
-                                                            <span className="text-[10px] text-gray-500">{stat.prob}%</span>
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                <div className="border-t border-white/5" />
-
-                                {/* AMOUNT INPUT */}
-                                <div className="space-y-3">
-                                    <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Quantia</div>
-                                    <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-2 gap-2">
-                                        <button onClick={() => setAmount(Math.max(0, (parseFloat(amount) || 0) - 10).toString())}
-                                            className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg font-bold">
-                                            -
-                                        </button>
-                                        <div className="flex-1 flex items-center justify-center gap-1">
-                                            <span className="text-xl font-bold text-white">R$</span>
-                                            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                                                className="w-20 bg-transparent text-2xl font-bold text-white focus:outline-none text-center p-0"
-                                                placeholder="0" />
+                                {market.status === 'RESOLVED' ? (
+                                    <div className="bg-black/20 border border-white/5 rounded-xl p-6 text-center space-y-3 mt-4">
+                                        <div className="w-12 h-12 bg-white/5 text-gray-400 rounded-full flex items-center justify-center mx-auto">
+                                            <Lock className="w-6 h-6" />
                                         </div>
-                                        <button onClick={() => setAmount(((parseFloat(amount) || 0) + 10).toString())}
-                                            className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg font-bold">
-                                            +
+                                        <h3 className="text-white font-bold text-lg">Mercado Encerrado</h3>
+                                        <p className="text-sm text-gray-500 leading-relaxed">Este mercado já foi finalizado e os pagamentos foram distribuídos. Nenhuma nova previsão pode ser feita.</p>
+                                        {market.resolution_result && (
+                                            <div className="mt-4 inline-flex items-center justify-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-lg font-bold text-sm w-full">
+                                                <CheckCircle className="w-4 h-4" /> Resultado Final: {market.resolution_result}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* OUTCOME SELECTOR */}
+                                        <div className="space-y-2">
+                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Sua previsão</div>
+                                            <div className={`grid gap-2 ${outcomeStats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                                {outcomeStats.map((stat: any) => {
+                                                    const isSelected = selectedOutcome === stat.name;
+                                                    return (
+                                                        <button
+                                                            key={stat.name}
+                                                            onClick={() => setSelectedOutcome(stat.name)}
+                                                            className={`relative p-3 rounded-xl border transition-all text-left overflow-hidden ${isSelected ? 'bg-white/5 border-primary/60 ring-1 ring-primary/40' : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10'}`}
+                                                        >
+                                                            {/* Progress bg */}
+                                                            <div className="absolute left-0 top-0 bottom-0 opacity-20 transition-all" style={{ width: `${stat.prob}%`, backgroundColor: stat.color }} />
+                                                            <div className="relative flex items-center justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+                                                                    <span className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>{stat.name}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                                    <span className={`text-sm font-black ${isSelected ? 'text-primary' : 'text-gray-400'}`}>{stat.odds}x</span>
+                                                                    <span className="text-[10px] text-gray-500">{stat.prob}%</span>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t border-white/5" />
+
+                                        {/* AMOUNT INPUT */}
+                                        <div className="space-y-3">
+                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Quantia</div>
+                                            <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-2 gap-2">
+                                                <button onClick={() => setAmount(Math.max(0, (parseFloat(amount) || 0) - 10).toString())}
+                                                    className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg font-bold">
+                                                    -
+                                                </button>
+                                                <div className="flex-1 flex items-center justify-center gap-1">
+                                                    <span className="text-xl font-bold text-white">R$</span>
+                                                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+                                                        className="w-20 bg-transparent text-2xl font-bold text-white focus:outline-none text-center p-0"
+                                                        placeholder="0" />
+                                                </div>
+                                                <button onClick={() => setAmount(((parseFloat(amount) || 0) + 10).toString())}
+                                                    className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg font-bold">
+                                                    +
+                                                </button>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                {[10, 20, 50, 100].map(val => (
+                                                    <button key={val} onClick={() => setAmount(val.toString())}
+                                                        className="flex-1 py-1.5 rounded-lg bg-white/5 border border-white/5 text-xs font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
+                                                        +R$ {val}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* REWARD PREVIEW (Dynamic Checkoout Info) */}
+                                        <div className="space-y-1.5 pt-3 border-t border-white/5">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-gray-400">Odd Estimada Atual</span>
+                                                <span className="font-bold text-gray-200">{currentOddsOption.toFixed(2)}x</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-gray-400">Participação Estimada</span>
+                                                <span className="font-bold text-gray-200">{shareEstimate > 0 ? (shareEstimate * 100).toFixed(1) + '%' : '-'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm mt-1">
+                                                <span className="text-gray-300 font-bold">Retorno Estimado</span>
+                                                <span className="font-black text-primary text-base">
+                                                    R$ {estimatedReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-[10px] text-gray-500 leading-tight bg-white/5 p-2 rounded-lg text-center mt-2">
+                                            Odds dinâmicas estimadas. O pagamento final pode variar conforme novas previsões entram até o fechamento do mercado.
+                                        </div>
+
+                                        {/* BET BUTTON */}
+                                        <button
+                                            onClick={handleBet}
+                                            disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
+                                            className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/85 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(4,179,5,0.3)]"
+                                        >
+                                            {placingBet ? 'Processando...' : 'Fazer Previsão'}
                                         </button>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        {[10, 20, 50, 100].map(val => (
-                                            <button key={val} onClick={() => setAmount(val.toString())}
-                                                className="flex-1 py-1.5 rounded-lg bg-white/5 border border-white/5 text-xs font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
-                                                +R$ {val}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* REWARD PREVIEW */}
-                                <div className="flex items-center justify-between text-sm pt-1 border-t border-white/5">
-                                    <span className="text-gray-400">Ao acertar</span>
-                                    <span className="font-bold text-primary text-base">
-                                        R$ {potentialReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-
-                                {/* BET BUTTON */}
-                                <button
-                                    onClick={handleBet}
-                                    disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
-                                    className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/85 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(4,179,5,0.3)]"
-                                >
-                                    {placingBet ? 'Processando...' : 'Fazer Previsão'}
-                                </button>
+                                    </>
+                                )}
 
                             </div>
                         </div>

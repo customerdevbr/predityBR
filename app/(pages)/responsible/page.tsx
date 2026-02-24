@@ -32,7 +32,7 @@ export default function ResponsiblePage() {
                     <ul className="list-disc pl-6 space-y-2">
                         <li>Passar mais tempo na plataforma do que o planejado originalmente.</li>
                         <li>Gastar dinheiro destinado a outras responsabilidades financeiras.</li>
-                        <li>Sentir ansiedade, irritabilidade ou tentar esconder suas atividades de apostas de pessoas próximas.</li>
+                        <li>Sentir ansiedade, irritabilidade ou tentar esconder suas atividades na plataforma de pessoas próximas.</li>
                         <li>Fazer previsões como uma forma de escapar de problemas pessoais ou sentimentos negativos.</li>
                     </ul>
 

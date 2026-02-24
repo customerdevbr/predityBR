@@ -44,7 +44,7 @@ export default function AdminLayout({
         { label: "Visão Geral", icon: LayoutDashboard, href: "/app/admin" },
         { label: "Usuários", icon: Users, href: "/app/admin/users" },
         { label: "Financeiro", icon: Wallet, href: "/app/admin/finance" },
-        { label: "Apostas", icon: List, href: "/app/admin/bets" },
+        { label: "Mercados", icon: List, href: "/app/admin/bets" },
         { label: "Segurança", icon: Shield, href: "/app/admin/security" },
         { label: "Atividades", icon: Activity, href: "/app/admin/activity" },
         { label: "Suporte", icon: LifeBuoy, href: "/app/admin/support" },
@@ -75,7 +75,7 @@ export default function AdminLayout({
             </aside>
 
             {/* Content */}
-            <main className="flex-1 p-6 md:p-8 md:ml-64">
+            <main className="flex-1 p-6 md:p-8 md:ml-64 pb-24">
                 {children}
             </main>
         </div>

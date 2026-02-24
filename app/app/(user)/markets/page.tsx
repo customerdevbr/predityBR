@@ -22,6 +22,7 @@ export default function MarketsPage() {
         const { data, error } = await supabase
             .from('markets')
             .select('*')
+            .eq('status', 'OPEN')
             .order('end_date', { ascending: true });
 
         if (error) {
@@ -44,7 +45,7 @@ export default function MarketsPage() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold">Mercados</h1>
-                    <p className="text-gray-400">Explore e negocie em eventos globais.</p>
+                    <p className="text-gray-400">Explore e faça suas previsões em eventos globais</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
@@ -148,7 +149,7 @@ export default function MarketsPage() {
                                         </div>
                                         <div>
                                             <h2 className="text-lg font-bold text-white flex items-center gap-2">Encerra em Breve <span className="text-xs font-normal text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">Corra</span></h2>
-                                            <p className="text-xs text-gray-500 mt-0.5">Última chance para dar o seu palpite.</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">Última chance para lançar sua previsão.</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x scrollbar-hide">

@@ -30,7 +30,7 @@ export default function AdminCharts({ revenueData, categoryData, userGrowthData 
             <div className="grid lg:grid-cols-2 gap-8">
                 {/* Revenue/Volume Chart */}
                 <div className="bg-surface/30 border border-surface rounded-xl p-6 h-96 flex flex-col">
-                    <h3 className="text-white font-bold mb-4">Volume Apostado (Últimos 7 dias)</h3>
+                    <h3 className="text-white font-bold mb-4">Volume Aportado (Últimos 7 dias)</h3>
                     <div className="w-full h-full min-h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={revenueData}>
@@ -62,7 +62,7 @@ export default function AdminCharts({ revenueData, categoryData, userGrowthData 
 
                 {/* Categories Distribution */}
                 <div className="bg-surface/30 border border-surface rounded-xl p-6 h-96 flex flex-col">
-                    <h3 className="text-white font-bold mb-4">Apostas por Categoria</h3>
+                    <h3 className="text-white font-bold mb-4">Previsões por Categoria</h3>
                     <div className="w-full h-full min-h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>

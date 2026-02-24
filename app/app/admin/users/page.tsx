@@ -242,6 +242,10 @@ export default function AdminUsersPage() {
                                         </span>
                                     </div>
                                 </div>
+                                <div className="bg-black/20 p-3 rounded-lg border border-white/5 col-span-2">
+                                    <div className="text-xs text-gray-500 mb-1">XGate Customer ID</div>
+                                    <div className="font-mono text-sm text-primary break-all">{selectedUser.xgate_customer_id || 'Não gerado'}</div>
+                                </div>
                             </div>
                         </div>
                         <div className="p-4 border-t border-white/5 bg-black/40 flex justify-end gap-3">

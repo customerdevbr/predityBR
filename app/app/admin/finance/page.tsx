@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { DollarSign, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, XCircle, Search } from 'lucide-react';
+import { DollarSign, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, XCircle, Search, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 export default function AdminFinancePage() {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -15,6 +16,20 @@ export default function AdminFinancePage() {
         custodyBalance: 0
     });
     const [filter, setFilter] = useState('ALL'); // ALL, DEPOSIT, WITHDRAWAL, PENDING
+    const [processing, setProcessing] = useState<string | null>(null);
+
+    // Notification State
+    const [notification, setNotification] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success'
+    });
 
     useEffect(() => {
         fetchFinanceData();
@@ -52,22 +67,37 @@ export default function AdminFinancePage() {
     const handleApproveWithdrawal = async (id: string) => {
         if (!confirm("Confirmar envio do PIX e marcar como PAGO?")) return;
 
+        setProcessing(id);
         const { error } = await supabase
             .from('transactions')
             .update({ status: 'COMPLETED' })
             .eq('id', id);
 
         if (error) {
-            alert("Erro ao aprovar: " + error.message);
+            setNotification({
+                isOpen: true,
+                title: 'Erro na Aprovação',
+                message: error.message,
+                type: 'error'
+            });
         } else {
-            alert("Saque aprovado com sucesso!");
-            fetchFinanceData();
+            // Update local state immediately to hide buttons
+            setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: 'COMPLETED' } : tx));
+            setNotification({
+                isOpen: true,
+                title: 'Pagamento Aprovado!',
+                message: 'O saque foi marcado como concluído.',
+                type: 'success'
+            });
+            fetchFinanceData(); // Refresh stats too
         }
+        setProcessing(null);
     };
 
     const handleRejectWithdrawal = async (id: string, userId: string, amount: number) => {
         if (!confirm("Rejeitar saque e estornar valor para o usuário?")) return;
 
+        setProcessing(id);
         // 1. Mark transaction as FAILED
         const { error: txError } = await supabase
             .from('transactions')
@@ -75,29 +105,39 @@ export default function AdminFinancePage() {
             .eq('id', id);
 
         if (txError) {
-            alert("Erro ao rejeitar: " + txError.message);
+            setNotification({
+                isOpen: true,
+                title: 'Erro ao Rejeitar',
+                message: txError.message,
+                type: 'error'
+            });
+            setProcessing(null);
             return;
         }
 
         // 2. Refund User Balance
-        // We need to call a stored procedure or manually update. 
-        // Ideally use RPC for safety, but for now direct update if RLS allows (Admin)
         const { error: userError } = await supabase.rpc('increment_balance', {
-            user_id: userId,
+            userid: userId,
             amount: amount
         });
 
-        // Fallback if RPC doesnt exist (it should, but safety first)
         if (userError) {
-            // Try direct update
+            console.warn("RPC increment_balance failed, trying manual fallback", userError);
             const { data: user } = await supabase.from('users').select('balance').eq('id', userId).single();
             if (user) {
                 await supabase.from('users').update({ balance: user.balance + amount }).eq('id', userId);
             }
         }
 
-        alert("Saque rejeitado e valor estornado.");
+        setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: 'FAILED' } : tx));
+        setNotification({
+            isOpen: true,
+            title: 'Saque Rejeitado',
+            message: 'O valor foi estornado do saldo do usuário.',
+            type: 'error'
+        });
         fetchFinanceData();
+        setProcessing(null);
     };
 
     const filteredTransactions = transactions.filter(t => {
@@ -206,19 +246,26 @@ export default function AdminFinancePage() {
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => handleApproveWithdrawal(tx.id)}
-                                                    className="p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                                                    disabled={processing === tx.id}
+                                                    className="p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors disabled:opacity-50"
                                                     title="Aprovar Pagamento"
                                                 >
-                                                    <CheckCircle className="w-4 h-4" />
+                                                    {processing === tx.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                                 </button>
                                                 <button
                                                     onClick={() => handleRejectWithdrawal(tx.id, tx.user_id, tx.amount)}
-                                                    className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                                                    disabled={processing === tx.id}
+                                                    className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors disabled:opacity-50"
                                                     title="Rejeitar e Estornar"
                                                 >
-                                                    <XCircle className="w-4 h-4" />
+                                                    {processing === tx.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                                                 </button>
                                             </div>
+                                        )}
+                                        {tx.type === 'WITHDRAWAL' && tx.status !== 'PENDING' && (
+                                            <span className={`text-xs font-bold uppercase ${tx.status === 'COMPLETED' ? 'text-green-500' : 'text-red-500'}`}>
+                                                {tx.status === 'COMPLETED' ? 'Já Processado' : 'Cancelado'}
+                                            </span>
                                         )}
                                     </td>
                                 </tr>
@@ -227,6 +274,14 @@ export default function AdminFinancePage() {
                     </tbody>
                 </table>
             </div>
+
+            <NotificationModal
+                isOpen={notification.isOpen}
+                onClose={() => setNotification({ ...notification, isOpen: false })}
+                title={notification.title}
+                message={notification.message}
+                type={notification.type}
+            />
         </div>
     );
 }

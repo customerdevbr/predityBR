@@ -30,14 +30,18 @@ export async function POST(req: Request) {
         rawBody = await req.text();
         const body: any = JSON.parse(rawBody);
 
-        console.log('[xgate-webhook] Received:', JSON.stringify(body));
+        // ── EXHAUSTIVE DEBUG LOGGING ──
+        console.log('[xgate-webhook] ====== INCOMING WEBHOOK ======');
+        console.log('[xgate-webhook] Headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
+        console.log('[xgate-webhook] Raw Body:', rawBody.slice(0, 2000));
+        console.log('[xgate-webhook] Parsed Body:', JSON.stringify(body, null, 2));
 
         // ── Extract the XGate transaction ID from the webhook ──
-        // XGate may send it in different fields depending on event type
         const xgateId =
             body?.data?.id ||
             body?.data?.transaction_id ||
             body?.data?.orderId ||
+            body?.data?._id ||
             body?.id ||
             body?.transaction_id ||
             body?.orderId ||
@@ -54,14 +58,17 @@ export async function POST(req: Request) {
 
         const isPaid = PAID_STATUSES.includes(String(status));
 
-        console.log(`[xgate-webhook] xgateId=${xgateId} status=${status} isPaid=${isPaid}`);
+        console.log(`[xgate-webhook] Extracted: xgateId=${xgateId} status=${status} isPaid=${isPaid}`);
+        console.log(`[xgate-webhook] All body keys: ${Object.keys(body).join(', ')}`);
+        if (body?.data) console.log(`[xgate-webhook] body.data keys: ${Object.keys(body.data).join(', ')}`);
 
         if (!xgateId) {
+            console.error('[xgate-webhook] FAILED: Could not extract xgate ID from any known field');
             return NextResponse.json({
                 ok: false,
                 error: 'Could not extract xgate transaction ID from payload',
                 received: body,
-            }, { status: 200 }); // always 200 so XGate doesn't retry endlessly
+            }, { status: 200 });
         }
 
         if (!isPaid) {
@@ -88,11 +95,22 @@ export async function POST(req: Request) {
         }
 
         if (!txRows || txRows.length === 0) {
-            // Perhaps already processed, or created without xgate_id
+            // Debug: list all PENDING deposits to compare IDs
+            const { data: allPending } = await supabaseAdmin
+                .from('transactions')
+                .select('id, metadata, created_at')
+                .eq('type', 'DEPOSIT')
+                .eq('status', 'PENDING')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
             console.warn('[xgate-webhook] No PENDING transaction found for xgateId:', xgateId);
+            console.warn('[xgate-webhook] Recent PENDING deposits for comparison:', JSON.stringify(allPending?.map(t => ({ id: t.id, xgate_id: t.metadata?.xgate_id }))));
+
             return NextResponse.json({
                 ok: true,
-                message: `No pending transaction found for xgate_id="${xgateId}". Already processed or not found.`,
+                message: `No pending transaction found for xgate_id="${xgateId}". Already processed or ID mismatch.`,
+                debug_pending_ids: allPending?.map(t => t.metadata?.xgate_id)
             });
         }
 

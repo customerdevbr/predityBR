@@ -129,7 +129,7 @@ export default function Header({ user: initialUser }: { user: User | null }) {
                             {/* Deposit Button — glowing green CTA */}
                             <a
                                 href={getAppUrl("/app/wallet")}
-                                className="hidden sm:flex items-center gap-1.5 bg-primary hover:bg-primary/85 active:bg-primary/70 text-white font-black text-xs px-4 py-2 rounded-full transition-all shadow-[0_0_14px_rgba(4,179,5,0.5)] hover:shadow-[0_0_22px_rgba(4,179,5,0.7)] whitespace-nowrap"
+                                className="flex items-center gap-1.5 bg-primary hover:bg-primary/85 active:bg-primary/70 text-white font-black text-xs px-3 sm:px-4 py-2 rounded-full transition-all shadow-[0_0_14px_rgba(4,179,5,0.5)] hover:shadow-[0_0_22px_rgba(4,179,5,0.7)] whitespace-nowrap"
                                 style={{ letterSpacing: '0.04em' }}
                             >
                                 <span>DEPOSITAR</span>

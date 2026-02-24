@@ -27,11 +27,14 @@ export const BetResolvedEmail = ({
             <Preview>{previewText}</Preview>
             <Body style={main}>
                 <Container style={container}>
-                    {/* Logo Example */}
+                    {/* Logo */}
                     <div style={{ padding: '20px 0', textAlign: 'center' }}>
-                        <Text style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffffff', margin: 0 }}>
-                            <span style={{ color: '#04B305' }}>/</span>Predity
-                        </Text>
+                        <Img
+                            src="https://app.preditybr.com/logo.png"
+                            alt="Predity"
+                            height="40"
+                            style={{ display: 'block', margin: '0 auto' }}
+                        />
                     </div>
 
                     <Section style={content}>
@@ -47,7 +50,7 @@ export const BetResolvedEmail = ({
                                     <Text style={highlightValue}>R$ {payout.toFixed(2)}</Text>
                                 </div>
                                 <Text style={text}>
-                                    O valor já está creditado na sua carteira da Predity e pronto para ser sacado via PIX ou usado em novas apostas.
+                                    O valor já está creditado na sua carteira da Predity e pronto para ser sacado via PIX ou usado em novas previsões.
                                 </Text>
                             </>
                         ) : (
@@ -56,7 +59,7 @@ export const BetResolvedEmail = ({
                                     O mercado <strong>"{marketTitle}"</strong> foi resolvido, mas infelizmente a sua previsão não se confirmou desta vez.
                                 </Text>
                                 <div style={highlightBoxLoss}>
-                                    <Text style={highlightText}>Valor da Aposta</Text>
+                                    <Text style={highlightText}>Valor da Previsão</Text>
                                     <Text style={highlightValue}>- R$ {amountBetted.toFixed(2)}</Text>
                                 </div>
                                 <Text style={text}>
