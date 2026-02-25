@@ -199,19 +199,26 @@ export async function POST(req: Request) {
             }, { status: 500 });
         }
 
-        // ── 7. Mark as Completed ──────────────────────────────────────────────
+        // ── 7. Mark as Completed (Bypassing RLS) ──────────────────────────────
         const externalId = withdrawData?._id || withdrawData?.id || (withdrawData.data ? withdrawData.data.id : 'approved_by_admin');
 
-        const { error: updateErr } = await supabase.from('transactions')
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { error: updateErr, data: updatedData } = await supabaseAdmin.from('transactions')
             .update({
                 status: 'COMPLETED',
                 metadata: { ...metadata, xgate_id: externalId, approved_by: session.user.id }
             })
-            .eq('id', transactionId);
+            .eq('id', transactionId)
+            .select();
 
-        if (updateErr) {
-            console.error('[admin-withdraw] Paid on XGate but failed to update DB:', updateErr);
-            return NextResponse.json({ error: 'Pago na XGate, mas falhou ao atualizar banco de dados.' }, { status: 500 });
+        if (updateErr || !updatedData || updatedData.length === 0) {
+            console.error('[admin-withdraw] Paid on XGate but failed to update DB:', updateErr || 'No rows updated');
+            return NextResponse.json({ error: 'Pago na XGate, mas falhou ao atualizar banco de dados (pode estar desincronizado).' }, { status: 500 });
         }
 
         return NextResponse.json({
