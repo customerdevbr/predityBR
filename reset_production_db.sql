@@ -11,12 +11,10 @@
 DELETE FROM bets;
 DELETE FROM transactions;
 
--- 2. ZERA TODOS OS SALDOS DAS CONTAS
+-- 2. ZERA TODOS OS SALDOS DAS CONTAS E MANTEM NIVEL DE ADMIN
 UPDATE users 
 SET 
-  balance = 0, 
-  total_deposited = 0, 
-  total_withdrawn = 0;
+  balance = 0;
 
 -- 3. ZERA AS PISCINAS DOS MERCADOS
 UPDATE markets 
