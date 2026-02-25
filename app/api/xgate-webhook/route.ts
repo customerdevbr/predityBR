@@ -142,7 +142,7 @@ export async function POST(req: Request) {
             console.warn('[xgate-webhook] increment_balance RPC failed, falling back to direct update:', rpcErr);
             const { data: userRow } = await supabaseAdmin
                 .from('users')
-                .select('balance')
+                .select('balance, referred_by')
                 .eq('id', user_id)
                 .single();
 
@@ -155,6 +155,49 @@ export async function POST(req: Request) {
         }
 
         console.log(`[xgate-webhook] ✅ Credited R$${amount} to user ${user_id} for xgate_id=${xgateId}`);
+
+        // ── Check for Referral Commission (15%) ──
+        try {
+            // Re-fetch user to reliably get referred_by if we didn't fallback above
+            const { data: userData } = await supabaseAdmin
+                .from('users')
+                .select('referred_by')
+                .eq('id', user_id)
+                .single();
+
+            if (userData?.referred_by) {
+                const commissionAmount = amount * 0.15; // 15% commission
+
+                // 1. Insert commission record
+                const { error: commErr } = await supabaseAdmin
+                    .from('referral_commissions')
+                    .insert({
+                        referrer_id: userData.referred_by,
+                        referred_id: user_id,
+                        deposit_id: tx.id,
+                        amount: commissionAmount,
+                        status: 'PAID'
+                    });
+
+                if (commErr) {
+                    console.error('[xgate-webhook] Failed to insert referral commission:', commErr);
+                } else {
+                    // 2. Credit referrer's balance
+                    const { error: referrerRpcErr } = await supabaseAdmin.rpc('increment_balance', {
+                        userid: userData.referred_by,
+                        amount: commissionAmount
+                    });
+
+                    if (referrerRpcErr) {
+                        console.error('[xgate-webhook] Failed to credit referrer balance:', referrerRpcErr);
+                    } else {
+                        console.log(`[xgate-webhook] 💸 Awarded R$${commissionAmount} commission to referrer ${userData.referred_by}`);
+                    }
+                }
+            }
+        } catch (refErr) {
+            console.error('[xgate-webhook] Error processing referral commission:', refErr);
+        }
 
         return NextResponse.json({
             ok: true,

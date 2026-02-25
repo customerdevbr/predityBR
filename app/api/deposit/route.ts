@@ -9,10 +9,6 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { amount, userId, description } = body;
 
-        if (!amount || amount < 10) {
-            return NextResponse.json({ error: 'Valor mínimo de depósito: R$ 10,00' }, { status: 400 });
-        }
-
         const cookieStore = await cookies();
 
         const supabase = createServerClient(
@@ -44,6 +40,11 @@ export async function POST(req: Request) {
                 error: 'User not found or you are not logged in correctly. Please login again.',
                 details: userError
             }, { status: 404 });
+        }
+
+        // --- Standard Deposit Flow ---
+        if ((!amount || amount < 10) && userData.role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Valor mínimo de depósito: R$ 10,00' }, { status: 400 });
         }
 
         // Require real CPF — must match the PIX account holder's document

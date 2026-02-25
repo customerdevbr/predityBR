@@ -29,28 +29,6 @@ export async function POST(req: Request) {
 
         console.log(`[withdraw] Received request. User: ${userId}, Amount: ${amount}, Key: ${pixKey}, Type: ${pixKeyType}`);
 
-        if (!amount || amount < 20) {
-            return NextResponse.json({ error: 'Valor mínimo de saque: R$ 20,00' }, { status: 400 });
-        }
-        if (!pixKey) {
-            return NextResponse.json({ error: 'Chave PIX obrigatória' }, { status: 400 });
-        }
-
-        // Sanitize PIX key
-        let sanitizedPixKey = pixKey.trim();
-        // If it's CPF or if type is not specified but it looks like a CPF (only numbers or formatted)
-        const digitsOnly = pixKey.replace(/\D/g, '');
-
-        if (pixKeyType === 'CPF' || (!pixKeyType && digitsOnly.length === 11)) {
-            if (digitsOnly.length !== 11) {
-                return NextResponse.json({ error: `O CPF da chave PIX deve conter exatamente 11 dígitos. Você enviou ${digitsOnly.length} dígitos.` }, { status: 400 });
-            }
-            sanitizedPixKey = digitsOnly;
-        } else if (pixKeyType === 'PHONE') {
-            sanitizedPixKey = digitsOnly;
-        }
-        // CNPJ, Email, Random - usually kept as is or just trimmed
-
         const cookieStore = await cookies();
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,6 +51,27 @@ export async function POST(req: Request) {
 
         if (userError || !userData) {
             return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 });
+        }
+
+        // --- Standard Withdrawal Validation ---
+        if ((!amount || amount < 20) && userData.role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Valor mínimo de saque: R$ 20,00' }, { status: 400 });
+        }
+        if (!pixKey) {
+            return NextResponse.json({ error: 'Chave PIX obrigatória' }, { status: 400 });
+        }
+
+        // Sanitize PIX key
+        let sanitizedPixKey = pixKey.trim();
+        const digitsOnly = pixKey.replace(/\D/g, '');
+
+        if (pixKeyType === 'CPF' || (!pixKeyType && digitsOnly.length === 11)) {
+            if (digitsOnly.length !== 11) {
+                return NextResponse.json({ error: `O CPF da chave PIX deve conter exatamente 11 dígitos. Você enviou ${digitsOnly.length} dígitos.` }, { status: 400 });
+            }
+            sanitizedPixKey = digitsOnly;
+        } else if (pixKeyType === 'PHONE') {
+            sanitizedPixKey = digitsOnly;
         }
 
         if (!userData.document || userData.document.trim() === '') {

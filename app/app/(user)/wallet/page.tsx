@@ -29,6 +29,7 @@ export default function WalletPage() {
     const [tab, setTab] = useState<'OPEN' | 'CLOSED'>('OPEN');
     const [processing, setProcessing] = useState<string | null>(null);
     const [actionMessage, setActionMessage] = useState<string | null>(null);
+    const [userRole, setUserRole] = useState<string>('USER');
 
     // Notification State
     const [notification, setNotification] = useState<{
@@ -74,8 +75,11 @@ export default function WalletPage() {
         setLoading(true);
 
         // 1. Get Balance
-        const { data: userData } = await supabase.from('users').select('balance').eq('id', userId).single();
-        if (userData) setBalance(userData.balance);
+        const { data: userData } = await supabase.from('users').select('balance, role').eq('id', userId).single();
+        if (userData) {
+            setBalance(userData.balance);
+            setUserRole(userData.role || 'USER');
+        }
 
         // 2. Get Bets
         const { data: betsData } = await supabase
@@ -198,7 +202,7 @@ export default function WalletPage() {
 
     const confirmDepositAmount = async () => {
         const val = parseFloat(depositAmount);
-        if (!val || val < 10) {
+        if ((!val || val < 10) && userRole !== 'ADMIN') {
             setNotification({
                 isOpen: true,
                 title: 'Valor Inválido',
@@ -271,15 +275,15 @@ export default function WalletPage() {
         if (!user) return;
         const val = parseFloat(withdrawAmount);
 
-        if (!val || val < 20) {
+        if ((!val || val < 20) && userRole !== 'ADMIN') {
             setNotification({ isOpen: true, title: 'Valor Mínimo', message: 'Saque mínimo de R$ 20,00', type: 'error' });
             return;
         }
-        if (val > 5000) {
+        if (val > 5000 && userRole !== 'ADMIN') {
             setNotification({ isOpen: true, title: 'Limite Excedido', message: 'Máximo de R$ 5.000,00 por vez', type: 'error' });
             return;
         }
-        if (!withdrawPixKey) {
+        if (!withdrawPixKey && userRole !== 'ADMIN') {
             setNotification({ isOpen: true, title: 'Chave PIX', message: 'Informe a chave PIX de destino.', type: 'error' });
             return;
         }
@@ -298,7 +302,7 @@ export default function WalletPage() {
             return;
         }
 
-        if (netAmount <= 0) {
+        if (netAmount <= 0 && userRole !== 'ADMIN') {
             setNotification({
                 isOpen: true,
                 title: 'Valor Baixo',
@@ -308,7 +312,11 @@ export default function WalletPage() {
             return;
         }
 
-        if (!confirm(`Confirmar saque via PIX?\n\nValor Solicitado: R$ ${val.toFixed(2)}\nTaxa Fixa: - R$ ${fee.toFixed(2)}\nValor a Receber: R$ ${netAmount.toFixed(2)}\nChave PIX: ${withdrawPixKey}`)) return;
+        if (userRole === 'ADMIN') {
+            if (!confirm(`ADMIN TESTE: Confirmar saque via PIX na XGate?\n\nValor Solicitado: R$ ${val.toFixed(2)}\nTaxa Fixa: - R$ ${fee.toFixed(2)}\nValor a Receber: R$ ${netAmount.toFixed(2)}\nChave PIX: ${withdrawPixKey}`)) return;
+        } else {
+            if (!confirm(`Confirmar saque via PIX?\n\nValor Solicitado: R$ ${val.toFixed(2)}\nTaxa Fixa: - R$ ${fee.toFixed(2)}\nValor a Receber: R$ ${netAmount.toFixed(2)}\nChave PIX: ${withdrawPixKey}`)) return;
+        }
 
         setActionMessage('Processando saque...');
         setLoading(true);
@@ -616,7 +624,9 @@ export default function WalletPage() {
 
                         <div className="text-center space-y-2">
                             <h3 className="text-xl font-bold text-white">Solicitar Saque</h3>
-                            <p className="text-sm text-gray-400">Taxa fixa de R$ 2,90 por operação</p>
+                            <p className="text-sm text-gray-400">
+                                {userRole === 'ADMIN' ? 'Modo Admin: Sem limite mínimo, mas com taxa' : 'Taxa fixa de R$ 2,90 por operação'}
+                            </p>
                         </div>
 
                         <div className="space-y-4">
