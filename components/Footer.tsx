@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Globe, Smartphone, HelpCircle, Mail, DollarSign } from 'lucide-react';
+import packageInfo from '../package.json';
 
 export default function Footer() {
     return (
@@ -53,7 +54,7 @@ export default function Footer() {
 
             <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/5 text-center text-xs text-gray-600">
                 <p className="mb-2">Criado com <span className="text-primary text-sm">💚</span> por brasileiros para brasileiros.</p>
-                <p>PredityBR &copy; 2026. Todos os direitos reservados.</p>
+                <p>PredityBR &copy; 2026. Todos os direitos reservados. <span className="text-gray-500 ml-2 border-l border-gray-700 pl-2">v{packageInfo.version}</span></p>
                 <p className="mt-2 text-[10px] text-gray-700">Proibido para menores de 18 anos. Jogue com moderação.</p>
             </div>
         </footer>
