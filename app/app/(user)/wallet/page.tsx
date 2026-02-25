@@ -19,6 +19,14 @@ const TRANSLATE_TX_TYPE: Record<string, string> = {
     'REFUND': 'Reembolso'
 };
 
+const TRANSLATE_TX_STATUS: Record<string, { label: string, color: string }> = {
+    'PENDING': { label: 'Pendente', color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20' },
+    'COMPLETED': { label: 'Concluído', color: 'text-primary bg-primary/10 border-primary/20' },
+    'FAILED': { label: 'Falhou', color: 'text-red-500 bg-red-500/10 border-red-500/20' },
+    'CANCELLED': { label: 'Cancelado', color: 'text-gray-500 bg-gray-500/10 border-gray-500/20' },
+    'PROCESSING': { label: 'Processando', color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' }
+};
+
 export default function WalletPage() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
@@ -66,13 +74,22 @@ export default function WalletPage() {
             router.push('/login');
         } else {
             setUser(session.user);
-            fetchWalletData(session.user.id);
+            fetchWalletData(session.user.id, true);
         }
     };
 
-    const fetchWalletData = async (userId: string = user?.id) => {
+    // Auto-polling for balance and tx status
+    useEffect(() => {
+        if (!user) return;
+        const intervalId = setInterval(() => {
+            fetchWalletData(user.id, false);
+        }, 6000); // Poll every 6 seconds to feel real-time
+        return () => clearInterval(intervalId);
+    }, [user]);
+
+    const fetchWalletData = async (userId: string = user?.id, showLoading: boolean = true) => {
         if (!userId) return;
-        setLoading(true);
+        if (showLoading) setLoading(true);
 
         // 1. Get Balance
         const { data: userData } = await supabase.from('users').select('balance, role').eq('id', userId).single();
@@ -108,7 +125,7 @@ export default function WalletPage() {
 
         if (txData) setTransactions(txData);
 
-        setLoading(false);
+        if (showLoading) setLoading(false);
     };
 
     const calculateCashout = (bet: any) => {
@@ -485,14 +502,26 @@ export default function WalletPage() {
                                     {(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-white">{TRANSLATE_TX_TYPE[tx.type] || tx.type}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm font-bold text-white">{TRANSLATE_TX_TYPE[tx.type] || tx.type}</p>
+                                        {tx.status && (
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${TRANSLATE_TX_STATUS[tx.status]?.color || 'text-gray-400 border-gray-600 bg-black'}`}>
+                                                {TRANSLATE_TX_STATUS[tx.status]?.label || tx.status}
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-gray-500">{tx.description}</p>
                                     <p className="text-xs text-gray-500">{format(new Date(tx.created_at), "dd/MM HH:mm", { locale: ptBR })}</p>
                                 </div>
                             </div>
-                            <span className={`font-mono font-bold ${(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? 'text-primary' : 'text-white'}`}>
-                                {(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? '+' : '-'} R$ {tx.amount.toFixed(2)}
-                            </span>
+                            <div className="text-right">
+                                <span className={`font-mono font-bold block ${(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? 'text-primary' : 'text-white'}`}>
+                                    {(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? '+' : '-'} R$ {tx.amount.toFixed(2)}
+                                </span>
+                                {tx.status === 'PENDING' && tx.type === 'DEPOSIT' && (
+                                    <span className="text-[10px] text-yellow-500">Aguardando Pagamento</span>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
