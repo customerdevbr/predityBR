@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { LayoutDashboard, Users, Wallet, List, Shield, Activity, LifeBuoy, FileText } from 'lucide-react';
+import packageJson from '@/package.json';
 
 export default function AdminLayout({
     children,
@@ -60,7 +61,7 @@ export default function AdminLayout({
                 <div className="p-6">
                     <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Painel Admin</h2>
                 </div>
-                <nav className="space-y-1 px-4 pb-20">
+                <nav className="space-y-1 px-4 pb-24">
                     {menuItems.map((item) => (
                         <Link
                             key={item.href}
@@ -72,6 +73,11 @@ export default function AdminLayout({
                         </Link>
                     ))}
                 </nav>
+                <div className="absolute bottom-0 left-0 w-full p-4 border-t border-surface bg-[#0f1115]">
+                    <p className="text-xs text-center text-gray-500 font-mono">
+                        v{packageJson.version}
+                    </p>
+                </div>
             </aside>
 
             {/* Content */}

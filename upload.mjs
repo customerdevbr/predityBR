@@ -3,7 +3,9 @@ import fs from 'fs';
 
 const conn = new Client();
 const files = [
-    'app/api/xgate-webhook/route.ts'
+    'app/app/(user)/wallet/page.tsx',
+    'app/api/deposit/route.ts',
+    'app/api/withdraw/route.ts'
 ];
 
 conn.on('ready', () => {
@@ -33,7 +35,7 @@ conn.on('ready', () => {
         });
     });
 }).connect({
-    host: '187.77.54.203',
+    host: '89.153.178.90',
     port: 22,
     username: 'root',
     password: 'Kauedev@2025'
