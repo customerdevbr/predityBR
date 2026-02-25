@@ -124,6 +124,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
     const [user, setUser] = useState<any>(currentUser);
 
     const [selectedOutcome, setSelectedOutcome] = useState<string>('');
+    const [isMobileSlipOpen, setIsMobileSlipOpen] = useState(false);
     const [amount, setAmount] = useState<string>('');
     const [placingBet, setPlacingBet] = useState(false);
     const [timeFilter, setTimeFilter] = useState('Tudo');
@@ -349,6 +350,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
             showToast('success', '🎯 Previsão confirmada!',
                 `R$ ${val.toFixed(2)} em "${selectedOutcome}"`);
             setAmount('');
+            setIsMobileSlipOpen(false); // Close mobile sheet on success
         } catch (err: any) {
             console.error(err);
             showToast('error', 'Erro ao processar previsão', err.message);
@@ -481,11 +483,36 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                         )}
                     </div>
 
-                    {/* RIGHT COLUMN: Bet Slip */}
-                    <div className="relative w-full">
-                        <div className="bg-surface lg:sticky lg:top-24 lg:rounded-xl border-t lg:border border-white/5 shadow-2xl overflow-auto lg:max-h-[calc(100vh-6rem)]">
+                    {/* RIGHT COLUMN: Bet Slip Container */}
+                    <div className="w-full lg:w-auto">
 
-                            <div className="p-4 md:p-5 space-y-4">
+                        {/* Mobile Overlay */}
+                        {isMobileSlipOpen && (
+                            <div
+                                className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+                                onClick={() => setIsMobileSlipOpen(false)}
+                            />
+                        )}
+
+                        {/* The Bet Slip Panel */}
+                        <div className={`
+                            fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out transform rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] bg-surface
+                            ${isMobileSlipOpen ? 'translate-y-0' : 'translate-y-full'}
+                            lg:static lg:translate-y-0 lg:z-auto lg:rounded-xl lg:border lg:border-white/5 lg:shadow-2xl lg:block
+                        `}>
+                            {/* Mobile Drag Handle & Close */}
+                            <div className="lg:hidden flex justify-center items-center p-3 relative bg-[#12141a] rounded-t-3xl border-b border-white/5">
+                                <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
+                                <button
+                                    onClick={() => setIsMobileSlipOpen(false)}
+                                    className="absolute right-4 text-gray-500 hover:text-white transition-colors"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            {/* Scrollable interior for mobile, sticky wrapper for desktop */}
+                            <div className="p-4 md:p-5 space-y-4 max-h-[85vh] overflow-y-auto lg:max-h-[calc(100vh-6rem)] lg:sticky lg:top-24 scrollbar-hide">
 
                                 {/* Participant row — above outcome options */}
                                 <ParticipantRow marketId={market.id} totalPool={market.total_pool || 0} />
@@ -604,6 +631,16 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Sticky Trigger Button */}
+            <div className="fixed bottom-0 inset-x-0 z-30 p-4 bg-[#0f1115]/95 backdrop-blur-md border-t border-white/10 lg:hidden pb-safe">
+                <button
+                    onClick={() => setIsMobileSlipOpen(true)}
+                    className="w-full py-3.5 flex items-center justify-center gap-2 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(4,179,5,0.3)] transition-all active:scale-[0.98]"
+                >
+                    Fazer Previsão
+                </button>
             </div>
         </>
     );
