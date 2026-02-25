@@ -1,0 +1,36 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy securely to Hostinger via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" 
+            
+            cd /var/www/preditybr
+            
+            # Resetting correctly to avoid merge conflicts from previous direct edits
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Installing packages, building and restarting
+            npm install
+            npm run build
+            pm2 restart predity-web
+            
+            echo "Deploy Concluído e PM2 Reiniciado! 🚀"
