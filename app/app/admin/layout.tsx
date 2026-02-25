@@ -58,8 +58,9 @@ export default function AdminLayout({
         <div className="flex min-h-screen pt-20">
             {/* Sidebar */}
             <aside className="w-64 border-r border-surface bg-secondary/20 hidden md:block fixed h-full left-0 top-20 bottom-0 overflow-y-auto">
-                <div className="p-6">
+                <div className="p-6 flex items-center justify-between">
                     <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Painel Admin</h2>
+                    <span className="text-[10px] font-mono bg-surface px-2 py-0.5 rounded text-gray-400">v{packageJson.version}</span>
                 </div>
                 <nav className="space-y-1 px-4 pb-24">
                     {menuItems.map((item) => (
@@ -73,11 +74,6 @@ export default function AdminLayout({
                         </Link>
                     ))}
                 </nav>
-                <div className="absolute bottom-0 left-0 w-full p-4 border-t border-surface bg-[#0f1115]">
-                    <p className="text-xs text-center text-gray-500 font-mono">
-                        v{packageJson.version}
-                    </p>
-                </div>
             </aside>
 
             {/* Content */}
