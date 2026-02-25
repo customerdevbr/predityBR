@@ -324,6 +324,11 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                 await supabase.from('users').update({ balance: userData.balance - val }).eq('id', user.id);
             }
 
+            // Dispatch instant global UI update for Header
+            window.dispatchEvent(new CustomEvent('optimistic_balance_update', {
+                detail: { newBalance: userData.balance - val }
+            }));
+
             // Update pool — also triggers realtime subscription to update UI instantly
             const newTotalPool = (market.total_pool || 0) + val;
             const newOutcomePool = (market.outcome_pools?.[selectedOutcome] || 0) + val;
@@ -477,8 +482,8 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                     </div>
 
                     {/* RIGHT COLUMN: Bet Slip */}
-                    <div className="relative w-full pb-24 lg:pb-0">
-                        <div className="fixed bottom-16 left-0 right-0 z-50 lg:sticky lg:bottom-auto lg:top-24 bg-surface lg:rounded-xl border-t lg:border border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:shadow-2xl overflow-auto lg:max-h-[calc(100vh-6rem)]">
+                    <div className="relative w-full">
+                        <div className="bg-surface lg:sticky lg:top-24 lg:rounded-xl border-t lg:border border-white/5 shadow-2xl overflow-auto lg:max-h-[calc(100vh-6rem)]">
 
                             <div className="p-4 md:p-5 space-y-4">
 

@@ -1,0 +1,229 @@
+﻿[dotenv@17.3.1] injecting env (4) from .env.local -- tip: ÔÜÖ´©Å  load multiple .env files with { path: ['.env.local', '.env'] }
+Recent DEPOSIT transactions:
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "bc02488f-dc21-4dd5-9fc4-72d66b4d45bb",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-25T11:06:56.530658+00:00",
+  "metadata": {
+    "xgate_id": "699ed7cf43ab146aea6bb371",
+    "xgate_customer_id": "6997964e92648a41b5f46e89"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "688df4c5-71b9-45bc-8a25-f5fd638197bf",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-25T11:03:05.587339+00:00",
+  "metadata": {
+    "xgate_id": "699ed6e843ab146aea6b9bd6",
+    "xgate_customer_id": "6997964e92648a41b5f46e89"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}
+- [2026-02-24T18:48:08.300874+00:00] R$20 | PENDING | xgate_id: 699df267dbba9faccb758ed7 | Name: Kaue Da Costa Pacheco
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "b412850d-3bc1-4764-a4c8-8d219c32f212",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-24T18:45:14.036655+00:00",
+  "metadata": {
+    "xgate_id": "699df1b8dbba9faccb757afa",
+    "xgate_customer_id": "6997964e92648a41b5f46e89"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}
+- [2026-02-24T18:43:53.577835+00:00] R$10 | COMPLETED | xgate_id: 699df16843ab146aea585ab0 | Name: Andr├® Luar Schumacher da Costa
+- [2026-02-24T18:42:20.771919+00:00] R$10 | PENDING | xgate_id: 699df10b43ab146aea584f27 | Name: Andr├® Luar Schumacher da Costa
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "a26979e7-7542-405e-8f15-dfd3ff77db3f",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-24T18:18:28.424742+00:00",
+  "metadata": {
+    "xgate_id": "699deb73dbba9faccb74e069",
+    "xgate_customer_id": "6997964e92648a41b5f46e89"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "625d704c-640e-4457-8568-089297b72db2",
+  "status": "COMPLETED",
+  "amount": 10,
+  "created_at": "2026-02-24T17:15:18.918026+00:00",
+  "metadata": {
+    "xgate_id": "699ddca543ab146aea5652d7",
+    "xgate_customer_id": "6997964e92648a41b5f46e89"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}
+- [2026-02-22T19:43:14.122871+00:00] R$25 | COMPLETED | xgate_id: 699b5c5043ab146aea1d7a0e | Name: Andr├® Luar Schumacher da Costa
+- [2026-02-21T13:49:12.274392+00:00] R$50 | PENDING | xgate_id: 6999b7d7dbba9faccb101f52 | Name: Kaue Da Costa Pacheco
+- [2026-02-21T13:49:09.351957+00:00] R$50 | PENDING | xgate_id: 6999b7d443ab146aeaf2f3af | Name: Kaue Da Costa Pacheco
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "f2e8e2df-6275-41bc-baa1-96ffd7491f42",
+  "status": "COMPLETED",
+  "amount": 10,
+  "created_at": "2026-02-20T18:13:58.707726+00:00",
+  "metadata": {
+    "xgate_id": "6998a465dbba9faccbf99193",
+    "webhook_status": "PAID",
+    "webhook_received_at": "2026-02-20T18:19:12.752Z"
+  },
+  "users": {
+    "email": "botminerador.suporte@gmail.com",
+    "full_name": "Felipe Braz Mendes"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "02a3eb8d-a695-4bcd-99e8-8addac5cc8f2",
+  "status": "COMPLETED",
+  "amount": 10,
+  "created_at": "2026-02-20T17:54:14.69344+00:00",
+  "metadata": {
+    "xgate_id": "69989fc543ab146aeadc0cb2",
+    "webhook_status": "PAID",
+    "webhook_received_at": "2026-02-20T18:19:26.772Z"
+  },
+  "users": {
+    "email": "botminerador.suporte@gmail.com",
+    "full_name": "Felipe Braz Mendes"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "e8148acf-4950-4a09-a994-80f5d5753788",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-20T17:53:25.19342+00:00",
+  "metadata": {
+    "xgate_id": "69989f93dbba9faccbf932e6"
+  },
+  "users": {
+    "email": "botminerador.suporte@gmail.com",
+    "full_name": "Felipe Braz Mendes"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "10db4c27-e94b-47f0-90fa-c9bd935274b6",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-20T15:53:49.398985+00:00",
+  "metadata": {
+    "xgate_id": "6998838cdbba9faccbf757a1"
+  },
+  "users": {
+    "email": "botminerador.suporte@gmail.com",
+    "full_name": "Felipe Braz Mendes"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "39579e81-7012-40b0-9551-c43521b56ef4",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-20T15:53:47.142062+00:00",
+  "metadata": {
+    "xgate_id": "69988389dbba9faccbf75762"
+  },
+  "users": {
+    "email": "botminerador.suporte@gmail.com",
+    "full_name": "Felipe Braz Mendes"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "48ffe346-3358-45c9-a326-bf35a022e268",
+  "status": "PENDING",
+  "amount": 10,
+  "created_at": "2026-02-20T15:53:47.050402+00:00",
+  "metadata": {
+    "xgate_id": "6998838943ab146aeada2d67"
+  },
+  "users": {
+    "email": "botminerador.suporte@gmail.com",
+    "full_name": "Felipe Braz Mendes"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "be408653-c948-41ec-80e1-ed12c2bcbdd9",
+  "status": "COMPLETED",
+  "amount": 5,
+  "created_at": "2026-02-19T23:01:38.020418+00:00",
+  "metadata": {
+    "xgate_id": "69979650dbba9faccbea1b64",
+    "webhook_status": "PAID",
+    "webhook_received_at": "2026-02-20T18:19:46.280Z"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "3b92b5e3-bfec-41f9-a824-3a9335123168",
+  "status": "PENDING",
+  "amount": 5,
+  "created_at": "2026-02-19T23:01:37.579496+00:00",
+  "metadata": {
+    "xgate_id": "6997965043ab146aeacceda5"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}
+
+[33m*** FELIPE'S TX ***[0m
+{
+  "id": "f02d5f6b-3e3e-4b60-86d3-897fb8075091",
+  "status": "PENDING",
+  "amount": 5,
+  "created_at": "2026-02-19T23:01:37.299438+00:00",
+  "metadata": {
+    "xgate_id": "6997965043ab146aeacced95"
+  },
+  "users": {
+    "email": "brdigitalempresarial@gmail.com",
+    "full_name": "FELIPE BRAZ MENDES"
+  }
+}

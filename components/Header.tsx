@@ -40,7 +40,7 @@ export default function Header({ user: initialUser }: { user: User | null }) {
             fetchBalance(user.id);
         }
 
-        // Listen for auth changes
+        // Listen for Auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
             setIsAdmin(false);
@@ -53,7 +53,7 @@ export default function Header({ user: initialUser }: { user: User | null }) {
             }
         });
 
-        // Listen for Balance Updates (Realtime)
+        // 1. WebSocket Realtime Updates (Existing)
         const channel = supabase
             .channel('header_balance_updates')
             .on(
@@ -71,9 +71,29 @@ export default function Header({ user: initialUser }: { user: User | null }) {
             )
             .subscribe();
 
+        // 2. Interval Polling (Every 5 seconds for absolute fallback)
+        const intervalId = setInterval(() => {
+            if (user?.id) fetchBalance(user.id);
+        }, 5000);
+
+        // 3. Optimistic Local Window Events (Instant Feedback)
+        const handleOptimisticUpdate = (e: any) => {
+            if (e.detail && typeof e.detail.newBalance === 'number') {
+                setBalance(e.detail.newBalance);
+            } else if (e.type === 'force_balance_refresh') {
+                if (user?.id) fetchBalance(user.id);
+            }
+        };
+
+        window.addEventListener('optimistic_balance_update', handleOptimisticUpdate);
+        window.addEventListener('force_balance_refresh', handleOptimisticUpdate);
+
         return () => {
             subscription.unsubscribe();
             supabase.removeChannel(channel);
+            clearInterval(intervalId);
+            window.removeEventListener('optimistic_balance_update', handleOptimisticUpdate);
+            window.removeEventListener('force_balance_refresh', handleOptimisticUpdate);
         };
     }, [user?.id]); // specific dependency to avoid loops
 

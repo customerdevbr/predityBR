@@ -196,6 +196,7 @@ export default function WalletPage() {
                 type: 'success'
             });
             fetchWalletData();
+            window.dispatchEvent(new CustomEvent('force_balance_refresh'));
 
         } catch (err: any) {
             console.error(err);
@@ -358,6 +359,7 @@ export default function WalletPage() {
             });
             setIsWithdrawOpen(false);
             fetchWalletData();
+            window.dispatchEvent(new CustomEvent('force_balance_refresh'));
 
         } catch (error: any) {
             setNotification({

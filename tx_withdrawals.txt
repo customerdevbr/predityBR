@@ -1,0 +1,52 @@
+﻿[
+  {
+    "id": "cf5215f7-f236-4a34-ac7c-0f055e576f02",
+    "user_id": "a3af1af3-0421-4436-96bc-d7a38dc7ff2a",
+    "type": "WITHDRAWAL",
+    "amount": 10,
+    "provider": null,
+    "status": "PENDING",
+    "metadata": {
+      "fee": 2.9,
+      "pix_key": "adluar@hotmail.com",
+      "net_amount": 7.1,
+      "pix_key_type": "EMAIL"
+    },
+    "created_at": "2026-02-25T15:13:07.756153+00:00",
+    "description": "Saque PIX Solicitado ÔÇö taxa R$ 2.90"
+  },
+  {
+    "id": "c25d6ce1-812d-48af-81bd-7a8079aa6738",
+    "user_id": "a3af1af3-0421-4436-96bc-d7a38dc7ff2a",
+    "type": "WITHDRAWAL",
+    "amount": 20,
+    "provider": null,
+    "status": "PENDING",
+    "metadata": {
+      "fee": 2.9,
+      "pix_key": "adluar@hotmail.com",
+      "xgate_id": "699f0e0601d2fe0ce12ff10c",
+      "customerId": "6999c12e699e6b48b63fb4cb",
+      "net_amount": 17.1
+    },
+    "created_at": "2026-02-25T14:58:14.31249+00:00",
+    "description": "Saque PIX (XGate) ÔÇö taxa R$ 2.90"
+  },
+  {
+    "id": "6c210fa5-8d73-43b0-9d96-88266f41bba9",
+    "user_id": "b25028d2-2cec-4d51-9ff0-180474f2a9a9",
+    "type": "WITHDRAWAL",
+    "amount": 5,
+    "provider": null,
+    "status": "PENDING",
+    "metadata": {
+      "fee": 2.9,
+      "pix_key": "02267782154",
+      "xgate_id": "699f0011018878a2c4c962d4",
+      "customerId": "6997964e92648a41b5f46e89",
+      "net_amount": 2.1
+    },
+    "created_at": "2026-02-25T13:58:41.380686+00:00",
+    "description": "Saque PIX (XGate) ÔÇö taxa R$ 2.90"
+  }
+]

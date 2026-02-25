@@ -53,15 +53,6 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
     return (
         <div className="flex flex-col min-h-screen">
 
-            {/* 1. Banner Slider (Top) */}
-            <div className="w-full bg-[#0f1115] pt-16 md:pt-20">
-                <div className="container mx-auto px-4">
-                    <div className="w-full h-[350px] rounded-xl overflow-hidden shadow-2xl border border-white/5 flex items-center justify-center bg-[#0f1115]">
-                        <img src="/banner-pix.png" alt="Promo Banner" className="w-full h-full object-cover object-center" />
-                    </div>
-                </div>
-            </div>
-
             {/* 2. PIX Destaque */}
             <div className="bg-[#151921] border-y border-white/5 py-3 mt-8">
                 <div className="container mx-auto px-4 flex items-center justify-center md:justify-start gap-4 text-sm">
