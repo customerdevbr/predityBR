@@ -54,31 +54,31 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
         <div className="flex flex-col min-h-screen">
 
             {/* 2. PIX Destaque */}
-            <div className="bg-[#151921] border-y border-white/5 py-3 mt-24 md:mt-28">
-                <div className="container mx-auto px-4 flex items-center justify-center md:justify-start gap-4 text-sm">
-                    <img src="/pix.avif" alt="PIX" className="w-5 h-5 object-contain" />
+            <div className="bg-[#151921] border-y border-white/5 py-2 mt-16 md:mt-24 md:py-3">
+                <div className="container mx-auto px-4 flex items-center justify-center md:justify-start gap-4 text-xs md:text-sm">
+                    <img src="/pix.avif" alt="PIX" className="w-4 h-4 md:w-5 md:h-5 object-contain" />
                     <span className="font-bold text-gray-300">PIX Instantâneo — Depósito e saque 24 horas</span>
                 </div>
             </div>
 
             {/* 3. Hero Principal */}
-            <section className="container mx-auto px-4 py-12 grid md:grid-cols-2 gap-12 items-center">
-                <div className="space-y-8 text-left">
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight">
+            <section className="container mx-auto px-4 py-8 md:py-12 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+                <div className="space-y-5 md:space-y-8 text-left">
+                    <h1 className="text-[28px] leading-tight md:text-5xl lg:text-6xl font-black text-white">
                         Dê seu palpite no que o Brasil está acompanhando em <span className="text-primary inline-block min-w-[2ch]">{text}<span className="animate-pulse">|</span></span>
                     </h1>
 
-                    <p className="text-lg text-gray-400 max-w-lg leading-relaxed">
+                    <p className="text-sm md:text-lg text-gray-400 max-w-lg leading-relaxed">
                         Participe das previsões mais comentadas do momento com odds formadas pela própria comunidade. Resultados rápidos e experiência simples.
                     </p>
 
-                    <Link href="/register" className="inline-flex items-center justify-center px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-lg shadow-[0_0_30px_rgba(47,124,70,0.3)] hover:shadow-[0_0_40px_rgba(47,124,70,0.5)] transition-all transform hover:-translate-y-1">
+                    <Link href="/register" className="inline-flex items-center justify-center w-full md:w-auto px-6 py-3.5 md:px-8 md:py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-base md:text-lg shadow-[0_0_20px_rgba(47,124,70,0.3)] md:shadow-[0_0_30px_rgba(47,124,70,0.3)] transition-all">
                         Criar Conta Grátis
                     </Link>
 
-                    <div className="flex items-center gap-6 text-sm text-gray-500 font-medium pt-4">
-                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500"></div> Pagamento Via PIX</span>
-                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Suporte BR</span>
+                    <div className="flex items-center justify-center md:justify-start gap-4 md:gap-6 text-xs md:text-sm text-gray-500 font-medium pt-2 md:pt-4">
+                        <span className="flex items-center gap-1.5 md:gap-2"><div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></div> Pagamento Via PIX</span>
+                        <span className="flex items-center gap-1.5 md:gap-2"><div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-blue-500"></div> Suporte BR</span>
                     </div>
                 </div>
 
