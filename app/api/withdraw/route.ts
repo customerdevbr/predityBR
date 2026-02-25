@@ -72,7 +72,11 @@ export async function POST(req: Request) {
             sanitizedPixKey = digitsOnly;
         } else if (pixKeyType === 'PHONE') {
             sanitizedPixKey = digitsOnly;
-        }
+        } else if (pixKeyType === 'EMAIL') {
+            if (!sanitizedPixKey.includes('@')) {
+                return NextResponse.json({ error: 'Chave PIX de E-mail inválida.' }, { status: 400 });
+            }
+        } // RANDOM usually has a mix of dashes and letters, no strict validation needed here besides non-empty
 
         if (!userData.document || userData.document.trim() === '') {
             return NextResponse.json({
@@ -97,152 +101,43 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-        // ── 2. XGate: Login ───────────────────────────────────────────────────
-        const token = await xgateLogin();
+        // ── 2. Deduct balance + log transaction (PENDING Approval) ───────────────
 
-        // ── 3. XGate: Get or Create Customer ID ──────────────────────────────
-        let customerId = userData.xgate_customer_id;
-
-        if (!customerId) {
-            console.log(`[withdraw] customerId missing for user ${userId}, creating in XGate...`);
-            const customerPayload = {
-                name: userData.full_name || 'Cliente Predity',
-                email: userData.email,
-                document: userCpfClean,
-                phone: userData.phone?.replace(/\D/g, ''),
-            };
-
-            const createRes = await fetch(`${BASE_URL}/customer`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(customerPayload),
-            });
-
-            const createData = await createRes.json().catch(() => ({}));
-            console.log('[withdraw] Customer Create Response:', createData);
-
-            if (createRes.ok) {
-                customerId = createData._id || createData.id;
-            } else {
-                // Try to find customer by document if creation fails due to duplicate
-                console.log(`[withdraw] Customer creation failed (code ${createRes.status}), attempting lookup by document ${userCpfClean}`);
-                const listRes = await fetch(`${BASE_URL}/customers?limit=1&document=${userCpfClean}`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                });
-                const listData = await listRes.json().catch(() => []);
-                const found = Array.isArray(listData) ? listData[0] : (listData.data ? listData.data[0] : null);
-                if (found) {
-                    customerId = found._id || found.id;
-                    console.log(`[withdraw] Found existing customer: ${customerId}`);
-                }
-            }
-
-            if (!customerId) {
-                return NextResponse.json({ error: `Falha ao identificar cliente na XGate: ${JSON.stringify(createData)}` }, { status: 500 });
-            }
-
-            // Save back to DB
-            await supabase.from('users').update({ xgate_customer_id: customerId } as any).eq('id', userId);
-        }
-
-        // ── 4. XGate: Ensure PIX Key is registered for this Customer ──────────
-        console.log(`[withdraw] Checking PIX keys for customer ${customerId}`);
-        const keysRes = await fetch(`${BASE_URL}/pix/customer/${customerId}/key`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const keysData = await keysRes.json().catch(() => ({}));
-        const existingKeys = Array.isArray(keysData) ? keysData : (keysData.data || []);
-
-        // Match by string value (both sanitized)
-        let xgatePixKeyObj = existingKeys.find((k: any) => {
-            const kVal = (k.key || k.pixKey || '').replace(/\D/g, '');
-            const targetVal = sanitizedPixKey.replace(/\D/g, '');
-            // If it's numbers only, compare digits. If it's an email/random, compare string.
-            if (targetVal.length > 0 && kVal === targetVal) return true;
-            return (k.key === sanitizedPixKey || k.pixKey === sanitizedPixKey);
-        });
-
-        if (!xgatePixKeyObj) {
-            console.log(`[withdraw] PIX key "${sanitizedPixKey}" not found in XGate, registering as ${pixKeyType || 'CPF'}...`);
-            const registRes = await fetch(`${BASE_URL}/pix/customer/${customerId}/key`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({
-                    key: sanitizedPixKey,
-                    type: pixKeyType || 'CPF'
-                }),
-            });
-            const registData = await registRes.json().catch(() => ({}));
-            console.log('[withdraw] PIX Key Registration Response:', registData);
-
-            if (!registRes.ok) {
-                const errMsg = registData.message || JSON.stringify(registData);
-                return NextResponse.json({ error: `Falha ao registrar chave PIX: ${errMsg}` }, { status: 500 });
-            }
-            xgatePixKeyObj = registData.key || registData.data || registData;
-        }
-
-        // ── 5. XGate: Get Currencies ──────────────────────────────────────────
-        const curRes = await fetch(`${BASE_URL}/withdraw/company/currencies`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const currenciesData = await curRes.json();
-        const currencies = Array.isArray(currenciesData) ? currenciesData : (currenciesData.data || []);
-
-        const brl = currencies.find((c: any) => c.name === 'BRL' || c.symbol === 'BRL') || currencies[0];
-
-        if (!brl) throw new Error('BRL currency not found for withdrawal');
-
-        // ── 6. XGate: Submit Withdrawal ───────────────────────────────────────
-        const withdrawPayload = {
-            amount: netAmount,
-            customerId,
-            currency: brl,
-            pixKey: xgatePixKeyObj,
-            ip: req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1',
-        };
-
-        console.log('[withdraw] Submitting Withdrawal:', JSON.stringify(withdrawPayload));
-
-        const withdrawRes = await fetch(`${BASE_URL}/withdraw`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(withdrawPayload),
-        });
-
-        const withdrawData = await withdrawRes.json().catch(() => ({}));
-        console.log('[withdraw] Final Response:', withdrawData);
-
-        if (!withdrawRes.ok) {
-            return NextResponse.json({
-                error: withdrawData.message || `XGate rejection (${withdrawRes.status}): ${JSON.stringify(withdrawData)}`
-            }, { status: 500 });
-        }
-
-        // ── 7. Deduct balance + log transaction ─────────────────────────────────
-        await supabase.rpc('decrement_balance', {
+        // Ensure atomic deduction
+        const { error: deductErr } = await supabase.rpc('decrement_balance', {
             userid: userId,
             amount: totalDeduction
         });
 
-        const externalId = withdrawData?._id || withdrawData?.id || (withdrawData.data ? withdrawData.data.id : 'pending');
+        if (deductErr) {
+            console.error('[withdraw] Failed to deduct balance:', deductErr);
+            return NextResponse.json({ error: 'Falha ao debitar saldo. Tente novamente.' }, { status: 500 });
+        }
 
-        await supabase.from('transactions').insert({
+        const { error: insertErr } = await supabase.from('transactions').insert({
             user_id: userId,
             type: 'WITHDRAWAL',
             amount: totalDeduction,
             status: 'PENDING',
-            description: `Saque PIX (XGate) — taxa R$ ${FEE.toFixed(2)}`,
-            metadata: { xgate_id: externalId, pix_key: sanitizedPixKey, fee: FEE, net_amount: netAmount, customerId }
+            description: `Saque PIX Solicitado — taxa R$ ${FEE.toFixed(2)}`,
+            metadata: {
+                pix_key: sanitizedPixKey,
+                pix_key_type: pixKeyType || 'CPF',
+                fee: FEE,
+                net_amount: netAmount
+            }
         });
+
+        if (insertErr) {
+            console.error('[withdraw] Failed to log transaction:', insertErr);
+            // We should ideally rollback the balance here if transaction fails
+            return NextResponse.json({ error: 'Falha ao registrar pedido de saque. Contate o suporte.' }, { status: 500 });
+        }
 
         return NextResponse.json({
             success: true,
-            message: `Saque solicitado com sucesso! Você receberá R$ ${netAmount.toFixed(2)}`,
-            externalId
+            message: `Saque solicitado com sucesso! Seu pagamento está sob análise e o valor líquido de R$ ${netAmount.toFixed(2)} será enviado em breve.`,
+            status: 'PENDING'
         });
 
     } catch (error: any) {

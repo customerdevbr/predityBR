@@ -65,33 +65,42 @@ export default function AdminFinancePage() {
     };
 
     const handleApproveWithdrawal = async (id: string) => {
-        if (!confirm("Confirmar envio do PIX e marcar como PAGO?")) return;
+        if (!confirm("Confirmar envio do PIX e marcar como PAGO? (Esta ação chama a XGate e transfere o dinheiro de fato)")) return;
 
         setProcessing(id);
-        const { error } = await supabase
-            .from('transactions')
-            .update({ status: 'COMPLETED' })
-            .eq('id', id);
 
-        if (error) {
+        try {
+            const res = await fetch('/api/admin/withdraw/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transactionId: id })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Erro desconhecido ao aprovar saque');
+            }
+
+            // Update local state immediately to hide buttons
+            setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: 'COMPLETED' } : tx));
+            setNotification({
+                isOpen: true,
+                title: 'Pagamento Aprovado!',
+                message: 'O saque foi processado na XGate e marcado como concluído.',
+                type: 'success'
+            });
+            fetchFinanceData(); // Refresh stats too
+
+        } catch (error: any) {
             setNotification({
                 isOpen: true,
                 title: 'Erro na Aprovação',
                 message: error.message,
                 type: 'error'
             });
-        } else {
-            // Update local state immediately to hide buttons
-            setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: 'COMPLETED' } : tx));
-            setNotification({
-                isOpen: true,
-                title: 'Pagamento Aprovado!',
-                message: 'O saque foi marcado como concluído.',
-                type: 'success'
-            });
-            fetchFinanceData(); // Refresh stats too
+        } finally {
+            setProcessing(null);
         }
-        setProcessing(null);
     };
 
     const handleRejectWithdrawal = async (id: string, userId: string, amount: number) => {
