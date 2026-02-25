@@ -89,7 +89,7 @@ export default function AdminFinancePage() {
                 message: 'O saque foi processado na XGate e marcado como concluído.',
                 type: 'success'
             });
-            fetchFinanceData(); // Refresh stats too
+            await fetchFinanceData(); // Refresh stats too
 
         } catch (error: any) {
             setNotification({
