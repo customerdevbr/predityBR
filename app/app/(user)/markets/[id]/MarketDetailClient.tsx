@@ -634,7 +634,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
             </div>
 
             {/* Mobile Sticky Trigger Button */}
-            <div className="fixed bottom-0 inset-x-0 z-30 p-4 bg-[#0f1115]/95 backdrop-blur-md border-t border-white/10 lg:hidden pb-safe">
+            <div className="fixed bottom-[60px] inset-x-0 z-30 p-4 bg-[#0f1115]/95 backdrop-blur-md border-t border-white/10 lg:hidden pb-safe">
                 <button
                     onClick={() => setIsMobileSlipOpen(true)}
                     className="w-full py-3.5 flex items-center justify-center gap-2 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(4,179,5,0.3)] transition-all active:scale-[0.98]"
