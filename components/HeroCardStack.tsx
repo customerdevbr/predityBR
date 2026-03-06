@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface HeroCardStackProps {
     cards: any[];
@@ -122,7 +123,7 @@ export default function HeroCardStack({ cards }: HeroCardStackProps) {
                                 className="absolute z-50 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full shadow-lg animate-[float_2s_ease-out_forwards] pointer-events-none"
                                 style={{ top: `${t.top}%`, left: `${t.left}%` }}
                             >
-                                +R$ {t.value}
+                                +{formatCurrency(t.value)}
                             </div>
                         ))}
 

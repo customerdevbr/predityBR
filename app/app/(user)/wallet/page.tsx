@@ -7,6 +7,7 @@ import { ArrowUpRight, ArrowDownLeft, History, Wallet as WalletIcon, X, Copy, Ch
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import NotificationModal from '@/components/ui/NotificationModal';
+import { formatCurrency } from '@/lib/utils';
 
 const TRANSLATE_TX_TYPE: Record<string, string> = {
     'DEPOSIT': 'Depósito',
@@ -153,7 +154,7 @@ export default function WalletPage() {
         const value = calculateCashout(bet);
         if (value <= 0) return;
 
-        if (!confirm(`Deseja encerrar esta previsão por R$ ${value.toFixed(2)}? Taxa de 20% aplicada.`)) return;
+        if (!confirm(`Deseja encerrar esta previsão por ${formatCurrency(value)}? Taxa de 20% aplicada.`)) return;
 
         setProcessing(bet.id);
 
@@ -314,7 +315,7 @@ export default function WalletPage() {
             setNotification({
                 isOpen: true,
                 title: 'Saldo Insuficiente',
-                message: `Você tem R$ ${balance.toFixed(2)} e está tentando debitar R$ ${totalDeduction.toFixed(2)}`,
+                message: `Você tem ${formatCurrency(balance)} e está tentando debitar ${formatCurrency(totalDeduction)}`,
                 type: 'error'
             });
             return;
@@ -324,16 +325,16 @@ export default function WalletPage() {
             setNotification({
                 isOpen: true,
                 title: 'Valor Baixo',
-                message: `O valor do saque deve cobrir a taxa de R$ ${fee.toFixed(2)}`,
+                message: `O valor do saque deve cobrir a taxa de ${formatCurrency(fee)}`,
                 type: 'error'
             });
             return;
         }
 
         if (userRole === 'ADMIN') {
-            if (!confirm(`ADMIN TESTE: Confirmar saque via PIX na XGate?\n\nValor Solicitado: R$ ${val.toFixed(2)}\nTaxa Fixa: - R$ ${fee.toFixed(2)}\nValor a Receber: R$ ${netAmount.toFixed(2)}\nChave PIX: ${withdrawPixKey}`)) return;
+            if (!confirm(`ADMIN TESTE: Confirmar saque via PIX na XGate?\n\nValor Solicitado: ${formatCurrency(val)}\nTaxa Fixa: - ${formatCurrency(fee)}\nValor a Receber: ${formatCurrency(netAmount)}\nChave PIX: ${withdrawPixKey}`)) return;
         } else {
-            if (!confirm(`Confirmar saque via PIX?\n\nValor Solicitado: R$ ${val.toFixed(2)}\nTaxa Fixa: - R$ ${fee.toFixed(2)}\nValor a Receber: R$ ${netAmount.toFixed(2)}\nChave PIX: ${withdrawPixKey}`)) return;
+            if (!confirm(`Confirmar saque via PIX?\n\nValor Solicitado: ${formatCurrency(val)}\nTaxa Fixa: - ${formatCurrency(fee)}\nValor a Receber: ${formatCurrency(netAmount)}\nChave PIX: ${withdrawPixKey}`)) return;
         }
 
         setActionMessage('Processando saque...');
@@ -354,7 +355,7 @@ export default function WalletPage() {
             setNotification({
                 isOpen: true,
                 title: 'Saque Solicitado!',
-                message: `Você receberá R$ ${netAmount.toFixed(2)} em breve.`,
+                message: `Você receberá ${formatCurrency(netAmount)} em breve.`,
                 type: 'success'
             });
             setIsWithdrawOpen(false);
@@ -400,7 +401,7 @@ export default function WalletPage() {
                 </div>
                 <div className="space-y-1 relative z-10">
                     <span className="text-gray-400 text-sm font-medium">Saldo Total</span>
-                    <h1 className="text-4xl font-bold text-white tracking-tight">R$ {balance.toFixed(2)}</h1>
+                    <h1 className="text-4xl font-bold text-white tracking-tight">{formatCurrency(balance)}</h1>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-8 relative z-10">
@@ -469,11 +470,11 @@ export default function WalletPage() {
                                     <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                                         <div>
                                             <span className="text-gray-500 block text-xs">Aportado</span>
-                                            <span className="text-white font-mono">R$ {bet.amount.toFixed(2)}</span>
+                                            <span className="text-white font-mono">{formatCurrency(bet.amount)}</span>
                                         </div>
                                         <div>
                                             <span className="text-gray-500 block text-xs">Retorno Potencial</span>
-                                            <span className="text-primary font-bold font-mono">R$ {bet.potential_payout.toFixed(2)}</span>
+                                            <span className="text-primary font-bold font-mono">{formatCurrency(bet.potential_payout)}</span>
                                         </div>
                                     </div>
 
@@ -483,7 +484,7 @@ export default function WalletPage() {
                                             disabled={processing === bet.id}
                                             className="w-full py-2 bg-secondary hover:bg-surface border border-white/10 rounded-lg text-sm font-bold text-gray-300 hover:text-white transition-colors flex items-center justify-center gap-2"
                                         >
-                                            {processing === bet.id ? 'Processando...' : `Encerrar Previsão (Cashout R$ ${cashoutVal.toFixed(2)})`}
+                                            {processing === bet.id ? 'Processando...' : `Encerrar Previsão (Cashout ${formatCurrency(cashoutVal)})`}
                                         </button>
                                     )}
                                 </div>
@@ -518,7 +519,7 @@ export default function WalletPage() {
                             </div>
                             <div className="text-right">
                                 <span className={`font-mono font-bold block ${(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? 'text-primary' : 'text-white'}`}>
-                                    {(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? '+' : '-'} R$ {tx.amount.toFixed(2)}
+                                    {(tx.type === 'DEPOSIT' || tx.type === 'WIN' || tx.type === 'BET_WIN' || tx.type === 'REFUND') ? '+' : '-'} {formatCurrency(tx.amount)}
                                 </span>
                                 {tx.status === 'PENDING' && tx.type === 'DEPOSIT' && (
                                     <span className="text-[10px] text-yellow-500">Aguardando Pagamento</span>
@@ -609,7 +610,7 @@ export default function WalletPage() {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <p className="text-center text-sm font-bold text-white">R$ {parseFloat(depositAmount).toFixed(2)}</p>
+                                    <p className="text-center text-sm font-bold text-white">{formatCurrency(parseFloat(depositAmount))}</p>
 
                                     <div className="flex gap-2">
                                         <input
@@ -706,7 +707,7 @@ export default function WalletPage() {
                                 <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg space-y-1">
                                     <div className="flex justify-between text-xs text-gray-400">
                                         <span>Valor Solicitado (Debitado)</span>
-                                        <span>R$ {parseFloat(withdrawAmount).toFixed(2)}</span>
+                                        <span>{formatCurrency(parseFloat(withdrawAmount))}</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-red-400">
                                         <span>Taxa Fixa da Operação</span>
@@ -715,7 +716,7 @@ export default function WalletPage() {
                                     <div className="border-t border-white/10 my-1"></div>
                                     <div className="flex justify-between text-sm font-bold text-white">
                                         <span>Você Recebe na Conta</span>
-                                        <span>R$ {Math.max(0, parseFloat(withdrawAmount) - 2.90).toFixed(2)}</span>
+                                        <span>{formatCurrency(Math.max(0, parseFloat(withdrawAmount) - 2.90))}</span>
                                     </div>
                                 </div>
                             )}

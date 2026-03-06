@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { format, subHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/utils';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import confetti from 'canvas-confetti';
 
@@ -348,7 +349,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
             }));
 
             showToast('success', '🎯 Previsão confirmada!',
-                `R$ ${val.toFixed(2)} em "${selectedOutcome}"`);
+                `${formatCurrency(val)} em "${selectedOutcome}"`);
             setAmount('');
             setIsMobileSlipOpen(false); // Close mobile sheet on success
         } catch (err: any) {

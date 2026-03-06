@@ -1,5 +1,6 @@
 import { Html, Head, Body, Container, Text, Link, Preview, Section, Hr, Img } from '@react-email/components';
 import * as React from 'react';
+import { formatCurrency } from '@/lib/utils';
 
 interface BetResolvedEmailProps {
     userName: string;
@@ -18,7 +19,7 @@ export const BetResolvedEmail = ({
 }: BetResolvedEmailProps) => {
     const isWin = outcome === 'WON';
     const previewText = isWin
-        ? `Você ganhou R$ ${payout.toFixed(2)} no mercado ${marketTitle}!`
+        ? `Você ganhou ${formatCurrency(payout)} no mercado ${marketTitle}!`
         : `O mercado ${marketTitle} foi finalizado. Veja o resultado das suas previsões.`;
 
     return (
@@ -47,7 +48,7 @@ export const BetResolvedEmail = ({
                                 </Text>
                                 <div style={highlightBoxWin}>
                                     <Text style={highlightText}>Você ganhou</Text>
-                                    <Text style={highlightValue}>R$ {payout.toFixed(2)}</Text>
+                                    <Text style={highlightValue}>{formatCurrency(payout)}</Text>
                                 </div>
                                 <Text style={text}>
                                     O valor já está creditado na sua carteira da Predity e pronto para ser sacado via PIX ou usado em novas previsões.
@@ -60,7 +61,7 @@ export const BetResolvedEmail = ({
                                 </Text>
                                 <div style={highlightBoxLoss}>
                                     <Text style={highlightText}>Valor da Previsão</Text>
-                                    <Text style={highlightValue}>- R$ {amountBetted.toFixed(2)}</Text>
+                                    <Text style={highlightValue}>- {formatCurrency(amountBetted)}</Text>
                                 </div>
                                 <Text style={text}>
                                     Não desanime! Há dezenas de novos mercados abertos e com excelentes oportunidades aguardando por você.

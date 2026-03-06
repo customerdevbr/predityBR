@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { formatCurrency } from '@/lib/utils';
 
 const BASE_URL = "https://api.xgateglobal.com";
 
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
 
         if ((userData.balance || 0) < totalDeduction) {
             return NextResponse.json({
-                error: `Saldo insuficiente. Você tem R$ ${(userData.balance || 0).toFixed(2)}`
+                error: `Saldo insuficiente. Você tem ${formatCurrency(userData.balance)}`
             }, { status: 400 });
         }
 
@@ -119,7 +120,7 @@ export async function POST(req: Request) {
             type: 'WITHDRAWAL',
             amount: totalDeduction,
             status: 'PENDING',
-            description: `Saque PIX Solicitado — taxa R$ ${FEE.toFixed(2)}`,
+            description: `Saque PIX Solicitado — taxa ${formatCurrency(FEE)}`,
             metadata: {
                 pix_key: sanitizedPixKey,
                 pix_key_type: pixKeyType || 'CPF',
@@ -136,7 +137,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            message: `Saque solicitado com sucesso! Seu pagamento está sob análise e o valor líquido de R$ ${netAmount.toFixed(2)} será enviado em breve.`,
+            message: `Saque solicitado com sucesso! Seu pagamento está sob análise e o valor líquido de ${formatCurrency(netAmount)} será enviado em breve.`,
             status: 'PENDING'
         });
 

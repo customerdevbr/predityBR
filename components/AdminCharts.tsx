@@ -15,6 +15,7 @@ import {
     Cell,
     Legend
 } from 'recharts';
+import { formatCurrency } from '@/lib/utils';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -47,7 +48,7 @@ export default function AdminCharts({ revenueData, categoryData, userGrowthData 
                                     fontSize={12}
                                     tickLine={false}
                                     axisLine={false}
-                                    tickFormatter={(value) => `R$${value}`}
+                                    tickFormatter={(value) => formatCurrency(value)}
                                 />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#1a1d24', borderColor: '#333' }}

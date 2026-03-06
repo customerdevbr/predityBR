@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, Shield, User, DollarSign, MoreVertical, Eye, X } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -147,7 +148,7 @@ export default function AdminUsersPage() {
                                         <td className="p-4 font-mono">
                                             <div className="flex items-center gap-1 text-green-400">
                                                 <DollarSign className="w-3 h-3" />
-                                                {user.balance?.toFixed(2)}
+                                                {formatCurrency(user.balance)}
                                             </div>
                                         </td>
                                         <td className="p-4 text-gray-500 text-xs">
@@ -229,7 +230,7 @@ export default function AdminUsersPage() {
                                 </div>
                                 <div className="bg-black/20 p-3 rounded-lg border border-white/5">
                                     <div className="text-xs text-gray-500 mb-1">Saldo Atual</div>
-                                    <div className="text-sm font-bold text-green-400">R$ {(selectedUser.balance || 0).toFixed(2)}</div>
+                                    <div className="text-sm font-bold text-green-400">{formatCurrency(selectedUser.balance)}</div>
                                 </div>
                                 <div className="bg-black/20 p-3 rounded-lg border border-white/5">
                                     <div className="text-xs text-gray-500 mb-1">Status / Papel</div>

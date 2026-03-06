@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { RefreshCw, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function StatusBadge({ ok }: { ok: boolean | undefined }) {
@@ -712,7 +713,7 @@ export default function XGateDebugPage() {
                                 </div>
                                 <div className="flex gap-4 mt-1.5 text-gray-500">
                                     <span>CPF: <code className="text-gray-300">{u.cpf_masked}</code></span>
-                                    <span>Saldo: <code className="text-gray-300">R$ {Number(u.balance || 0).toFixed(2)}</code></span>
+                                    <span>Saldo: <code className="text-gray-300">{formatCurrency(u.balance)}</code></span>
                                     {u.cpf_error && <span className="text-red-400">{u.cpf_error}</span>}
                                     {u.name_error && <span className="text-yellow-400">{u.name_error}</span>}
                                 </div>
@@ -772,7 +773,7 @@ export default function XGateDebugPage() {
                                             {userDetail.recent_deposits.map((tx: any) => (
                                                 <div key={tx.id} className="flex items-center justify-between bg-black/30 rounded-lg p-2 text-xs">
                                                     <span className="text-gray-400">{new Date(tx.created_at).toLocaleString('pt-BR')}</span>
-                                                    <span className="text-white font-bold">R$ {Number(tx.amount).toFixed(2)}</span>
+                                                    <span className="text-white font-bold">{formatCurrency(tx.amount)}</span>
                                                     <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${tx.status === 'COMPLETED' ? 'bg-primary/20 text-primary' : tx.status === 'FAILED' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{tx.status}</span>
                                                     {tx.metadata?.xgate_id && <code className="text-gray-600">{tx.metadata.xgate_id.slice(0, 12)}...</code>}
                                                 </div>
@@ -811,7 +812,7 @@ export default function XGateDebugPage() {
                                         }`}>{tx.status}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-400">
-                                    <span>R$ {Number(tx.amount).toFixed(2)}</span>
+                                    <span>{formatCurrency(tx.amount)}</span>
                                     <span>{new Date(tx.created_at).toLocaleString('pt-BR')}</span>
                                 </div>
                                 {tx.metadata?.xgate_id && (

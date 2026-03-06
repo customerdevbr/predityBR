@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Activity, ArrowUpRight, ArrowDownLeft, CheckCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/utils';
 
 export default function AdminActivityPage() {
     const [activities, setActivities] = useState<any[]>([]);
@@ -67,7 +68,7 @@ export default function AdminActivityPage() {
                                         </td>
                                         <td className="p-4 text-gray-300">{item.description || item.type}</td>
                                         <td className="p-4 font-mono font-bold text-white">
-                                            R$ {item.amount.toFixed(2)}
+                                            {formatCurrency(item.amount)}
                                         </td>
                                         <td className="p-4 text-gray-500 text-xs">
                                             {format(new Date(item.created_at), "dd/MM HH:mm", { locale: ptBR })}

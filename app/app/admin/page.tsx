@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { TrendingUp, Users, DollarSign, Activity, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 import AdminCharts from '@/components/AdminCharts';
 
@@ -146,10 +147,10 @@ export default function AdminDashboard() {
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <KpiCard title="Receita Total (Depósitos)" value={`R$ ${stats.revenue.toFixed(2)}`} change="-" isPositive icon={DollarSign} />
+                <KpiCard title="Receita Total (Depósitos)" value={formatCurrency(stats.revenue)} change="-" isPositive icon={DollarSign} />
                 <KpiCard title="Usuários Cadastrados" value={stats.users} change="-" isPositive icon={Users} />
-                <KpiCard title="Volume Aportado" value={`R$ ${stats.volume.toFixed(2)}`} change="Estimado" isPositive={false} icon={TrendingUp} />
-                <KpiCard title="Lucro Estimado (35%)" value={`R$ ${stats.profit.toFixed(2)}`} change="Estimado" isPositive icon={Activity} />
+                <KpiCard title="Volume Aportado" value={formatCurrency(stats.volume)} change="Estimado" isPositive={false} icon={TrendingUp} />
+                <KpiCard title="Lucro Estimado (35%)" value={formatCurrency(stats.profit)} change="Estimado" isPositive icon={Activity} />
             </div>
 
             {/* Main Content Grid */}
@@ -186,7 +187,7 @@ export default function AdminDashboard() {
                                 <tr key={c.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
                                     <td className="p-4 text-white">{c.referrer?.full_name || c.referrer?.email || '-'}</td>
                                     <td className="p-4 text-gray-300">{c.referred?.full_name || c.referred?.email || '-'}</td>
-                                    <td className="p-4 text-green-400 font-bold font-mono">R$ {Number(c.amount).toFixed(2)}</td>
+                                    <td className="p-4 text-green-400 font-bold font-mono">{formatCurrency(c.amount)}</td>
                                     <td className="p-4 text-gray-500">{format(new Date(c.created_at), 'dd/MM/yy HH:mm')}</td>
                                 </tr>
                             ))}

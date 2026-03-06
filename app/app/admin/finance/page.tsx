@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { DollarSign, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, XCircle, Search, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import NotificationModal from '@/components/ui/NotificationModal';
+import { formatCurrency } from '@/lib/utils';
 
 export default function AdminFinancePage() {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -166,19 +167,19 @@ export default function AdminFinancePage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-surface/30 border border-surface p-6 rounded-xl">
                     <h3 className="text-gray-400 text-sm">Saldo em Custódia (Real)</h3>
-                    <p className="text-2xl font-bold text-white mt-1">R$ {stats.custodyBalance.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-white mt-1">{formatCurrency(stats.custodyBalance)}</p>
                 </div>
                 <div className="bg-surface/30 border border-surface p-6 rounded-xl">
                     <h3 className="text-gray-400 text-sm">Total Depositado</h3>
-                    <p className="text-2xl font-bold text-green-400 mt-1">R$ {stats.totalDeposits.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-400 mt-1">{formatCurrency(stats.totalDeposits)}</p>
                 </div>
                 <div className="bg-surface/30 border border-surface p-6 rounded-xl">
                     <h3 className="text-gray-400 text-sm">Total Sacado</h3>
-                    <p className="text-2xl font-bold text-red-400 mt-1">R$ {stats.totalWithdrawals.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-red-400 mt-1">{formatCurrency(stats.totalWithdrawals)}</p>
                 </div>
                 <div className="bg-surface/30 border border-surface p-6 rounded-xl">
                     <h3 className="text-gray-400 text-sm">Saques Pendentes</h3>
-                    <p className="text-2xl font-bold text-yellow-400 mt-1">R$ {stats.pendingWithdrawals.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-yellow-400 mt-1">{formatCurrency(stats.pendingWithdrawals)}</p>
                 </div>
             </div>
 
@@ -233,7 +234,7 @@ export default function AdminFinancePage() {
                                         </span>
                                     </td>
                                     <td className="p-4 font-bold text-white">
-                                        R$ {tx.amount.toFixed(2)}
+                                        {formatCurrency(tx.amount)}
                                     </td>
                                     <td className="p-4">
                                         {tx.status === 'PENDING' ? (

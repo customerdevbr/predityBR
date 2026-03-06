@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { ptBR } from 'date-fns/locale';
 import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip, LineChart, Line } from 'recharts';
 import { useEffect, useState } from 'react';
+import { formatCurrency } from '@/lib/utils';
 
 interface MarketCardProps {
     id: string;
@@ -184,7 +185,7 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                             className={`absolute z-20 px-2 py-0.5 text-[10px] font-bold rounded-full shadow-lg animate-[float_1.2s_ease-out_forwards] pointer-events-none border ${t.type === 'yes' ? 'bg-green-500/90 text-white border-green-400' : 'bg-red-500/90 text-white border-red-400'}`}
                             style={{ top: `${t.top}%`, left: `${t.left}%` }}
                         >
-                            {t.type === 'yes' ? 'SIM' : 'NÃO'} +R${t.value}
+                            {t.type === 'yes' ? 'SIM' : 'NÃO'} +{formatCurrency(t.value)}
                         </div>
                     ))}
 

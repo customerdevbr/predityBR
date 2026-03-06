@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Plus, Search, Edit, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/utils';
 
 export default function AdminBetsPage() {
     const [markets, setMarkets] = useState<any[]>([]);
@@ -139,7 +140,7 @@ export default function AdminBetsPage() {
                                             </span>
                                         </td>
                                         <td className="p-4 text-gray-300">{market.category}</td>
-                                        <td className="p-4 font-mono font-bold text-green-400">R$ {market.total_pool?.toFixed(2)}</td>
+                                        <td className="p-4 font-mono font-bold text-green-400">{formatCurrency(market.total_pool)}</td>
                                         <td className="p-4 text-gray-400">
                                             <div className="flex items-center gap-1">
                                                 <Clock className="w-3 h-3" />

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { LogOut, User as UserIcon, Wallet, TrendingUp, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { formatCurrency } from '@/lib/utils';
 
 export default function Header({ user: initialUser }: { user: User | null }) {
     const router = useRouter();
@@ -143,7 +144,7 @@ export default function Header({ user: initialUser }: { user: User | null }) {
                         <>
                             {/* Balance Badge */}
                             <a href={getAppUrl("/app/wallet")} className="flex items-center gap-2 bg-surface/50 hover:bg-surface border border-white/10 hover:border-primary/50 px-3 py-1.5 rounded-full transition-all group">
-                                <span className="text-white font-bold text-xs">R$ {balance.toFixed(2)}</span>
+                                <span className="text-white font-bold text-xs">{formatCurrency(balance)}</span>
                             </a>
 
                             {/* Deposit Button — glowing green CTA */}

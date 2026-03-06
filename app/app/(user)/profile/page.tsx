@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/utils';
 
 type Tab = 'overview' | 'data' | 'bets' | 'affiliate' | 'ranking' | 'blog';
 
@@ -370,8 +371,8 @@ export default function ProfilePage() {
                             {[
                                 { label: 'Total Previsões', value: totalBets.toString(), Icon: Target, accent: '#60a5fa' },
                                 { label: 'Taxa de Acerto', value: `${hitRate}%`, Icon: TrendingUp, accent: '#04B305' },
-                                { label: 'Rendimento', value: `R$ ${revenue.toFixed(2)}`, Icon: Wallet, accent: revenue >= 0 ? '#04B305' : '#f87171' },
-                                { label: 'Comissões', value: `R$ ${totalCommission.toFixed(2)}`, Icon: Users, accent: '#facc15' },
+                                { label: 'Rendimento', value: formatCurrency(revenue), Icon: Wallet, accent: revenue >= 0 ? '#04B305' : '#f87171' },
+                                { label: 'Comissões', value: formatCurrency(totalCommission), Icon: Users, accent: '#facc15' },
                             ].map(s => (
                                 <div key={s.label} className="bg-[#0d121a] border border-white/5 rounded-xl p-4 hover:border-white/10 transition-colors">
                                     <div className="flex items-center justify-between mb-3">
@@ -408,7 +409,7 @@ export default function ProfilePage() {
                                                 </div>
                                             </div>
                                             <span className={`text-sm font-black font-mono ${tx.amount > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                {tx.amount > 0 ? '+' : ''}R$ {Math.abs(tx.amount).toFixed(2)}
+                                                {tx.amount > 0 ? '+' : ''}{formatCurrency(Math.abs(tx.amount))}
                                             </span>
                                         </div>
                                     ))}
@@ -605,9 +606,9 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="grid grid-cols-3 gap-2">
                                     {[
-                                        { label: 'Aportado', val: `R$ ${bet.amount.toFixed(2)}`, color: 'text-gray-300' },
+                                        { label: 'Aportado', val: formatCurrency(bet.amount), color: 'text-gray-300' },
                                         { label: 'ODD', val: `${bet.odds_at_entry?.toFixed(2)}x`, color: 'text-gray-300' },
-                                        { label: 'Retorno', val: `R$ ${bet.potential_payout?.toFixed(2)}`, color: 'text-emerald-400' },
+                                        { label: 'Retorno', val: formatCurrency(bet.potential_payout), color: 'text-emerald-400' },
                                     ].map(s => (
                                         <div key={s.label}>
                                             <span className="text-[10px] text-gray-600 block mb-0.5">{s.label}</span>
@@ -633,7 +634,7 @@ export default function ProfilePage() {
                             <div className="bg-[#0d121a] border border-white/5 rounded-xl p-5 text-center">
                                 <Wallet className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
                                 <div className="text-xs text-gray-500 mb-1">Total Ganho</div>
-                                <div className="text-2xl font-black text-emerald-400">R$ {totalCommission.toFixed(2)}</div>
+                                <div className="text-2xl font-black text-emerald-400">{formatCurrency(totalCommission)}</div>
                             </div>
 
                             {/* Ref box */}
@@ -681,7 +682,7 @@ export default function ProfilePage() {
                                         <p className="text-sm font-bold text-white">{c.referred?.full_name || c.referred?.email}</p>
                                         <p className="text-xs text-gray-600">{format(new Date(c.created_at), "dd/MM/yy", { locale: ptBR })} · 1º depósito</p>
                                     </div>
-                                    <span className="text-emerald-400 font-black text-sm">+R$ {c.amount.toFixed(2)}</span>
+                                    <span className="text-emerald-400 font-black text-sm">+{formatCurrency(c.amount)}</span>
                                 </div>
                             ))}
                         </div>

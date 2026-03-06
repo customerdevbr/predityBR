@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Save, Upload, Trash2, AlertTriangle, CheckCircle, Ban, XCircle, Link as LinkIcon, FileText, Image as ImageIcon, Trophy, Users, TrendingDown, RotateCcw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 // Fullscreen loading overlay with blur
 function FullscreenLoader({ message }: { message: string }) {
@@ -485,7 +486,7 @@ export default function EditBetPage() {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-400">Pool Total:</span>
-                                <span className="font-mono text-white">R$ {formData.total_pool.toFixed(2)}</span>
+                                <span className="font-mono text-white">{formatCurrency(formData.total_pool)}</span>
                             </div>
                             {formData.resolution_result && (
                                 <div className="flex justify-between text-sm">
@@ -576,7 +577,7 @@ export default function EditBetPage() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="bg-black/20 p-3 rounded-lg border border-white/5 text-center">
                                             <p className="text-xs text-gray-500">Total Apostado</p>
-                                            <p className="text-lg font-bold text-white font-mono">R$ {formData.total_pool.toFixed(2)}</p>
+                                            <p className="text-lg font-bold text-white font-mono">{formatCurrency(formData.total_pool)}</p>
                                         </div>
                                         <div className="bg-black/20 p-3 rounded-lg border border-white/5 text-center">
                                             <p className="text-xs text-gray-500">Participantes</p>
@@ -588,12 +589,12 @@ export default function EditBetPage() {
                                         <div className="bg-green-500/5 p-3 rounded-lg border border-green-500/20 text-center">
                                             <p className="text-xs text-green-400 flex items-center justify-center gap-1"><Trophy className="w-3 h-3" /> Ganhadores</p>
                                             <p className="text-xl font-bold text-green-400">{winners.length}</p>
-                                            <p className="text-xs text-gray-500 font-mono">R$ {totalWinAmount.toFixed(2)} aportado</p>
+                                            <p className="text-xs text-gray-500 font-mono">{formatCurrency(totalWinAmount)} aportado</p>
                                         </div>
                                         <div className="bg-red-500/5 p-3 rounded-lg border border-red-500/20 text-center">
                                             <p className="text-xs text-red-400 flex items-center justify-center gap-1"><TrendingDown className="w-3 h-3" /> Perdedores</p>
                                             <p className="text-xl font-bold text-red-400">{losers.length}</p>
-                                            <p className="text-xs text-gray-500 font-mono">R$ {totalLoseAmount.toFixed(2)} aportado</p>
+                                            <p className="text-xs text-gray-500 font-mono">{formatCurrency(totalLoseAmount)} aportado</p>
                                         </div>
                                     </div>
 
@@ -606,8 +607,8 @@ export default function EditBetPage() {
                                                     <div key={b.id} className="flex justify-between items-center text-xs py-1.5 px-2 bg-green-500/5 rounded border border-green-500/10">
                                                         <span className="text-gray-300 truncate max-w-[120px]">{b.users?.full_name || 'Anônimo'}</span>
                                                         <div className="text-right">
-                                                            <span className="text-gray-500">R$ {b.amount?.toFixed(2)}</span>
-                                                            <span className="text-green-400 ml-2 font-bold">→ R$ {(b.payout || 0).toFixed(2)}</span>
+                                                            <span className="text-gray-500">{formatCurrency(b.amount)}</span>
+                                                            <span className="text-green-400 ml-2 font-bold">→ {formatCurrency(b.payout)}</span>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -623,7 +624,7 @@ export default function EditBetPage() {
                                                 {losers.map(b => (
                                                     <div key={b.id} className="flex justify-between items-center text-xs py-1.5 px-2 bg-red-500/5 rounded border border-red-500/10">
                                                         <span className="text-gray-300 truncate max-w-[120px]">{b.users?.full_name || 'Anônimo'}</span>
-                                                        <span className="text-red-400 font-mono">- R$ {b.amount?.toFixed(2)}</span>
+                                                        <span className="text-red-400 font-mono">- {formatCurrency(b.amount)}</span>
                                                     </div>
                                                 ))}
                                             </div>

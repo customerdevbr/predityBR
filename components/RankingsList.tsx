@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Trophy, Target, TrendingUp, Users, User as UserIcon, Medal } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface RankUser {
     id: string;
@@ -144,7 +145,7 @@ export default function RankingsList({ isAuthed }: RankingsListProps) {
                                 {viewMode === 'REVENUE' && (
                                     <>
                                         <div className={`text-sm font-black ${u.total_revenue >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                            R$ {u.total_revenue.toFixed(2)}
+                                            {formatCurrency(u.total_revenue)}
                                         </div>
                                         <div className="text-[10px] text-gray-500 uppercase tracking-widest">Lucro Real</div>
                                     </>
@@ -152,7 +153,7 @@ export default function RankingsList({ isAuthed }: RankingsListProps) {
                                 {viewMode === 'COMMISSION' && (
                                     <>
                                         <div className="text-sm font-black text-blue-400">
-                                            R$ {u.total_commission.toFixed(2)}
+                                            {formatCurrency(u.total_commission)}
                                         </div>
                                         <div className="text-[10px] text-gray-500 uppercase tracking-widest">Ganhos de Ref</div>
                                     </>
