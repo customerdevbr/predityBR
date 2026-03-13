@@ -104,7 +104,7 @@ export default function LoginForm() {
                     </div>
                 </div>
 
-                <div className="flex justify-center py-2">
+                <div className="flex flex-col items-center justify-center py-2 min-h-[65px]">
                     <Turnstile
                         siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
                         onSuccess={(token) => setCaptchaToken(token)}
