@@ -513,7 +513,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                             </div>
 
                             {/* Scrollable interior for mobile, sticky wrapper for desktop */}
-                            <div className="p-4 md:p-5 space-y-4 max-h-[85vh] overflow-y-auto lg:max-h-[calc(100vh-6rem)] lg:sticky lg:top-24 scrollbar-hide">
+                            <div className="p-4 md:p-5 space-y-4 max-h-[60vh] overflow-y-auto lg:max-h-[calc(100vh-6rem)] lg:sticky lg:top-24 scrollbar-hide">
 
                                 {/* Participant row — above outcome options */}
                                 <ParticipantRow marketId={market.id} totalPool={market.total_pool || 0} />
@@ -616,19 +616,23 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                                         <div className="text-[10px] text-gray-500 leading-tight bg-white/5 p-2 rounded-lg text-center mt-2">
                                             Odds dinâmicas estimadas. O pagamento final pode variar conforme novas previsões entram até o fechamento do mercado.
                                         </div>
-
-                                        {/* BET BUTTON */}
-                                        <button
-                                            onClick={handleBet}
-                                            disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
-                                            className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/85 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(4,179,5,0.3)]"
-                                        >
-                                            {placingBet ? 'Processando...' : 'Fazer Previsão'}
-                                        </button>
                                     </>
                                 )}
 
                             </div>
+
+                            {/* BET BUTTON — pinned outside scroll area so it's always visible */}
+                            {market.status !== 'RESOLVED' && (
+                                <div className="p-4 md:p-5 pt-2 border-t border-white/5 bg-surface lg:rounded-b-xl">
+                                    <button
+                                        onClick={handleBet}
+                                        disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
+                                        className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary/85 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(4,179,5,0.3)]"
+                                    >
+                                        {placingBet ? 'Processando...' : 'Fazer Previsão'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
