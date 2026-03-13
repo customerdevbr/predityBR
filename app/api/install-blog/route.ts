@@ -19,5 +19,5 @@ export async function POST() {
         return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
-    return new Response(JSON.stringify({ success: true, message: "Blog table created successfully (if RPC exists/permissions allow)." }), { status: 200 });
+    return new Response(JSON.stringify({ success: true, message: "Tabela de blog criada com sucesso (se o RPC existir/permissões permitirem)." }), { status: 200 });
 }

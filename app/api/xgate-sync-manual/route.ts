@@ -46,7 +46,7 @@ export async function POST(req: Request) {
             body: JSON.stringify({ email: process.env.XGATE_EMAIL, password: process.env.XGATE_PASSWORD }),
         });
         const { token } = await authRes.json();
-        if (!token) return NextResponse.json({ error: 'XGate auth failed' }, { status: 500 });
+        if (!token) return NextResponse.json({ error: 'Falha na autenticação XGate' }, { status: 500 });
 
         let realCustomerId = xgateCustomerId || transactionId;
         let getStatus: number | null = null;

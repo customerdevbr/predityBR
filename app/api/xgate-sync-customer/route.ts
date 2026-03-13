@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         );
 
         const { userId } = await req.json();
-        if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
+        if (!userId) return NextResponse.json({ error: 'ID do usuário obrigatório' }, { status: 400 });
 
         const { data: user, error: userErr } = await supabaseAdmin
             .from('users')

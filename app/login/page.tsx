@@ -1,10 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
 import LoginForm from '@/components/LoginForm';
+
 
 export const dynamic = 'force-dynamic';
 
 export default async function LoginPage() {
-    const supabase = await createClient();
 
     return (
         <div className="min-h-screen py-12 flex flex-col items-center justify-center relative overflow-hidden">

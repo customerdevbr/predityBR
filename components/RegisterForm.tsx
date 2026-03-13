@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Mail, Lock, ArrowRight, User, Eye, EyeOff, Calendar, CreditCard } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 export default function RegisterForm() {
     const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export default function RegisterForm() {
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const router = useRouter();
 
     // CPF auto-mask: formats as 000.000.000-00
@@ -33,6 +35,12 @@ export default function RegisterForm() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+
+        if (!captchaToken) {
+            setError("Por favor, complete a verificação de segurança.");
+            setLoading(false);
+            return;
+        }
 
         if (!fullName || !cpf || !dob || !email || !password || !confirmPassword) {
             setError("Todos os campos são obrigatórios.");
@@ -65,6 +73,7 @@ export default function RegisterForm() {
                 email,
                 password,
                 options: {
+                    captchaToken: captchaToken,
                     data: {
                         full_name: fullName,
                         cpf: cleanCpf,
@@ -266,6 +275,14 @@ export default function RegisterForm() {
                             Declaro que tenho mais de 18 anos e li e concordo com os <Link href="/kyc" target="_blank" className="text-primary hover:underline font-bold">Termos KYC</Link>, <Link href="/privacy" target="_blank" className="text-primary hover:underline font-bold">Privacidade</Link> e <Link href="/legal" target="_blank" className="text-primary hover:underline font-bold">Segurança Jurídica</Link>.
                         </span>
                     </label>
+
+                    <div className="flex justify-center py-2">
+                        <Turnstile
+                            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
+                            onSuccess={(token) => setCaptchaToken(token)}
+                            options={{ theme: 'dark' }}
+                        />
+                    </div>
 
                     <button
                         type="submit"

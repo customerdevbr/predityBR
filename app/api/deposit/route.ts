@@ -37,7 +37,7 @@ export async function POST(req: Request) {
             console.error("Searching for userId:", userId);
 
             return NextResponse.json({
-                error: 'User not found or you are not logged in correctly. Please login again.',
+                error: 'Usuário não encontrado ou sessão expirada. Por favor, faça login novamente.',
                 details: userError
             }, { status: 404 });
         }

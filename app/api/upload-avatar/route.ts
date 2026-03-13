@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
         if (uploadError) {
             // If bucket doesn't exist, try to create it
-            if (uploadError.message?.includes('Bucket not found')) {
+            if (uploadError.message?.includes('Bucket não encontrado')) {
                 await supabaseAdmin.storage.createBucket('avatars', { public: true });
                 await supabaseAdmin.storage.from('avatars').upload(filename, buffer, {
                     contentType: file.type,

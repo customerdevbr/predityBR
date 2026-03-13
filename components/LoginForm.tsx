@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 export default function LoginForm() {
     const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ export default function LoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const router = useRouter();
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -19,25 +21,28 @@ export default function LoginForm() {
         setLoading(true);
         setError(null);
 
+        if (!captchaToken) {
+            setError("Por favor, complete a verificação de segurança.");
+            setLoading(false);
+            return;
+        }
+
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
+                options: {
+                    captchaToken: captchaToken,
+                },
             });
 
             if (error) throw error;
 
-            if (error) throw error;
-
-            // Force hard redirect to App subdomain to avoid client-side routing issues across domains
-            // and ensure cookies are properly recognized on the new subdomain.
             const targetUrl = process.env.NODE_ENV === 'production'
                 ? 'https://app.preditybr.com/app/markets'
-                : '/app/markets'; // Localhost fallback
+                : '/app/markets';
 
             window.location.href = targetUrl;
-            // router.push('/app/markets');
-            // router.refresh();
         } catch (err: any) {
             setError(err.message === "Invalid login credentials" ? "Email ou senha incorretos." : err.message);
         } finally {
@@ -97,6 +102,14 @@ export default function LoginForm() {
                             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                     </div>
+                </div>
+
+                <div className="flex justify-center py-2">
+                    <Turnstile
+                        siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
+                        onSuccess={(token) => setCaptchaToken(token)}
+                        options={{ theme: 'dark' }}
+                    />
                 </div>
 
                 <button

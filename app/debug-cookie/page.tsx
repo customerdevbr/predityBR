@@ -27,7 +27,7 @@ export default function DebugCookiePage() {
             <div className="mb-8">
                 <h2 className="text-xl text-green-400 mb-2">Document.cookie:</h2>
                 <div className="bg-gray-900 p-4 rounded break-all border border-gray-700">
-                    {cookies || "No cookies found"}
+                    {cookies || "Nenhum cookie encontrado"}
                 </div>
             </div>
 

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
         if (txError || !tx) {
             console.error("Transaction not found for ID:", id, txError);
-            return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+            return NextResponse.json({ error: "Transação não encontrada" }, { status: 404 });
         }
 
         if (tx.status === 'COMPLETED') {
