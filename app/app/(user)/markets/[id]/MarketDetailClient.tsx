@@ -495,9 +495,8 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
                             />
                         )}
 
-                        {/* The Bet Slip Panel */}
                         <div className={`
-                            fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out transform rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] bg-surface
+                            fixed inset-x-0 bottom-[60px] z-50 transition-transform duration-300 ease-out transform rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] bg-surface
                             ${isMobileSlipOpen ? 'translate-y-0' : 'translate-y-full'}
                             lg:static lg:translate-y-0 lg:z-auto lg:rounded-xl lg:border lg:border-white/5 lg:shadow-2xl lg:block
                         `}>
@@ -623,7 +622,7 @@ export default function MarketDetailClient({ initialMarket, currentUser }: Marke
 
                             {/* BET BUTTON — pinned outside scroll area so it's always visible */}
                             {market.status !== 'RESOLVED' && (
-                                <div className="p-4 md:p-5 pt-2 border-t border-white/5 bg-surface lg:rounded-b-xl">
+                                <div className="p-4 md:p-5 pt-2 border-t border-white/5 bg-surface rounded-b-3xl lg:rounded-b-xl pb-6">
                                     <button
                                         onClick={handleBet}
                                         disabled={placingBet || !amount || parseFloat(amount) <= 0 || !selectedOutcome}
