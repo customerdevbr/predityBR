@@ -77,18 +77,22 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
 
     const ogImage = market.image_url || 'https://app.preditybr.com/logo.png';
     const description = market.description
-        ? market.description.slice(0, 160) + (market.description.length > 160 ? '...' : '')
-        : `Dê o seu palpite: ${market.title}. Veja as cotações atuais, aposte via PIX e participe dessa previsão na PredityBR!`;
+        ? market.description.slice(0, 155) + (market.description.length > 155 ? '...' : '')
+        : `Dê o seu palpite: "${market.title}". Veja as cotações em tempo real, participe com PIX e concorra ao prêmio da rodada na PredityBR!`;
 
     const title = `${market.title} | PredityBR`;
+    const canonicalUrl = `https://preditybr.com/app/markets/${market.slug || market.id}`;
 
     return {
         title: title,
         description: description,
+        alternates: {
+            canonical: canonicalUrl,
+        },
         openGraph: {
             title: title,
             description: description,
-            url: `https://app.preditybr.com/app/markets/${market.slug || market.id}`,
+            url: canonicalUrl,
             siteName: 'PredityBR',
             images: [
                 {
@@ -96,6 +100,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
                     width: 1200,
                     height: 630,
                     alt: market.title,
+                    type: 'image/png',
                 }
             ],
             type: 'website',
@@ -103,6 +108,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
         },
         twitter: {
             card: 'summary_large_image',
+            site: '@preditybr',
             title: title,
             description: description,
             images: [ogImage],

@@ -1,0 +1,399 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
+import { Zap, Car, Clock, AlertTriangle, TrendingUp, TrendingDown, Users } from 'lucide-react';
+import {
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+    ReferenceLine, Cell, CartesianGrid
+} from 'recharts';
+
+interface VehicleCounterLiveProps {
+    market: any;
+    currentUser: any;
+    onBetPlaced?: () => void;
+}
+
+interface RoundSnapshot {
+    label: string;
+    count: number;
+    isCurrent: boolean;
+}
+
+const STREAM_URL = 'https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8';
+
+export default function VehicleCounterLive({ market, currentUser, onBetPlaced }: VehicleCounterLiveProps) {
+    const [round, setRound] = useState<any>(null);
+    const [prevRound, setPrevRound] = useState<any>(null);
+    const [timeLeft, setTimeLeft] = useState<number>(0);
+    const [chartData, setChartData] = useState<RoundSnapshot[]>([]);
+    const [betSide, setBetSide] = useState<'MAIS' | 'MENOS' | null>(null);
+    const [betAmount, setBetAmount] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [userBet, setUserBet] = useState<any>(null);
+    const [balance, setBalance] = useState(0);
+    const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+    const countHistory = useRef<{ t: number; v: number }[]>([]);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    const targetCount: number = market?.metadata?.target_count ?? 100;
+    const marketId: string = market?.id;
+
+    const showToast = (type: 'success' | 'error', msg: string) => {
+        setToast({ type, msg });
+        setTimeout(() => setToast(null), 4000);
+    };
+
+    // ── Carrega estado inicial ─────────────────────────────────
+    useEffect(() => {
+        async function load() {
+            const roundId = market?.metadata?.round_id;
+            if (!roundId) return;
+
+            // Rodada atual
+            const { data: cur } = await supabase
+                .from('rounds')
+                .select('*')
+                .eq('id', roundId)
+                .maybeSingle();
+            if (cur) setRound(cur);
+
+            // Rodada anterior (para comparação)
+            const { data: prev } = await supabase
+                .from('rounds')
+                .select('*')
+                .eq('status', 'finished')
+                .order('end_time', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (prev) setPrevRound(prev);
+
+            // Aposta do usuário
+            if (currentUser) {
+                const { data: bet } = await supabase
+                    .from('bets')
+                    .select('*')
+                    .eq('market_id', marketId)
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+                if (bet) setUserBet(bet);
+
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('balance')
+                    .eq('id', currentUser.id)
+                    .single();
+                if (userData) setBalance(userData.balance);
+            }
+        }
+        load();
+    }, [market, currentUser, marketId]);
+
+    // ── Realtime: atualiza contagem ────────────────────────────
+    useEffect(() => {
+        const roundId = market?.metadata?.round_id;
+        if (!roundId) return;
+
+        const ch = supabase
+            .channel(`round-live-${roundId}`)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'rounds', filter: `id=eq.${roundId}` },
+                (payload) => {
+                    const r = payload.new as any;
+                    setRound(r);
+
+                    // Registra histórico para sparkline
+                    const now = Date.now();
+                    countHistory.current = [
+                        ...countHistory.current.filter(p => now - p.t < 5 * 60_000),
+                        { t: now, v: r.actual_count ?? 0 }
+                    ];
+                }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(ch); };
+    }, [market]);
+
+    // ── Contador regressivo ────────────────────────────────────
+    useEffect(() => {
+        if (!market?.end_date) return;
+        const tick = () => {
+            const diff = Math.max(0, new Date(market.end_date).getTime() - Date.now());
+            setTimeLeft(Math.ceil(diff / 1000));
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [market?.end_date]);
+
+    // ── Dados do gráfico ──────────────────────────────────────
+    useEffect(() => {
+        const actual = round?.actual_count ?? 0;
+        const prevFinal = prevRound?.actual_count ?? 0;
+        setChartData([
+            { label: 'Rodada Anterior', count: prevFinal, isCurrent: false },
+            { label: 'Esta Rodada', count: actual, isCurrent: true },
+        ]);
+    }, [round, prevRound]);
+
+    // ── HLS player ─────────────────────────────────────────────
+    useEffect(() => {
+        if (!videoRef.current) return;
+        const video = videoRef.current;
+
+        if (typeof window !== 'undefined' && (window as any).Hls?.isSupported?.()) {
+            const Hls = (window as any).Hls;
+            const hls = new Hls({ lowLatencyMode: true });
+            hls.loadSource(STREAM_URL);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+            return () => hls.destroy();
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = STREAM_URL;
+            video.play().catch(() => {});
+        }
+    }, []);
+
+    // ── Submete aposta ────────────────────────────────────────
+    const handleBet = useCallback(async () => {
+        if (!currentUser) { showToast('error', 'Faça login para participar.'); return; }
+        if (!betSide) { showToast('error', 'Escolha MAIS ou MENOS.'); return; }
+        const amount = parseFloat(betAmount);
+        if (!amount || amount < 5) { showToast('error', 'Valor mínimo de R$ 5,00.'); return; }
+        if (amount > balance) { showToast('error', 'Saldo insuficiente.'); return; }
+        if (market?.status !== 'OPEN') { showToast('error', 'Este mercado não está mais aberto.'); return; }
+
+        setSubmitting(true);
+        try {
+            const { error } = await supabase.rpc('place_bet', {
+                p_market_id: marketId,
+                p_user_id: currentUser.id,
+                p_outcome: betSide,
+                p_amount: amount,
+            });
+            if (error) throw error;
+            showToast('success', `Palpite de ${formatCurrency(amount)} em ${betSide} registrado!`);
+            setUserBet({ outcome: betSide, amount });
+            setBalance(prev => prev - amount);
+            onBetPlaced?.();
+        } catch (err: any) {
+            showToast('error', err.message ?? 'Erro ao registrar palpite.');
+        } finally {
+            setSubmitting(false);
+        }
+    }, [betSide, betAmount, currentUser, marketId, balance, market, onBetPlaced]);
+
+    const mins = Math.floor(timeLeft / 60);
+    const secs = timeLeft % 60;
+    const pct = Math.min(100, ((round?.actual_count ?? 0) / targetCount) * 100);
+    const isOver = round?.actual_count > targetCount;
+
+    const pools = market?.outcome_pools ?? {};
+    const totalPool = market?.total_pool ?? 0;
+    const maisPool = pools['MAIS'] ?? 0;
+    const menosPool = pools['MENOS'] ?? 0;
+    const maisOddsRaw = maisPool > 0 ? totalPool / maisPool : 2;
+    const menosOddsRaw = menosPool > 0 ? totalPool / menosPool : 2;
+    const maisOdds = Math.max(1.0, 1 + (maisOddsRaw - 1) * 0.65).toFixed(2);
+    const menosOdds = Math.max(1.0, 1 + (menosOddsRaw - 1) * 0.65).toFixed(2);
+
+    return (
+        <div className="space-y-4">
+            {/* Toast */}
+            {toast && (
+                <div className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-xl text-sm font-bold shadow-xl border animate-in slide-in-from-right ${toast.type === 'success' ? 'bg-green-900/90 border-green-500/30 text-green-200' : 'bg-red-900/90 border-red-500/30 text-red-200'}`}>
+                    {toast.msg}
+                </div>
+            )}
+
+            {/* ── Câmera ao Vivo ─────────────────────────────────── */}
+            <div className="relative rounded-2xl overflow-hidden bg-black border border-white/5 shadow-2xl">
+                {/* HLS.js precisa ser carregado externamente via CDN */}
+                <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" async />
+
+                <video
+                    ref={videoRef}
+                    className="w-full aspect-video object-cover"
+                    muted
+                    playsInline
+                    autoPlay
+                />
+
+                {/* Overlay de status */}
+                <div className="absolute top-3 left-3 flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 bg-black/70 backdrop-blur-sm text-red-400 text-xs font-bold px-2.5 py-1 rounded-full border border-red-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                        AO VIVO
+                    </span>
+                    <span className="bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full border border-white/10">
+                        SP-055 · KM 110A
+                    </span>
+                </div>
+
+                {/* Timer overlay */}
+                <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-white text-sm font-mono font-bold px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-primary" />
+                    {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
+                </div>
+
+                {/* Contador grande */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-4">
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <p className="text-xs text-gray-400 mb-0.5">Veículos contabilizados</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-5xl font-black text-white tabular-nums">
+                                    {round?.actual_count ?? 0}
+                                </span>
+                                <span className="text-lg text-gray-400 font-bold">/ {targetCount}</span>
+                                <span className={`text-sm font-bold flex items-center gap-1 ${isOver ? 'text-green-400' : 'text-orange-400'}`}>
+                                    {isOver ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                    {isOver ? 'acima' : 'abaixo'} da meta
+                                </span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-gray-500 mb-1">Meta anterior</p>
+                            <p className="text-lg font-bold text-gray-300">{prevRound?.actual_count ?? '–'}</p>
+                        </div>
+                    </div>
+
+                    {/* Barra de progresso */}
+                    <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-700 ${isOver ? 'bg-green-500' : 'bg-orange-500'}`}
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Gráfico de Comparação ──────────────────────────── */}
+            <div className="bg-surface/30 border border-white/5 rounded-2xl p-4">
+                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                    <Car className="w-4 h-4 text-primary" />
+                    Comparativo de Rodadas
+                </h3>
+                <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="label" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <Tooltip
+                            contentStyle={{ background: '#1a1d24', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
+                            labelStyle={{ color: '#fff', fontWeight: 700 }}
+                            itemStyle={{ color: '#04B305' }}
+                            formatter={(v: any) => [`${v} veículos`, '']}
+                        />
+                        <ReferenceLine y={targetCount} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: `Meta ${targetCount}`, fill: '#f59e0b', fontSize: 10 }} />
+                        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                            {chartData.map((entry, i) => (
+                                <Cell key={i} fill={entry.isCurrent ? '#04B305' : '#233357'} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* ── Painel de Participação ──────────────────────────── */}
+            {market?.status === 'OPEN' && (
+                <div className="bg-[#0d1a0d] border border-primary/20 rounded-2xl p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-white flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-primary" />
+                            Dar Palpite
+                        </h3>
+                        {currentUser && (
+                            <span className="text-xs text-gray-500">Saldo: <span className="text-primary font-bold">{formatCurrency(balance)}</span></span>
+                        )}
+                    </div>
+
+                    {userBet ? (
+                        <div className="text-center py-3 bg-primary/10 rounded-xl border border-primary/20">
+                            <p className="text-primary font-bold text-sm">✓ Palpite registrado: {userBet.outcome}</p>
+                            <p className="text-gray-400 text-xs mt-0.5">Valor: {formatCurrency(userBet.amount)}</p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Opções */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setBetSide('MAIS')}
+                                    className={`py-3 rounded-xl border-2 font-bold text-sm transition-all ${betSide === 'MAIS' ? 'bg-green-500/20 border-green-500 text-green-300' : 'bg-white/5 border-white/10 text-gray-400 hover:border-green-500/50'}`}
+                                >
+                                    <TrendingUp className="w-4 h-4 mx-auto mb-0.5" />
+                                    MAIS de {targetCount}
+                                    <span className="block text-xs font-normal mt-0.5">{maisOdds}x</span>
+                                </button>
+                                <button
+                                    onClick={() => setBetSide('MENOS')}
+                                    className={`py-3 rounded-xl border-2 font-bold text-sm transition-all ${betSide === 'MENOS' ? 'bg-red-500/20 border-red-500 text-red-300' : 'bg-white/5 border-white/10 text-gray-400 hover:border-red-500/50'}`}
+                                >
+                                    <TrendingDown className="w-4 h-4 mx-auto mb-0.5" />
+                                    MENOS de {targetCount}
+                                    <span className="block text-xs font-normal mt-0.5">{menosOdds}x</span>
+                                </button>
+                            </div>
+
+                            {/* Valor */}
+                            <div className="flex gap-2">
+                                <input
+                                    type="number"
+                                    min="5"
+                                    step="5"
+                                    placeholder="R$ 0,00"
+                                    value={betAmount}
+                                    onChange={e => setBetAmount(e.target.value)}
+                                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-primary/50"
+                                />
+                                <button
+                                    onClick={handleBet}
+                                    disabled={submitting || !betSide || !betAmount}
+                                    className="px-5 py-3 bg-primary hover:bg-primary/90 disabled:opacity-40 text-white font-black text-sm rounded-xl transition-all"
+                                >
+                                    {submitting ? '...' : 'Confirmar'}
+                                </button>
+                            </div>
+
+                            {/* Atalhos de valor */}
+                            <div className="flex gap-2 flex-wrap">
+                                {[5, 10, 20, 50].map(v => (
+                                    <button
+                                        key={v}
+                                        onClick={() => setBetAmount(String(v))}
+                                        className="text-xs px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                                    >
+                                        R${v}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {!currentUser && (
+                                <p className="text-center text-xs text-gray-500">
+                                    <a href="/login" className="text-primary hover:underline">Faça login</a> para participar.
+                                </p>
+                            )}
+                        </>
+                    )}
+
+                    {/* Pool info */}
+                    <div className="flex items-center justify-between text-xs text-gray-600 pt-1 border-t border-white/5">
+                        <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Pool: {formatCurrency(totalPool)}</span>
+                        <span>MAIS: {formatCurrency(maisPool)} · MENOS: {formatCurrency(menosPool)}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Aviso de transparência ─────────────────────────── */}
+            <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-3 flex gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-yellow-200/70 leading-relaxed">
+                    A contagem é realizada por inteligência artificial (YOLOv8) em câmera pública da rodovia SP-055. Pela qualidade da transmissão e desempenho da IA, alguns veículos podem não ser contabilizados. Vale exclusivamente o número computado pelo sistema.
+                </p>
+            </div>
+        </div>
+    );
+}

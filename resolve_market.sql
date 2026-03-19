@@ -29,8 +29,9 @@ BEGIN
   WHERE id = p_market_id
   FOR UPDATE;
 
-  IF v_market_status != 'OPEN' THEN
-    RAISE EXCEPTION 'Market is not OPEN (Current status: %)', v_market_status;
+  -- Aceita tanto OPEN quanto PENDING (mercados auto-fechados aguardando resolução)
+  IF v_market_status NOT IN ('OPEN', 'PENDING') THEN
+    RAISE EXCEPTION 'Market cannot be resolved (Current status: %)', v_market_status;
   END IF;
 
   -- 2. Calculate True Parimutuel Mathematics

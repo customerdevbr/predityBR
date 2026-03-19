@@ -1,4 +1,19 @@
+import type { Metadata } from 'next';
 import { Scale } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: 'Segurança Jurídica e Termos de Uso',
+    description:
+        'Leia os termos e condições da PredityBR. Entenda como funcionam as regras de operação, resolução de mercados e direitos dos usuários da plataforma.',
+    alternates: { canonical: 'https://preditybr.com/legal' },
+    openGraph: {
+        title: 'Segurança Jurídica | PredityBR',
+        description: 'Termos de uso e condições de operação da plataforma de previsões PredityBR.',
+        url: 'https://preditybr.com/legal',
+        locale: 'pt_BR',
+    },
+    robots: { index: true, follow: false },
+};
 
 export default function LegalPage() {
     return (

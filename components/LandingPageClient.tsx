@@ -53,7 +53,7 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
     return (
         <div className="flex flex-col min-h-screen">
 
-            {/* 2. PIX Destaque */}
+            {/* Barra de destaque PIX */}
             <div className="bg-[#151921] border-y border-white/5 py-2 mt-16 md:mt-24 md:py-3">
                 <div className="container mx-auto px-4 flex items-center justify-center md:justify-start gap-4 text-xs md:text-sm">
                     <img src="/pix.avif" alt="PIX" className="w-4 h-4 md:w-5 md:h-5 object-contain" />
@@ -61,36 +61,74 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                 </div>
             </div>
 
-            {/* 3. Hero Principal */}
-            <section className="container mx-auto px-4 py-8 md:py-12 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            {/* Hero Principal */}
+            <section aria-labelledby="hero-heading" className="container mx-auto px-4 py-8 md:py-12 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
                 <div className="space-y-5 md:space-y-8 text-left">
-                    <h1 className="text-[28px] leading-tight md:text-5xl lg:text-6xl font-black text-white">
-                        Dê seu palpite no que o Brasil está acompanhando em <span className="text-primary inline-block min-w-[2ch]">{text}<span className="animate-pulse">|</span></span>
+                    <h1 id="hero-heading" className="text-[28px] leading-tight md:text-5xl lg:text-6xl font-black text-white">
+                        Dê seu palpite no que o Brasil está acompanhando em <span className="text-primary inline-block min-w-[2ch]" aria-live="polite">{text}<span className="animate-pulse" aria-hidden="true">|</span></span>
                     </h1>
 
                     <p className="text-sm md:text-lg text-gray-400 max-w-lg leading-relaxed">
-                        Participe das previsões mais comentadas do momento com odds formadas pela própria comunidade. Resultados rápidos e experiência simples.
+                        Participe das previsões mais comentadas do momento com odds formadas pela própria comunidade. Resultados rápidos, pagamento via PIX e experiência 100% brasileira.
                     </p>
 
-                    <Link href="/register" className="inline-flex items-center justify-center w-full md:w-auto px-6 py-3.5 md:px-8 md:py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-base md:text-lg shadow-[0_0_20px_rgba(47,124,70,0.3)] md:shadow-[0_0_30px_rgba(47,124,70,0.3)] transition-all">
+                    <Link
+                        href="/register"
+                        className="inline-flex items-center justify-center w-full md:w-auto px-6 py-3.5 md:px-8 md:py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-base md:text-lg shadow-[0_0_20px_rgba(47,124,70,0.3)] md:shadow-[0_0_30px_rgba(47,124,70,0.3)] transition-all"
+                        aria-label="Criar conta grátis na PredityBR"
+                    >
                         Criar Conta Grátis
                     </Link>
 
-                    <div className="flex items-center justify-center md:justify-start gap-4 md:gap-6 text-xs md:text-sm text-gray-500 font-medium pt-2 md:pt-4">
-                        <span className="flex items-center gap-1.5 md:gap-2"><div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></div> Pagamento Via PIX</span>
-                        <span className="flex items-center gap-1.5 md:gap-2"><div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-blue-500"></div> Suporte BR</span>
+                    {/* Trust badges */}
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 pt-2 md:pt-4">
+                        <span className="flex items-center gap-1.5 text-xs md:text-sm text-gray-500 font-medium">
+                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 flex-shrink-0" aria-hidden="true"></span>
+                            Pagamento Via PIX
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs md:text-sm text-gray-500 font-medium">
+                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-blue-500 flex-shrink-0" aria-hidden="true"></span>
+                            Suporte BR
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs md:text-sm text-gray-500 font-medium">
+                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-yellow-500 flex-shrink-0" aria-hidden="true"></span>
+                            Odds em Tempo Real
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs md:text-sm text-gray-500 font-medium">
+                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-purple-500 flex-shrink-0" aria-hidden="true"></span>
+                            Conta Grátis
+                        </span>
                     </div>
                 </div>
 
-                {/* Hero Feature Visual (Stacking Cards) */}
-                <div className="relative hidden md:flex h-[400px] items-center justify-center">
+                {/* Hero Visual — Cards empilhados */}
+                <div className="relative hidden md:flex h-[400px] items-center justify-center" aria-hidden="true">
                     <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full opacity-30"></div>
                     <HeroCardStack cards={heroCards} />
                 </div>
             </section>
 
-            {/* 4. Catálogo de Mercados com Abas */}
-            <main className="container mx-auto px-4 py-8 pb-24">
+            {/* Seção de Prova Social */}
+            <section aria-label="Por que usar a PredityBR" className="container mx-auto px-4 pb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                    {[
+                        { value: "100%", label: "Mercados transparentes", icon: "🔍" },
+                        { value: "PIX", label: "Saque instantâneo 24h", icon: "⚡" },
+                        { value: "0%", label: "Taxa na criação de conta", icon: "🆓" },
+                        { value: "BR", label: "Suporte em português", icon: "🇧🇷" },
+                    ].map(({ value, label, icon }) => (
+                        <div key={label} className="bg-surface/30 border border-white/5 rounded-xl p-3 md:p-4 text-center hover:border-primary/20 transition-colors">
+                            <div className="text-xl mb-1" aria-hidden="true">{icon}</div>
+                            <div className="text-lg md:text-xl font-black text-primary">{value}</div>
+                            <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">{label}</div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Catálogo de Mercados com Abas */}
+            <section aria-labelledby="markets-heading" className="container mx-auto px-4 py-8 pb-24">
+                <h2 id="markets-heading" className="sr-only">Mercados de Previsão Disponíveis</h2>
                 {/* Abas */}
                 <div className="border-b border-surface mb-8">
                     <div className="flex gap-6 overflow-x-auto pb-px scrollbar-hide">
@@ -238,12 +276,12 @@ export default function LandingPageClient({ featuredMarkets, heroCards }: Landin
                         )}
                     </div>
                 )}
-            </main>
+            </section>
 
-            {/* Footer Wrapper to ensure visibility on mobile */}
+            {/* Footer */}
             <div className="relative z-10 bg-[#0f1115]">
                 <Footer />
             </div>
-        </div >
+        </div>
     );
 }

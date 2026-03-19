@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Flame, Clock as ClockIcon, TrendingUp, ChevronRight } from 'lucide-react';
+import { Search, Filter, Flame, Clock as ClockIcon, TrendingUp, ChevronRight, Radio } from 'lucide-react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import MarketCard from '@/components/MarketCard';
 
@@ -65,7 +66,7 @@ export default function MarketsPage() {
             {/* Categories Tabs */}
             <div className="border-b border-surface">
                 <div className="flex gap-6 overflow-x-auto pb-px scrollbar-hide">
-                    {["INÍCIO", "TODAS", "POLÍTICA", "ECONOMIA", "ESPORTE", "CRIPTO", "CLIMA"].map(cat => (
+                    {["INÍCIO", "TODAS", "POLÍTICA", "ECONOMIA", "ESPORTE", "CRIPTO", "CLIMA", "VEÍCULOS"].map(cat => (
                         <button
                             key={cat}
                             onClick={() => setActiveTab(cat)}
@@ -120,6 +121,37 @@ export default function MarketsPage() {
                         </div>
                     ) : activeTab === "INÍCIO" ? (
                         <div className="space-y-10">
+                            {/* Ao Vivo */}
+                            <div>
+                                <div className="flex items-center gap-3 border-b border-white/5 pb-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                        <Radio className="w-5 h-5 text-red-400 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-white flex items-center gap-2">Ao Vivo <span className="text-xs font-normal text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full animate-pulse">LIVE</span></h2>
+                                        <p className="text-xs text-gray-500 mt-0.5">Rodadas automáticas a cada 5 min. Resultado instantâneo.</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <Link href="/app/markets/btc" className="group flex items-center gap-4 bg-surface/30 hover:bg-surface/60 border border-white/5 hover:border-[#f7931a]/30 rounded-xl p-4 transition-all">
+                                        <div className="w-12 h-12 bg-[#f7931a]/10 rounded-full flex items-center justify-center border border-[#f7931a]/20 flex-shrink-0 text-2xl">₿</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-white">BTC ao Vivo</div>
+                                            <div className="text-xs text-gray-500">Sobe ou Desce? · Binance · 5 min</div>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-[#f7931a] transition-colors flex-shrink-0" />
+                                    </Link>
+                                    <Link href="/app/markets/veiculo" className="group flex items-center gap-4 bg-surface/30 hover:bg-surface/60 border border-white/5 hover:border-green-500/30 rounded-xl p-4 transition-all">
+                                        <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/20 flex-shrink-0 text-2xl">🚗</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-white">Câmera Ao Vivo</div>
+                                            <div className="text-xs text-gray-500">Contador de Veículos · SP-055 · 5 min</div>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-green-400 transition-colors flex-shrink-0" />
+                                    </Link>
+                                </div>
+                            </div>
+
                             {/* Em Alta */}
                             <div>
                                 <div className="flex items-center gap-3 border-b border-white/5 pb-3 mb-4">
@@ -185,7 +217,7 @@ export default function MarketsPage() {
                             )}
 
                             {/* Demais Categorias */}
-                            {["POLÍTICA", "ECONOMIA", "ESPORTE", "CRIPTO", "CLIMA"].map(cat => {
+                            {["POLÍTICA", "ECONOMIA", "ESPORTE", "CRIPTO", "CLIMA", "VEÍCULOS"].map(cat => {
                                 const catMarkets = markets.filter(m => m.category === cat);
                                 if (catMarkets.length === 0) return null;
 
@@ -195,6 +227,7 @@ export default function MarketsPage() {
                                 if (cat === "ECONOMIA") catEmoji = "💰";
                                 if (cat === "CRIPTO") catEmoji = "₿";
                                 if (cat === "CLIMA") catEmoji = "☀️";
+                                if (cat === "VEÍCULOS") catEmoji = "🚗";
 
                                 return (
                                     <div key={cat}>

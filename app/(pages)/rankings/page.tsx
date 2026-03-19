@@ -1,8 +1,22 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import RankingsList from '@/components/RankingsList';
 import { Trophy } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+    title: 'Ranking Geral de Preditores',
+    description:
+        'Confira o ranking dos melhores preditores do Brasil na PredityBR. Veja quem acertou mais previsões, acumulou mais pontos e lidera o placar geral.',
+    alternates: { canonical: 'https://preditybr.com/rankings' },
+    openGraph: {
+        title: 'Ranking Geral | PredityBR',
+        description: 'Os melhores preditores do Brasil em um só lugar.',
+        url: 'https://preditybr.com/rankings',
+        locale: 'pt_BR',
+    },
+};
 
 export default async function RankingsPage() {
     const supabase = await createClient();

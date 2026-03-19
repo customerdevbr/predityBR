@@ -2,5 +2,15 @@
     "framework": "nextjs",
     "buildCommand": "next build",
     "installCommand": "npm install",
-    "outputDirectory": ".next"
+    "outputDirectory": ".next",
+    "crons": [
+        {
+            "path": "/api/cron/close-markets",
+            "schedule": "* * * * *"
+        },
+        {
+            "path": "/api/cron/auto-markets",
+            "schedule": "* * * * *"
+        }
+    ]
 }

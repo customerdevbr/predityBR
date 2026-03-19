@@ -1,4 +1,19 @@
+import type { Metadata } from 'next';
 import { UserCheck } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: 'Política de Privacidade',
+    description:
+        'Saiba como a PredityBR coleta, armazena e protege seus dados pessoais conforme a LGPD. Transparência total no tratamento de informações dos usuários.',
+    alternates: { canonical: 'https://preditybr.com/privacy' },
+    openGraph: {
+        title: 'Política de Privacidade | PredityBR',
+        description: 'Como protegemos seus dados. Conformidade com a LGPD.',
+        url: 'https://preditybr.com/privacy',
+        locale: 'pt_BR',
+    },
+    robots: { index: true, follow: false },
+};
 
 export default function PrivacyPage() {
     return (

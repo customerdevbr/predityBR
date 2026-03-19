@@ -139,7 +139,11 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
 
     return (
         <Link
-            href={`/app/markets/${slug || id}`}
+            href={
+                metadata?.market_type === 'BTC' ? '/app/markets/btc' :
+                metadata?.market_type === 'VEHICLE' ? '/app/markets/veiculo' :
+                `/app/markets/${slug || id}`
+            }
             className="block group relative"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

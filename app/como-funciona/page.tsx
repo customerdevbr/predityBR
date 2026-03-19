@@ -1,6 +1,19 @@
-// Global Replace of "Aposta" terms within the content
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, TrendingUp, Users, Calculator, Zap, ShieldCheck, Banknote, Info } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: 'Como Funciona a PredityBR',
+    description:
+        'Entenda como funcionam os mercados de previsão da PredityBR. Odds formadas pela comunidade, pagamentos via PIX instantâneo e resultados transparentes. Simples e justo.',
+    alternates: { canonical: 'https://preditybr.com/como-funciona' },
+    openGraph: {
+        title: 'Como Funciona | PredityBR',
+        description: 'Odds pela comunidade, PIX instantâneo e total transparência. Aprenda agora.',
+        url: 'https://preditybr.com/como-funciona',
+        locale: 'pt_BR',
+    },
+};
 
 export default function HowItWorksPage() {
     return (

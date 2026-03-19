@@ -1,4 +1,19 @@
+import type { Metadata } from 'next';
 import { HeartHandshake } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: 'Jogo Responsável',
+    description:
+        'PredityBR promove o uso responsável da plataforma. Veja nossas diretrizes de proteção ao usuário, limites recomendados e como buscar ajuda se necessário.',
+    alternates: { canonical: 'https://preditybr.com/responsible' },
+    openGraph: {
+        title: 'Jogo Responsável | PredityBR',
+        description: 'Diretrizes para uso consciente e responsável da plataforma.',
+        url: 'https://preditybr.com/responsible',
+        locale: 'pt_BR',
+    },
+    robots: { index: true, follow: false },
+};
 
 export default function ResponsiblePage() {
     return (

@@ -1,4 +1,19 @@
+import type { Metadata } from 'next';
 import { ShieldCheck } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: 'Política KYC / AML',
+    description:
+        'Conheça as práticas de verificação de identidade (KYC) e prevenção à lavagem de dinheiro (AML) adotadas pela PredityBR para garantir segurança a todos.',
+    alternates: { canonical: 'https://preditybr.com/kyc' },
+    openGraph: {
+        title: 'Política KYC / AML | PredityBR',
+        description: 'Verificação de identidade e prevenção à lavagem de dinheiro.',
+        url: 'https://preditybr.com/kyc',
+        locale: 'pt_BR',
+    },
+    robots: { index: true, follow: false },
+};
 
 export default function KycPage() {
     return (

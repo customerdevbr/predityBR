@@ -357,6 +357,7 @@ export default function EditBetPage() {
                                         <option value="REALITY">Reality Show</option>
                                         <option value="CLIMA">Clima</option>
                                         <option value="ENTRETENIMENTO">Entretenimento</option>
+                                        <option value="VEÍCULOS">Veículos (Câmera)</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -480,8 +481,8 @@ export default function EditBetPage() {
                         <div className="mb-6 space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-400">Status Atual:</span>
-                                <span className={`font-bold ${formData.status === 'OPEN' ? 'text-green-400' : formData.status === 'RESOLVED' ? 'text-blue-400' : 'text-red-400'}`}>
-                                    {formData.status}
+                                <span className={`font-bold ${formData.status === 'OPEN' ? 'text-green-400' : formData.status === 'PENDING' ? 'text-orange-400' : formData.status === 'RESOLVED' ? 'text-blue-400' : 'text-red-400'}`}>
+                                    {formData.status === 'PENDING' ? '⏳ PENDENTE' : formData.status}
                                 </span>
                             </div>
                             <div className="flex justify-between text-sm">
@@ -496,8 +497,14 @@ export default function EditBetPage() {
                             )}
                         </div>
 
-                        {formData.status === 'OPEN' ? (
+                        {(formData.status === 'OPEN' || formData.status === 'PENDING') ? (
                             <div className="space-y-3">
+                                {formData.status === 'PENDING' && (
+                                    <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex gap-3 text-xs text-orange-200 mb-2">
+                                        <AlertTriangle className="w-5 h-5 shrink-0 text-orange-400" />
+                                        <p><strong>Mercado pendente:</strong> A data de encerramento passou. Confirme o resultado para distribuir os prêmios.</p>
+                                    </div>
+                                )}
                                 <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex gap-3 text-xs text-yellow-200 mb-4">
                                     <AlertTriangle className="w-5 h-5 shrink-0" />
                                     <p>Atenção: A resolução é irreversível. Certifique-se do resultado oficial antes de confirmar.</p>

@@ -1,4 +1,18 @@
+import type { Metadata } from 'next';
 import { DollarSign, ArrowDownLeft, ArrowUpRight, ShieldAlert } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: 'Taxas e Limites de Depósito e Saque',
+    description:
+        'Confira as taxas de depósito, saque e operação da PredityBR. Sem surpresas: transparência total nos valores mínimos, máximos e prazos de processamento via PIX.',
+    alternates: { canonical: 'https://preditybr.com/fees' },
+    openGraph: {
+        title: 'Taxas e Limites | PredityBR',
+        description: 'Todas as taxas e limites da plataforma, sem letras miúdas.',
+        url: 'https://preditybr.com/fees',
+        locale: 'pt_BR',
+    },
+};
 
 export default function FeesPage() {
     return (

@@ -1,10 +1,21 @@
 import BlogListClient from '@/components/BlogListClient';
 import { createClient } from '@/lib/supabase/server';
 
-export const metadata = {
-    title: 'PredityBR - Blog & Dicas',
-    description: 'Acompanhe as últimas dicas do mercado, novidades da plataforma e análises profundas sobre os mercados abertos da Predity.',
-}
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Blog & Análises de Mercado',
+    description:
+        'Análises aprofundadas, novidades da plataforma e dicas para melhorar suas previsões na PredityBR. Conteúdo exclusivo sobre política, futebol, economia e muito mais.',
+    alternates: { canonical: 'https://preditybr.com/blog' },
+    openGraph: {
+        title: 'Blog & Análises | PredityBR',
+        description: 'Conteúdo exclusivo para melhorar suas previsões e entender os mercados.',
+        url: 'https://preditybr.com/blog',
+        locale: 'pt_BR',
+        type: 'website',
+    },
+};
 
 export default async function PublicBlogPage() {
     // We are deliberately keeping this Server Component lean to fetch data and pass to the client,

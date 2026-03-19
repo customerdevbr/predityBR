@@ -133,10 +133,11 @@ export default function AdminBetsPage() {
                                         </td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${market.status === 'OPEN' ? 'bg-green-500/10 text-green-500' :
+                                                market.status === 'PENDING' ? 'bg-orange-500/10 text-orange-400 animate-pulse' :
                                                 market.status === 'RESOLVED' ? 'bg-blue-500/10 text-blue-500' :
                                                     'bg-red-500/10 text-red-500'
                                                 }`}>
-                                                {market.status === 'OPEN' ? 'Aberta' : market.status === 'RESOLVED' ? 'Resolvida' : 'Fechada'}
+                                                {market.status === 'OPEN' ? 'Aberta' : market.status === 'PENDING' ? '⏳ Pendente' : market.status === 'RESOLVED' ? 'Resolvida' : 'Fechada'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-gray-300">{market.category}</td>
