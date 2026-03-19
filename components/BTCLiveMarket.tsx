@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Zap, Clock, TrendingUp, TrendingDown, Users, Bitcoin } from 'lucide-react';
@@ -164,6 +165,7 @@ function CandleChart({
 
 // ── Componente Principal ────────────────────────────────────────────────────
 export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCLiveMarketProps) {
+    const router = useRouter();
     const [candles, setCandles] = useState<Candle[]>([]);
     const [liveCandle, setLiveCandle] = useState<Candle | null>(null);
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -175,6 +177,14 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
     const [balance, setBalance] = useState(0);
     const [wsStatus, setWsStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
     const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+    // Pools ao vivo (atualizados via Realtime)
+    const [livePools, setLivePools] = useState<{ total: number; SUBIU: number; CAIU: number }>({
+        total: market?.total_pool ?? 0,
+        SUBIU: market?.outcome_pools?.SUBIU ?? 0,
+        CAIU: market?.outcome_pools?.CAIU ?? 0,
+    });
+    const [marketStatus, setMarketStatus] = useState<string>(market?.status ?? 'OPEN');
+    const [reloadCountdown, setReloadCountdown] = useState<number | null>(null);
 
     const wsRef = useRef<WebSocket | null>(null);
     const openPrice: number = market?.metadata?.btc_open_price ?? 0;
@@ -228,6 +238,44 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
         }
         load();
     }, [market, currentUser, marketId]);
+
+    // ── Realtime: odds + status do mercado ────────────────────
+    useEffect(() => {
+        const channel = supabase
+            .channel(`market-btc-${marketId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'markets',
+                filter: `id=eq.${marketId}`,
+            }, (payload) => {
+                const m = payload.new as any;
+                setLivePools({
+                    total: m.total_pool ?? 0,
+                    SUBIU: m.outcome_pools?.SUBIU ?? 0,
+                    CAIU: m.outcome_pools?.CAIU ?? 0,
+                });
+                if (m.status !== 'OPEN') {
+                    setMarketStatus(m.status);
+                }
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [marketId]);
+
+    // ── Auto-reload quando mercado encerra ────────────────────
+    useEffect(() => {
+        if (marketStatus !== 'OPEN' || reloadCountdown !== null) return;
+        // Inicia contagem regressiva de 10s para buscar nova rodada
+        setReloadCountdown(10);
+    }, [marketStatus]);
+
+    useEffect(() => {
+        if (reloadCountdown === null) return;
+        if (reloadCountdown <= 0) { router.refresh(); return; }
+        const t = setTimeout(() => setReloadCountdown(prev => (prev ?? 1) - 1), 1000);
+        return () => clearTimeout(t);
+    }, [reloadCountdown, router]);
 
     // ── WebSocket Binance ──────────────────────────────────────
     useEffect(() => {
@@ -287,12 +335,17 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
     useEffect(() => {
         if (!market?.end_date) return;
         const tick = () => {
-            setTimeLeft(Math.max(0, Math.ceil((new Date(market.end_date).getTime() - Date.now()) / 1000)));
+            const left = Math.max(0, Math.ceil((new Date(market.end_date).getTime() - Date.now()) / 1000));
+            setTimeLeft(left);
+            // Quando zerar e ainda não iniciou reload, aguarda Realtime ou inicia por timeout
+            if (left === 0 && marketStatus === 'OPEN' && reloadCountdown === null) {
+                setReloadCountdown(12);
+            }
         };
         tick();
         const id = setInterval(tick, 1000);
         return () => clearInterval(id);
-    }, [market?.end_date]);
+    }, [market?.end_date, marketStatus, reloadCountdown]);
 
     // ── Aposta ─────────────────────────────────────────────────
     const handleBet = useCallback(async () => {
@@ -332,16 +385,45 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
 
-    const pools = market?.outcome_pools ?? {};
-    const totalPool = market?.total_pool ?? 0;
-    const subiuPool = pools['SUBIU'] ?? 0;
-    const aiuPool = pools['CAIU'] ?? 0;
+    const totalPool = livePools.total;
+    const subiuPool = livePools.SUBIU;
+    const aiuPool = livePools.CAIU;
     const subiuOddsRaw = subiuPool > 0 ? totalPool / subiuPool : 2;
     const aiuOddsRaw = aiuPool > 0 ? totalPool / aiuPool : 2;
     const subiuOdds = Math.max(1.0, 1 + (subiuOddsRaw - 1) * 0.65).toFixed(2);
     const aiuOdds = Math.max(1.0, 1 + (aiuOddsRaw - 1) * 0.65).toFixed(2);
 
     const fmtUSD = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // ── Rodada encerrada — aguardando nova ────────────────────
+    if (marketStatus !== 'OPEN' || reloadCountdown !== null) {
+        return (
+            <div className="bg-[#0a0f0a] border border-white/5 rounded-2xl p-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-[#f7931a]/10 rounded-full flex items-center justify-center mx-auto border border-[#f7931a]/20">
+                    <Bitcoin className="w-8 h-8 text-[#f7931a]" />
+                </div>
+                <div>
+                    <h3 className="text-white font-bold text-lg">Rodada Encerrada</h3>
+                    <p className="text-gray-500 text-sm mt-1">
+                        {marketStatus === 'RESOLVED' ? 'Resultado computado. ' : ''}
+                        Próxima rodada em instantes...
+                    </p>
+                </div>
+                {reloadCountdown !== null && reloadCountdown > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                        <div className="w-2 h-2 rounded-full bg-[#f7931a] animate-pulse" />
+                        Carregando nova rodada em {reloadCountdown}s
+                    </div>
+                )}
+                {reloadCountdown === 0 && (
+                    <div className="flex items-center justify-center gap-2 text-[#f7931a] text-sm font-bold">
+                        <div className="w-2 h-2 rounded-full bg-[#f7931a] animate-pulse" />
+                        Carregando...
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
@@ -368,9 +450,9 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                        <div className={`flex items-center gap-1.5 text-sm ${timeLeft <= 30 && timeLeft > 0 ? 'text-red-400' : 'text-gray-400'}`}>
                             <Clock className="w-3.5 h-3.5 text-primary" />
-                            <span className="font-mono font-bold text-white">
+                            <span className={`font-mono font-bold ${timeLeft <= 30 && timeLeft > 0 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
                                 {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
                             </span>
                         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Zap, Car, Clock, AlertTriangle, TrendingUp, TrendingDown, Users } from 'lucide-react';
@@ -34,8 +35,16 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
     const [userBet, setUserBet] = useState<any>(null);
     const [balance, setBalance] = useState(0);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+    const [livePools, setLivePools] = useState<{ total: number; MAIS: number; MENOS: number }>({
+        total: market?.total_pool ?? 0,
+        MAIS: market?.outcome_pools?.MAIS ?? 0,
+        MENOS: market?.outcome_pools?.MENOS ?? 0,
+    });
+    const [marketStatus, setMarketStatus] = useState<string>(market?.status ?? 'OPEN');
+    const [reloadCountdown, setReloadCountdown] = useState<number | null>(null);
     const countHistory = useRef<{ t: number; v: number }[]>([]);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const router = useRouter();
 
     const targetCount: number = market?.metadata?.target_count ?? 100;
     const marketId: string = market?.id;
@@ -117,17 +126,47 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
         return () => { supabase.removeChannel(ch); };
     }, [market]);
 
+    // ── Realtime: odds do mercado ─────────────────────────────
+    useEffect(() => {
+        const ch = supabase
+            .channel(`market-vehicle-${marketId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'markets',
+                filter: `id=eq.${marketId}`,
+            }, (payload) => {
+                const m = payload.new as any;
+                setLivePools({ total: m.total_pool ?? 0, MAIS: m.outcome_pools?.MAIS ?? 0, MENOS: m.outcome_pools?.MENOS ?? 0 });
+                if (m.status !== 'OPEN') setMarketStatus(m.status);
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [marketId]);
+
+    // ── Auto-reload quando mercado encerra ────────────────────
+    useEffect(() => {
+        if (marketStatus !== 'OPEN' && reloadCountdown === null) setReloadCountdown(10);
+    }, [marketStatus]);
+
+    useEffect(() => {
+        if (reloadCountdown === null) return;
+        if (reloadCountdown <= 0) { router.refresh(); return; }
+        const t = setTimeout(() => setReloadCountdown(p => (p ?? 1) - 1), 1000);
+        return () => clearTimeout(t);
+    }, [reloadCountdown, router]);
+
     // ── Contador regressivo ────────────────────────────────────
     useEffect(() => {
         if (!market?.end_date) return;
         const tick = () => {
             const diff = Math.max(0, new Date(market.end_date).getTime() - Date.now());
-            setTimeLeft(Math.ceil(diff / 1000));
+            const left = Math.ceil(diff / 1000);
+            setTimeLeft(left);
+            if (left === 0 && marketStatus === 'OPEN' && reloadCountdown === null) setReloadCountdown(12);
         };
         tick();
         const id = setInterval(tick, 1000);
         return () => clearInterval(id);
-    }, [market?.end_date]);
+    }, [market?.end_date, marketStatus, reloadCountdown]);
 
     // ── Dados do gráfico ──────────────────────────────────────
     useEffect(() => {
@@ -164,7 +203,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
         const amount = parseFloat(betAmount);
         if (!amount || amount < 5) { showToast('error', 'Valor mínimo de R$ 5,00.'); return; }
         if (amount > balance) { showToast('error', 'Saldo insuficiente.'); return; }
-        if (market?.status !== 'OPEN') { showToast('error', 'Este mercado não está mais aberto.'); return; }
+        if (marketStatus !== 'OPEN') { showToast('error', 'Este mercado não está mais aberto.'); return; }
 
         setSubmitting(true);
         try {
@@ -191,14 +230,34 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
     const pct = Math.min(100, ((round?.actual_count ?? 0) / targetCount) * 100);
     const isOver = round?.actual_count > targetCount;
 
-    const pools = market?.outcome_pools ?? {};
-    const totalPool = market?.total_pool ?? 0;
-    const maisPool = pools['MAIS'] ?? 0;
-    const menosPool = pools['MENOS'] ?? 0;
+    const totalPool = livePools.total;
+    const maisPool = livePools.MAIS;
+    const menosPool = livePools.MENOS;
     const maisOddsRaw = maisPool > 0 ? totalPool / maisPool : 2;
     const menosOddsRaw = menosPool > 0 ? totalPool / menosPool : 2;
     const maisOdds = Math.max(1.0, 1 + (maisOddsRaw - 1) * 0.65).toFixed(2);
     const menosOdds = Math.max(1.0, 1 + (menosOddsRaw - 1) * 0.65).toFixed(2);
+
+    // ── Rodada encerrada ──────────────────────────────────────
+    if (marketStatus !== 'OPEN' || reloadCountdown !== null) {
+        return (
+            <div className="bg-surface/30 border border-white/5 rounded-2xl p-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/20">
+                    <Car className="w-8 h-8 text-green-400" />
+                </div>
+                <div>
+                    <h3 className="text-white font-bold text-lg">Rodada Encerrada</h3>
+                    <p className="text-gray-500 text-sm mt-1">Próxima rodada em instantes...</p>
+                </div>
+                {reloadCountdown !== null && reloadCountdown > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                        Carregando nova rodada em {reloadCountdown}s
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
