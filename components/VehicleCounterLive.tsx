@@ -279,6 +279,25 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
                     autoPlay
                 />
 
+                {/* Linha de contagem SVG — y=45%, x de 5% a 85% (espelha o modelo) */}
+                <svg
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    viewBox="0 0 100 56.25"
+                    preserveAspectRatio="none"
+                >
+                    {/* Sombra da linha */}
+                    <line x1="5" y1="25.3" x2="85" y2="25.3" stroke="rgba(0,0,0,0.6)" strokeWidth="0.6" />
+                    {/* Linha principal verde */}
+                    <line x1="5" y1="25.3" x2="85" y2="25.3" stroke="#22c55e" strokeWidth="0.35" />
+                    {/* Pontas */}
+                    <circle cx="5"  cy="25.3" r="0.7" fill="#22c55e" />
+                    <circle cx="85" cy="25.3" r="0.7" fill="#22c55e" />
+                    {/* Label */}
+                    <text x="86" y="25.9" fill="#22c55e" fontSize="2.8" fontWeight="bold" fontFamily="monospace">
+                        IA
+                    </text>
+                </svg>
+
                 {/* Overlay de status */}
                 <div className="absolute top-3 left-3 flex items-center gap-2">
                     <span className="flex items-center gap-1.5 bg-black/70 backdrop-blur-sm text-red-400 text-xs font-bold px-2.5 py-1 rounded-full border border-red-500/30">
@@ -305,16 +324,15 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
                                 <span className="text-5xl font-black text-white tabular-nums">
                                     {round?.actual_count ?? 0}
                                 </span>
-                                <span className="text-lg text-gray-400 font-bold">/ {targetCount}</span>
                                 <span className={`text-sm font-bold flex items-center gap-1 ${isOver ? 'text-green-400' : 'text-orange-400'}`}>
                                     {isOver ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                                    {isOver ? 'acima' : 'abaixo'} da meta
+                                    {isOver ? 'acima' : 'abaixo'} de {targetCount}
                                 </span>
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-xs text-gray-500 mb-1">Meta anterior</p>
-                            <p className="text-lg font-bold text-gray-300">{prevRound?.actual_count ?? '–'}</p>
+                            <p className="text-xs text-gray-500 mb-1">Rodada anterior</p>
+                            <p className="text-lg font-bold text-gray-300">{prevRound?.actual_count ?? '–'} carros</p>
                         </div>
                     </div>
 
