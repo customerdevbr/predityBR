@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { LayoutDashboard, Users, Wallet, List, Shield, Activity, LifeBuoy, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Wallet, List, Shield, Activity, LifeBuoy, FileText, Radio } from 'lucide-react';
 import packageJson from '@/package.json';
 
 export default function AdminLayout({
@@ -46,6 +46,7 @@ export default function AdminLayout({
         { label: "Usuários", icon: Users, href: "/app/admin/users" },
         { label: "Financeiro", icon: Wallet, href: "/app/admin/finance" },
         { label: "Mercados", icon: List, href: "/app/admin/bets" },
+        { label: "Recorrentes", icon: Radio, href: "/app/admin/live-markets" },
         { label: "Segurança", icon: Shield, href: "/app/admin/security" },
         { label: "Atividades", icon: Activity, href: "/app/admin/activity" },
         { label: "Suporte", icon: LifeBuoy, href: "/app/admin/support" },

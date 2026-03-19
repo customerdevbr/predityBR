@@ -79,7 +79,7 @@ export default function ProfilePage() {
 
             const [profileRes, betsRes, txRes] = await Promise.all([
                 supabase.from('users').select('*').eq('id', session.user.id).single(),
-                supabase.from('bets').select('*, markets(title, status)').eq('user_id', session.user.id).order('created_at', { ascending: false }),
+                supabase.from('bets').select('*, markets(title, status, metadata, resolved_outcome)').eq('user_id', session.user.id).order('created_at', { ascending: false }),
                 supabase.from('transactions').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50),
             ]);
 
@@ -616,6 +616,38 @@ export default function ProfilePage() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Detalhes por tipo de mercado */}
+                                {bet.markets?.metadata?.market_type === 'VEHICLE' && (
+                                    <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                                        <span>🚗 Câmera ao vivo</span>
+                                        {bet.markets.metadata.target_count != null && (
+                                            <span>Meta: <span className="text-gray-300 font-bold">{bet.markets.metadata.target_count}</span></span>
+                                        )}
+                                        {bet.markets.metadata.actual_count != null && (
+                                            <span>Real: <span className={`font-bold ${bet.markets.metadata.actual_count > bet.markets.metadata.target_count ? 'text-green-400' : 'text-red-400'}`}>{bet.markets.metadata.actual_count}</span></span>
+                                        )}
+                                        {bet.markets.resolved_outcome && (
+                                            <span>Resultado: <span className={`font-bold ${bet.markets.resolved_outcome === 'MAIS' ? 'text-green-400' : 'text-red-400'}`}>{bet.markets.resolved_outcome}</span></span>
+                                        )}
+                                        <span className="text-gray-700 font-mono">{bet.market_id.slice(-8)}</span>
+                                    </div>
+                                )}
+
+                                {bet.markets?.metadata?.market_type === 'BTC' && (
+                                    <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                                        <span>₿ BTC/USDT</span>
+                                        {bet.markets.metadata.btc_open_price != null && (
+                                            <span>Abertura: <span className="text-gray-300 font-mono font-bold">${bet.markets.metadata.btc_open_price.toLocaleString('en-US')}</span></span>
+                                        )}
+                                        {bet.markets.metadata.btc_close_price != null && (
+                                            <span>Fechamento: <span className={`font-mono font-bold ${bet.markets.metadata.btc_close_price > bet.markets.metadata.btc_open_price ? 'text-green-400' : 'text-red-400'}`}>${bet.markets.metadata.btc_close_price.toLocaleString('en-US')}</span></span>
+                                        )}
+                                        {bet.markets.resolved_outcome && (
+                                            <span>Resultado: <span className={`font-bold ${bet.markets.resolved_outcome === 'SUBIU' ? 'text-green-400' : 'text-red-400'}`}>{bet.markets.resolved_outcome}</span></span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -180,12 +180,13 @@ export async function getLastFinishedRound() {
 /** Cria um mercado de contagem de veículos */
 export async function createVehicleMarket(
     roundId: string,
-    targetCount: number
+    targetCount: number,
+    roundEndTime?: string   // ISO string vindo do servidor (preciso)
 ): Promise<string | null> {
     const supabase = getAdminClient();
 
     const now = new Date();
-    const endDate = new Date(now.getTime() + 5 * 60_000);
+    const endDate = roundEndTime ? new Date(roundEndTime) : new Date(now.getTime() + 5 * 60_000);
 
     const title = `🚗 Câmera Ao Vivo: Vão passar MAIS de ${targetCount} veículos nesta rodada?`;
     const description =

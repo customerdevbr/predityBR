@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
     }
 
-    const { action, round_id, target_count, actual_count, rounded_count } = body;
+    const { action, round_id, target_count, actual_count, rounded_count, end_time } = body;
 
     if (!action || !round_id) {
         return NextResponse.json({ error: 'Campos obrigatórios: action, round_id' }, { status: 400 });
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
             meta = lastRound?.rounded_count ?? 100;
         }
 
-        const marketId = await createVehicleMarket(round_id, meta);
+        const marketId = await createVehicleMarket(round_id, meta, end_time);
         if (!marketId) {
             return NextResponse.json({ error: 'Falha ao criar mercado' }, { status: 500 });
         }
@@ -92,6 +92,31 @@ export async function POST(req: NextRequest) {
             actual_count,
             rounded_count: finalRounded,
         });
+    }
+
+    if (action === 'void') {
+        // Busca o mercado aberto para esta rodada e cancela (reembolso automático via void_market RPC)
+        const { data: market } = await supabase
+            .from('markets')
+            .select('id')
+            .eq('metadata->>market_type', 'VEHICLE')
+            .eq('metadata->>round_id', round_id)
+            .in('status', ['OPEN', 'PENDING'])
+            .limit(1)
+            .maybeSingle();
+
+        if (!market) {
+            return NextResponse.json({ error: 'Mercado não encontrado para cancelar' }, { status: 404 });
+        }
+
+        const { error } = await supabase.rpc('void_market', { p_market_id: market.id });
+        if (error) {
+            console.error('[Webhook] Erro ao cancelar mercado:', error.message);
+            return NextResponse.json({ error: 'Falha ao cancelar mercado' }, { status: 500 });
+        }
+
+        console.log(`[Webhook] Mercado ${market.id} cancelado (stream_failure) — apostas reembolsadas`);
+        return NextResponse.json({ ok: true, action: 'market_voided', market_id: market.id });
     }
 
     return NextResponse.json({ error: `Ação desconhecida: ${action}` }, { status: 400 });
