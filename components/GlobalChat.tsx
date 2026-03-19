@@ -36,7 +36,8 @@ export default function GlobalChat({ userId }: { userId: string | null }) {
         setUnread(0);
         loadMessages();
 
-        const ch = supabase
+        let ch: any;
+        try { ch = supabase
             .channel('global-chat-live')
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'global_chat_messages',
@@ -62,20 +63,24 @@ export default function GlobalChat({ userId }: { userId: string | null }) {
                 }]);
             })
             .subscribe();
+        } catch {}
 
-        return () => { supabase.removeChannel(ch); };
+        return () => { if (ch) supabase.removeChannel(ch); };
     }, [isOpen]);
 
     // Subscribe para unread quando fechado
     useEffect(() => {
         if (isOpen) return;
-        const ch = supabase
-            .channel('global-chat-unread')
-            .on('postgres_changes', {
-                event: 'INSERT', schema: 'public', table: 'global_chat_messages',
-            }, () => setUnread(p => p + 1))
-            .subscribe();
-        return () => { supabase.removeChannel(ch); };
+        let ch: any;
+        try {
+            ch = supabase
+                .channel('global-chat-unread')
+                .on('postgres_changes', {
+                    event: 'INSERT', schema: 'public', table: 'global_chat_messages',
+                }, () => setUnread(p => p + 1))
+                .subscribe();
+        } catch {}
+        return () => { if (ch) supabase.removeChannel(ch); };
     }, [isOpen]);
 
     // Auto-scroll
