@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Zap, Car, Clock, AlertTriangle, TrendingUp, TrendingDown, Users } from 'lucide-react';
@@ -44,7 +43,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
     const [reloadCountdown, setReloadCountdown] = useState<number | null>(null);
     const countHistory = useRef<{ t: number; v: number }[]>([]);
     const videoRef = useRef<HTMLVideoElement>(null);
-    const router = useRouter();
 
     const targetCount: number = market?.metadata?.target_count ?? 100;
     const marketId: string = market?.id;
@@ -149,10 +147,10 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
 
     useEffect(() => {
         if (reloadCountdown === null) return;
-        if (reloadCountdown <= 0) { router.refresh(); return; }
+        if (reloadCountdown <= 0) { window.location.reload(); return; }
         const t = setTimeout(() => setReloadCountdown(p => (p ?? 1) - 1), 1000);
         return () => clearTimeout(t);
-    }, [reloadCountdown, router]);
+    }, [reloadCountdown]);
 
     // ── Contador regressivo ────────────────────────────────────
     useEffect(() => {

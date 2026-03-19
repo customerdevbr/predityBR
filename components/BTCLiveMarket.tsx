@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Zap, Clock, TrendingUp, TrendingDown, Users, Bitcoin } from 'lucide-react';
@@ -165,7 +164,6 @@ function CandleChart({
 
 // ── Componente Principal ────────────────────────────────────────────────────
 export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCLiveMarketProps) {
-    const router = useRouter();
     const [candles, setCandles] = useState<Candle[]>([]);
     const [liveCandle, setLiveCandle] = useState<Candle | null>(null);
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -272,10 +270,10 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
 
     useEffect(() => {
         if (reloadCountdown === null) return;
-        if (reloadCountdown <= 0) { router.refresh(); return; }
+        if (reloadCountdown <= 0) { window.location.reload(); return; }
         const t = setTimeout(() => setReloadCountdown(prev => (prev ?? 1) - 1), 1000);
         return () => clearTimeout(t);
-    }, [reloadCountdown, router]);
+    }, [reloadCountdown]);
 
     // ── WebSocket Binance ──────────────────────────────────────
     useEffect(() => {
