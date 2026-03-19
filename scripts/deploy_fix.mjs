@@ -4,7 +4,7 @@ const conn = new Client();
 
 conn.on('ready', () => {
     console.log('Client :: ready');
-    conn.exec('export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh" && cd /var/www/preditybr && git pull origin main && npm run build && pm2 restart predity-web', (err, stream) => {
+    conn.exec('export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh" && nvm use 20 && cd /var/www/preditybr && rm -f .next/lock && git fetch origin && git reset --hard origin/main && npm run build && pm2 restart predity-web', (err, stream) => {
         if (err) throw err;
         stream.on('close', (code, signal) => {
             console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
