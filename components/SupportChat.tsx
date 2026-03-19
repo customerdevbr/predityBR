@@ -256,16 +256,6 @@ export default function SupportChat({ user: initialUser }: { user: User | null }
 
     return (
         <>
-            {/* Floating Chat Button — visível em todas as páginas quando logado */}
-            <button
-                onClick={toggleChat}
-                aria-label="Abrir suporte"
-                className="fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-primary text-white px-2 py-4 rounded-l-xl shadow-xl hover:bg-primary/90 transition-all flex flex-col items-center gap-1.5"
-            >
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-[9px] font-bold uppercase tracking-wide [writing-mode:vertical-rl] rotate-180">Chat</span>
-            </button>
-
             {/* Chat Sidebar/Overlay */}
             {isOpen && (
                 <div className="fixed inset-0 z-[60] flex justify-end">
