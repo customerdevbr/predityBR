@@ -13,6 +13,7 @@ interface VehicleCounterLiveProps {
     market: any;
     currentUser: any;
     onBetPlaced?: () => void;
+    serverNow?: number;  // Date.now() medido no servidor (SSR) — evita drift de relógio do cliente
 }
 
 interface RoundSnapshot {
@@ -23,7 +24,7 @@ interface RoundSnapshot {
 
 const STREAM_URL = 'https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8';
 
-export default function VehicleCounterLive({ market, currentUser, onBetPlaced }: VehicleCounterLiveProps) {
+export default function VehicleCounterLive({ market, currentUser, onBetPlaced, serverNow }: VehicleCounterLiveProps) {
     const [round, setRound] = useState<any>(null);
     const [prevRound, setPrevRound] = useState<any>(null);
     const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -172,10 +173,19 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
     }, [reloadCountdown]);
 
     // ── Contador regressivo ────────────────────────────────────
+    // Usa serverNow (timestamp SSR) como referência para evitar drift do relógio do cliente.
+    // elapsed = tempo decorrido desde o carregamento da página (calculado com delta, sem clock absoluto)
+    // remaining = (end_date - serverNow) - elapsed
+    const mountedClientAt = useRef(Date.now());
     useEffect(() => {
         if (!market?.end_date) return;
+        const endMs = new Date(market.end_date).getTime();
+        const referenceNow = serverNow ?? Date.now();
+        const initialRemaining = endMs - referenceNow; // calculado no servidor — preciso
+
         const tick = () => {
-            const diff = Math.max(0, new Date(market.end_date).getTime() - Date.now());
+            const elapsed = Date.now() - mountedClientAt.current;
+            const diff = Math.max(0, initialRemaining - elapsed);
             const left = Math.ceil(diff / 1000);
             setTimeLeft(left);
             if (left === 0 && marketStatus === 'OPEN' && reloadCountdown === null) setReloadCountdown(12);
@@ -183,7 +193,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
         tick();
         const id = setInterval(tick, 1000);
         return () => clearInterval(id);
-    }, [market?.end_date, marketStatus, reloadCountdown]);
+    }, [market?.end_date, serverNow, marketStatus, reloadCountdown]);
 
     // ── Dados do gráfico ──────────────────────────────────────
     useEffect(() => {
