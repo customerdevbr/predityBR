@@ -154,14 +154,27 @@ export default function MarketCard({ id, title, category, imageUrl, endDate, poo
                 <div className="relative h-32 bg-gray-800 overflow-hidden">
                     {imageUrl ? (
                         <img src={imageUrl} alt={title} className="w-full h-full object-cover opacity-50 group-hover:opacity-60 transition-all duration-700 group-hover:scale-105" />
+                    ) : metadata?.market_type === 'BTC' ? (
+                        <div className="w-full h-full bg-gradient-to-br from-[#f7931a]/30 via-[#1a1a2e] to-black flex items-center justify-center">
+                            <span className="text-6xl opacity-20 group-hover:opacity-30 transition-opacity select-none">₿</span>
+                        </div>
+                    ) : metadata?.market_type === 'VEHICLE' ? (
+                        <div className="w-full h-full bg-gradient-to-br from-green-900/40 via-[#0f1a0f] to-black flex items-center justify-center">
+                            <span className="text-5xl opacity-20 group-hover:opacity-30 transition-opacity select-none">🚗</span>
+                        </div>
                     ) : (
                         <div className="w-full h-full bg-gradient-to-br from-gray-800 to-black"></div>
                     )}
 
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
                         <span className="px-2 py-1 bg-black/60 backdrop-blur border border-white/10 rounded text-[10px] font-bold text-white uppercase tracking-wider">
                             {category}
                         </span>
+                        {metadata?.auto_market && (
+                            <span className="px-2 py-1 bg-red-500/80 backdrop-blur border border-red-400/30 rounded text-[10px] font-bold text-white uppercase tracking-wider animate-pulse">
+                                ● AO VIVO
+                            </span>
+                        )}
                     </div>
 
                     <div className={`absolute top-3 right-3 px-2 py-1 rounded backdrop-blur border flex items-center gap-1.5 shadow-lg ${isUrgent ? 'bg-red-500/80 text-white border-red-500' : 'bg-black/60 border-white/10 text-gray-300'}`}>
