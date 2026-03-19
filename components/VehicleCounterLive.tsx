@@ -41,6 +41,9 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
     });
     const [marketStatus, setMarketStatus] = useState<string>(market?.status ?? 'OPEN');
     const [reloadCountdown, setReloadCountdown] = useState<number | null>(null);
+    // Bounding boxes recebidas do servidor via Supabase Realtime Broadcast
+    const [detBoxes, setDetBoxes] = useState<Array<{ id: number; cx: number; cy: number; w: number; h: number }>>([]);
+    const [broadcastCount, setBroadcastCount] = useState<number | null>(null);
     const countHistory = useRef<{ t: number; v: number }[]>([]);
     const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -140,6 +143,22 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
         return () => { supabase.removeChannel(ch); };
     }, [marketId]);
 
+    // ── Realtime Broadcast: bounding boxes da IA ─────────────
+    useEffect(() => {
+        const roundId = market?.metadata?.round_id;
+        if (!roundId) return;
+
+        const ch = supabase
+            .channel(`det-${roundId}`)
+            .on('broadcast', { event: 'det' }, ({ payload }) => {
+                setDetBoxes(payload.boxes ?? []);
+                if (payload.count != null) setBroadcastCount(payload.count);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(ch); };
+    }, [market?.metadata?.round_id]);
+
     // ── Auto-reload quando mercado encerra ────────────────────
     useEffect(() => {
         if (marketStatus !== 'OPEN' && reloadCountdown === null) setReloadCountdown(10);
@@ -225,8 +244,11 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
 
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
-    const pct = Math.min(100, ((round?.actual_count ?? 0) / targetCount) * 100);
-    const isOver = round?.actual_count > targetCount;
+    // broadcastCount vem do servidor a cada 500ms (mais imediato)
+    // round.actual_count vem do banco a cada 1s (autoritativo para apostas)
+    const liveCount = broadcastCount ?? round?.actual_count ?? 0;
+    const pct = Math.min(100, (liveCount / targetCount) * 100);
+    const isOver = liveCount > targetCount;
 
     const totalPool = livePools.total;
     const maisPool = livePools.MAIS;
@@ -279,23 +301,42 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
                     autoPlay
                 />
 
-                {/* Linha de contagem SVG — y=45%, x de 5% a 85% (espelha o modelo) */}
+                {/* Overlay SVG: linha de contagem + bounding boxes da IA
+                    viewBox espelha resolução real da câmera (704×480).
+                    As detecções são em espaço 640×640 normalizado (0-1),
+                    mapeamos para 704×480: x_cam = cx*704, y_cam = cy*480.
+                    preserveAspectRatio="xMidYMid slice" = object-cover */}
                 <svg
                     className="absolute inset-0 w-full h-full pointer-events-none"
-                    viewBox="0 0 100 56.25"
-                    preserveAspectRatio="none"
+                    viewBox="0 0 704 480"
+                    preserveAspectRatio="xMidYMid slice"
                 >
-                    {/* Sombra da linha */}
-                    <line x1="5" y1="25.3" x2="85" y2="25.3" stroke="rgba(0,0,0,0.6)" strokeWidth="0.6" />
-                    {/* Linha principal verde */}
-                    <line x1="5" y1="25.3" x2="85" y2="25.3" stroke="#22c55e" strokeWidth="0.35" />
-                    {/* Pontas */}
-                    <circle cx="5"  cy="25.3" r="0.7" fill="#22c55e" />
-                    <circle cx="85" cy="25.3" r="0.7" fill="#22c55e" />
-                    {/* Label */}
-                    <text x="86" y="25.9" fill="#22c55e" fontSize="2.8" fontWeight="bold" fontFamily="monospace">
-                        IA
-                    </text>
+                    {/* Bounding boxes amarelas — cada veículo rastreado pelo servidor */}
+                    {detBoxes.map(box => {
+                        const x = (box.cx - box.w / 2) * 704;
+                        const y = (box.cy - box.h / 2) * 480;
+                        const w = box.w * 704;
+                        const h = box.h * 480;
+                        return (
+                            <g key={box.id}>
+                                <rect x={x} y={y} width={w} height={h}
+                                    fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" />
+                                <rect x={x} y={y} width={w} height={h}
+                                    fill="rgba(245,158,11,0.08)" stroke="#f59e0b" strokeWidth="1.5" />
+                            </g>
+                        );
+                    })}
+
+                    {/* Linha de contagem verde — y=45% da imagem 640×640 → y=216 em 480px */}
+                    <line x1="35" y1="216" x2="598" y2="216"
+                        stroke="rgba(0,0,0,0.5)" strokeWidth="3" />
+                    <line x1="35" y1="216" x2="598" y2="216"
+                        stroke="#22c55e" strokeWidth="2" />
+                    <circle cx="35"  cy="216" r="4" fill="#22c55e" />
+                    <circle cx="598" cy="216" r="4" fill="#22c55e" />
+                    <rect x="601" y="207" width="32" height="16" rx="3" fill="rgba(0,0,0,0.6)" />
+                    <text x="617" y="218" fill="#22c55e" fontSize="9" fontWeight="bold"
+                        fontFamily="monospace" textAnchor="middle">IA</text>
                 </svg>
 
                 {/* Overlay de status */}
@@ -322,7 +363,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced }:
                             <p className="text-xs text-gray-400 mb-0.5">Veículos contabilizados</p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-5xl font-black text-white tabular-nums">
-                                    {round?.actual_count ?? 0}
+                                    {liveCount}
                                 </span>
                                 <span className={`text-sm font-bold flex items-center gap-1 ${isOver ? 'text-green-400' : 'text-orange-400'}`}>
                                     {isOver ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
