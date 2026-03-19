@@ -60,6 +60,7 @@ export default async function BTCMarketPage() {
                     <BTCLiveMarket
                         market={market}
                         currentUser={session?.user ?? null}
+                        serverNow={Date.now()}
                     />
                 ) : (
                     <div className="bg-surface/30 border border-white/5 rounded-2xl p-8 text-center space-y-3">

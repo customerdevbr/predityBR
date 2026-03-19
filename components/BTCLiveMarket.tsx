@@ -9,6 +9,7 @@ interface BTCLiveMarketProps {
     market: any;
     currentUser: any;
     onBetPlaced?: () => void;
+    serverNow?: number;
 }
 
 interface Candle {
@@ -162,8 +163,70 @@ function CandleChart({
     );
 }
 
+// ── HistoryDots ─────────────────────────────────────────────────────────────
+function HistoryDots({ markets }: { markets: Array<{ id: string; resolution_result?: string }> }) {
+    if (!markets.length) return null;
+    return (
+        <div className="flex items-center gap-1.5 flex-wrap">
+            {markets.map(m => {
+                const isUp = m.resolution_result === 'SUBIU';
+                return (
+                    <span
+                        key={m.id}
+                        title={isUp ? 'SUBIU' : 'CAIU'}
+                        className={`w-3 h-3 rounded-full border ${isUp ? 'bg-green-500 border-green-400' : 'bg-red-500 border-red-400'}`}
+                    />
+                );
+            })}
+        </div>
+    );
+}
+
+// ── LiveBetsFeed ─────────────────────────────────────────────────────────────
+function LiveBetsFeed({ marketId, greenOutcome, labels, max = 6 }: {
+    marketId: string;
+    greenOutcome: string;
+    labels: Record<string, string>;
+    max?: number;
+}) {
+    const [bets, setBets] = useState<Array<{ id: string; outcome: string; amount: number }>>([]);
+
+    useEffect(() => {
+        supabase.from('bets').select('id, outcome, amount, created_at')
+            .eq('market_id', marketId).order('created_at', { ascending: false }).limit(max)
+            .then(({ data }) => { if (data) setBets(data.reverse()); });
+
+        const ch = supabase.channel(`bets-feed-btc-${marketId}`)
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'bets',
+                filter: `market_id=eq.${marketId}`,
+            }, (payload) => {
+                const b = payload.new as any;
+                setBets(prev => [...prev.slice(-(max - 1)), { id: b.id, outcome: b.outcome, amount: b.amount }]);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(ch); };
+    }, [marketId, max]);
+
+    if (!bets.length) return <p className="text-xs text-gray-600 italic">Nenhum palpite ainda nesta rodada.</p>;
+
+    return (
+        <div className="space-y-1.5">
+            {bets.map(b => (
+                <div key={b.id} className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-3 py-1.5">
+                    <span className={`font-bold ${b.outcome === greenOutcome ? 'text-green-400' : 'text-red-400'}`}>
+                        {labels[b.outcome] ?? b.outcome}
+                    </span>
+                    <span className="text-gray-300">{b.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 // ── Componente Principal ────────────────────────────────────────────────────
-export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCLiveMarketProps) {
+export default function BTCLiveMarket({ market, currentUser, onBetPlaced, serverNow }: BTCLiveMarketProps) {
     const [candles, setCandles] = useState<Candle[]>([]);
     const [liveCandle, setLiveCandle] = useState<Candle | null>(null);
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -185,6 +248,8 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
     const [reloadCountdown, setReloadCountdown] = useState<number | null>(null);
 
     const wsRef = useRef<WebSocket | null>(null);
+    const mountedClientAt = useRef(Date.now());
+    const [historyMarkets, setHistoryMarkets] = useState<any[]>([]);
     const openPrice: number = market?.metadata?.btc_open_price ?? 0;
     const marketId: string = market?.id;
 
@@ -198,13 +263,8 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
         async function load() {
             // Histórico de candles (1m) da Binance REST
             try {
-                const windowStart = market?.metadata?.btc_window_start
-                    ? Math.floor(new Date(market.metadata.btc_window_start).getTime())
-                    : Date.now() - 10 * CANDLE_INTERVAL_MS;
-
-                const startTime = windowStart - 10 * CANDLE_INTERVAL_MS;
                 const res = await fetch(
-                    `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&startTime=${startTime}&limit=20`
+                    `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=15`
                 );
                 if (res.ok) {
                     const raw = await res.json();
@@ -219,6 +279,18 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
                     const last = parsed[parsed.length - 1];
                     if (last) setCurrentPrice(last.close);
                 }
+            } catch {}
+
+            // Histórico de mercados resolvidos (para history dots)
+            try {
+                const { data: hist } = await supabase
+                    .from('markets')
+                    .select('id, resolution_result')
+                    .eq('status', 'RESOLVED')
+                    .eq('metadata->>market_type', 'BTC')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                if (hist) setHistoryMarkets(hist.reverse());
             } catch {}
 
             // Aposta do usuário
@@ -260,6 +332,22 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
             .subscribe();
         return () => { supabase.removeChannel(channel); };
     }, [marketId]);
+
+    // ── Realtime: novos mercados BTC resolvidos (history dots) ─
+    useEffect(() => {
+        const ch = supabase
+            .channel('btc-hist-markets')
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'markets',
+            }, (payload) => {
+                const m = payload.new as any;
+                if (m.status === 'RESOLVED' && m.metadata?.market_type === 'BTC') {
+                    setHistoryMarkets(prev => [...prev.slice(-9), { id: m.id, resolution_result: m.resolution_result }]);
+                }
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, []);
 
     // ── Auto-reload quando mercado encerra ────────────────────
     useEffect(() => {
@@ -329,13 +417,18 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
         };
     }, []);
 
-    // ── Timer regressivo ───────────────────────────────────────
+    // ── Timer regressivo (serverNow evita drift do relógio do cliente) ────────
     useEffect(() => {
         if (!market?.end_date) return;
+        const endMs = new Date(market.end_date).getTime();
+        const referenceNow = serverNow ?? Date.now();
+        const initialRemaining = endMs - referenceNow;
+
         const tick = () => {
-            const left = Math.max(0, Math.ceil((new Date(market.end_date).getTime() - Date.now()) / 1000));
+            const elapsed = Date.now() - mountedClientAt.current;
+            const diff = Math.max(0, initialRemaining - elapsed);
+            const left = Math.ceil(diff / 1000);
             setTimeLeft(left);
-            // Quando zerar e ainda não iniciou reload, aguarda Realtime ou inicia por timeout
             if (left === 0 && marketStatus === 'OPEN' && reloadCountdown === null) {
                 setReloadCountdown(12);
             }
@@ -343,7 +436,7 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
         tick();
         const id = setInterval(tick, 1000);
         return () => clearInterval(id);
-    }, [market?.end_date, marketStatus, reloadCountdown]);
+    }, [market?.end_date, serverNow, marketStatus, reloadCountdown]);
 
     // ── Aposta ─────────────────────────────────────────────────
     const handleBet = useCallback(async () => {
@@ -483,6 +576,26 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced }: BTCL
                             markers={[]}
                             openPrice={openPrice}
                             height={200}
+                        />
+                    </div>
+                </div>
+
+                {/* ── Histórico de Rodadas + Participantes ─── */}
+                <div className="mt-4 space-y-3 border-t border-white/5 pt-4">
+                    {historyMarkets.length > 0 && (
+                        <div>
+                            <p className="text-xs text-gray-500 mb-2 font-medium">Últimas rodadas</p>
+                            <HistoryDots markets={historyMarkets} />
+                        </div>
+                    )}
+                    <div>
+                        <p className="text-xs text-gray-500 mb-2 font-medium flex items-center gap-1">
+                            <Users className="w-3 h-3" /> Participantes desta rodada
+                        </p>
+                        <LiveBetsFeed
+                            marketId={marketId}
+                            greenOutcome="SUBIU"
+                            labels={{ SUBIU: '↑ SUBIU', CAIU: '↓ CAIU' }}
                         />
                     </div>
                 </div>

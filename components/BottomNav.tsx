@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Wallet, User as UserIcon, TrendingUp, MessageCircle } from 'lucide-react';
+import { Home, Wallet, User as UserIcon, TrendingUp, Headphones } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -63,7 +63,7 @@ export default function BottomNav() {
                     onClick={handleSupportClick}
                     className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-300 transition-colors"
                 >
-                    <MessageCircle className="w-6 h-6" />
+                    <Headphones className="w-6 h-6" />
                     <span className="text-[10px] font-bold uppercase tracking-wide">Suporte</span>
                 </button>
             </div>

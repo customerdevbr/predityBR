@@ -4,10 +4,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Zap, Car, Clock, AlertTriangle, TrendingUp, TrendingDown, Users } from 'lucide-react';
-import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    ReferenceLine, Cell, CartesianGrid
-} from 'recharts';
 
 interface VehicleCounterLiveProps {
     market: any;
@@ -16,19 +12,73 @@ interface VehicleCounterLiveProps {
     serverNow?: number;  // Date.now() medido no servidor (SSR) — evita drift de relógio do cliente
 }
 
-interface RoundSnapshot {
-    label: string;
-    count: number;
-    isCurrent: boolean;
+const STREAM_URL = 'https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8';
+
+function HistoryDots({ markets }: { markets: Array<{ id: string; resolution_result?: string }> }) {
+    if (!markets.length) return null;
+    return (
+        <div className="flex items-center gap-1.5 flex-wrap">
+            {markets.map(m => {
+                const isMore = m.resolution_result === 'MAIS';
+                return (
+                    <span
+                        key={m.id}
+                        title={isMore ? 'MAIS' : 'MENOS'}
+                        className={`w-3 h-3 rounded-full border ${isMore ? 'bg-green-500 border-green-400' : 'bg-red-500 border-red-400'}`}
+                    />
+                );
+            })}
+        </div>
+    );
 }
 
-const STREAM_URL = 'https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8';
+function LiveBetsFeed({ marketId, greenOutcome, labels, max = 6 }: {
+    marketId: string;
+    greenOutcome: string;
+    labels: Record<string, string>;
+    max?: number;
+}) {
+    const [bets, setBets] = useState<Array<{ id: string; outcome: string; amount: number }>>([]);
+
+    useEffect(() => {
+        supabase.from('bets').select('id, outcome, amount, created_at')
+            .eq('market_id', marketId).order('created_at', { ascending: false }).limit(max)
+            .then(({ data }) => { if (data) setBets(data.reverse()); });
+
+        const ch = supabase.channel(`bets-feed-${marketId}`)
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'bets',
+                filter: `market_id=eq.${marketId}`,
+            }, (payload) => {
+                const b = payload.new as any;
+                setBets(prev => [...prev.slice(-(max - 1)), { id: b.id, outcome: b.outcome, amount: b.amount }]);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(ch); };
+    }, [marketId, max]);
+
+    if (!bets.length) return <p className="text-xs text-gray-600 italic">Nenhum palpite ainda nesta rodada.</p>;
+
+    return (
+        <div className="space-y-1.5">
+            {bets.map(b => (
+                <div key={b.id} className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-3 py-1.5">
+                    <span className={`font-bold ${b.outcome === greenOutcome ? 'text-green-400' : 'text-red-400'}`}>
+                        {labels[b.outcome] ?? b.outcome}
+                    </span>
+                    <span className="text-gray-400">{formatCurrency(b.amount)}</span>
+                </div>
+            ))}
+        </div>
+    );
+}
 
 export default function VehicleCounterLive({ market, currentUser, onBetPlaced, serverNow }: VehicleCounterLiveProps) {
     const [round, setRound] = useState<any>(null);
     const [prevRound, setPrevRound] = useState<any>(null);
     const [timeLeft, setTimeLeft] = useState<number>(0);
-    const [chartData, setChartData] = useState<RoundSnapshot[]>([]);
+    const [historyMarkets, setHistoryMarkets] = useState<any[]>([]);
     const [betSide, setBetSide] = useState<'MAIS' | 'MENOS' | null>(null);
     const [betAmount, setBetAmount] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -79,6 +129,16 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                 .limit(1)
                 .maybeSingle();
             if (prev) setPrevRound(prev);
+
+            // Histórico de mercados resolvidos (para history dots)
+            const { data: hist } = await supabase
+                .from('markets')
+                .select('id, resolution_result')
+                .eq('status', 'RESOLVED')
+                .eq('metadata->>market_type', 'VEHICLE')
+                .order('created_at', { ascending: false })
+                .limit(10);
+            if (hist) setHistoryMarkets(hist.reverse());
 
             // Aposta do usuário
             if (currentUser) {
@@ -160,6 +220,22 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         return () => { supabase.removeChannel(ch); };
     }, [market?.metadata?.round_id]);
 
+    // ── Realtime: novos mercados resolvidos (history dots) ────
+    useEffect(() => {
+        const ch = supabase
+            .channel('vehicle-hist-markets')
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'markets',
+            }, (payload) => {
+                const m = payload.new as any;
+                if (m.status === 'RESOLVED' && m.metadata?.market_type === 'VEHICLE') {
+                    setHistoryMarkets(prev => [...prev.slice(-9), { id: m.id, resolution_result: m.resolution_result }]);
+                }
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, []);
+
     // ── Auto-reload quando mercado encerra ────────────────────
     useEffect(() => {
         if (marketStatus !== 'OPEN' && reloadCountdown === null) setReloadCountdown(10);
@@ -194,16 +270,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         const id = setInterval(tick, 1000);
         return () => clearInterval(id);
     }, [market?.end_date, serverNow, marketStatus, reloadCountdown]);
-
-    // ── Dados do gráfico ──────────────────────────────────────
-    useEffect(() => {
-        const actual = round?.actual_count ?? 0;
-        const prevFinal = prevRound?.actual_count ?? 0;
-        setChartData([
-            { label: 'Rodada Anterior', count: prevFinal, isCurrent: false },
-            { label: 'Esta Rodada', count: actual, isCurrent: true },
-        ]);
-    }, [round, prevRound]);
 
     // ── HLS player (baixo delay) ────────────────────────────────
     useEffect(() => {
@@ -422,31 +488,24 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                 </div>
             </div>
 
-            {/* ── Gráfico de Comparação ──────────────────────────── */}
-            <div className="bg-surface/30 border border-white/5 rounded-2xl p-4">
-                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                    <Car className="w-4 h-4 text-primary" />
-                    Comparativo de Rodadas
-                </h3>
-                <ResponsiveContainer width="100%" height={140}>
-                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="label" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <Tooltip
-                            contentStyle={{ background: '#1a1d24', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
-                            labelStyle={{ color: '#fff', fontWeight: 700 }}
-                            itemStyle={{ color: '#04B305' }}
-                            formatter={(v: any) => [`${v} veículos`, '']}
-                        />
-                        <ReferenceLine y={targetCount} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: `Meta ${targetCount}`, fill: '#f59e0b', fontSize: 10 }} />
-                        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                            {chartData.map((entry, i) => (
-                                <Cell key={i} fill={entry.isCurrent ? '#04B305' : '#233357'} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
+            {/* ── Histórico de Rodadas + Participantes ───────────── */}
+            <div className="bg-surface/30 border border-white/5 rounded-2xl p-4 space-y-4">
+                {historyMarkets.length > 0 && (
+                    <div>
+                        <p className="text-xs text-gray-500 mb-2 font-medium">Últimas rodadas</p>
+                        <HistoryDots markets={historyMarkets} />
+                    </div>
+                )}
+                <div>
+                    <p className="text-xs text-gray-500 mb-2 font-medium flex items-center gap-1">
+                        <Users className="w-3 h-3" /> Participantes desta rodada
+                    </p>
+                    <LiveBetsFeed
+                        marketId={marketId}
+                        greenOutcome="MAIS"
+                        labels={{ MAIS: '↑ MAIS', MENOS: '↓ MENOS' }}
+                    />
+                </div>
             </div>
 
             {/* ── Painel de Participação ──────────────────────────── */}
