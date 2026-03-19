@@ -3,6 +3,7 @@ import BTCLiveMarket from '@/components/BTCLiveMarket';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Bitcoin, ArrowLeft } from 'lucide-react';
+import BTCNoMarket from './BTCNoMarket';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,14 +64,7 @@ export default async function BTCMarketPage() {
                         serverNow={Date.now()}
                     />
                 ) : (
-                    <div className="bg-surface/30 border border-white/5 rounded-2xl p-8 text-center space-y-3">
-                        <Bitcoin className="w-12 h-12 text-gray-600 mx-auto" />
-                        <h2 className="text-white font-bold">Nenhuma rodada ativa no momento</h2>
-                        <p className="text-gray-500 text-sm">
-                            O mercado funciona de <strong>09h às 20h</strong>, horário de Brasília.
-                            Novas rodadas iniciam automaticamente a cada 5 minutos.
-                        </p>
-                    </div>
+                    <BTCNoMarket />
                 )}
 
                 {/* Histórico */}

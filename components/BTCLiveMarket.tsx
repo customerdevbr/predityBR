@@ -245,7 +245,10 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced, server
         CAIU: market?.outcome_pools?.CAIU ?? 0,
     });
     const [marketStatus, setMarketStatus] = useState<string>(market?.status ?? 'OPEN');
-    const [reloadCountdown, setReloadCountdown] = useState<number | null>(null);
+    // Se o mercado já chegou RESOLVED do SSR, inicia contagem direto
+    const [reloadCountdown, setReloadCountdown] = useState<number | null>(
+        market?.status !== 'OPEN' ? 10 : null
+    );
 
     const wsRef = useRef<WebSocket | null>(null);
     const mountedClientAt = useRef(Date.now());
@@ -351,9 +354,7 @@ export default function BTCLiveMarket({ market, currentUser, onBetPlaced, server
 
     // ── Auto-reload quando mercado encerra ────────────────────
     useEffect(() => {
-        if (marketStatus !== 'OPEN' || reloadCountdown !== null) return;
-        // Inicia contagem regressiva de 10s para buscar nova rodada
-        setReloadCountdown(10);
+        if (marketStatus !== 'OPEN' && reloadCountdown === null) setReloadCountdown(10);
     }, [marketStatus]);
 
     useEffect(() => {

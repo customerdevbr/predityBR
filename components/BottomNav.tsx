@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Wallet, User as UserIcon, TrendingUp, Headphones } from 'lucide-react';
+import { Wallet, User as UserIcon, TrendingUp, Headphones, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -58,7 +58,16 @@ export default function BottomNav() {
                     )
                 })}
 
-                {/* Support icon — opens chat panel */}
+                {/* Chat global */}
+                <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-global-chat'))}
+                    className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                    <MessageSquare className="w-6 h-6" />
+                    <span className="text-[10px] font-bold uppercase tracking-wide">Chat</span>
+                </button>
+
+                {/* Support icon — opens support chat */}
                 <button
                     onClick={handleSupportClick}
                     className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-300 transition-colors"

@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import SupportChat from "@/components/SupportChat";
+import GlobalChat from "@/components/GlobalChat";
 import { createClient } from "@/lib/supabase/server";
 import Script from "next/script";
 
@@ -172,6 +173,7 @@ export default async function RootLayout({
 
                 <BottomNav />
                 <SupportChat user={user} />
+                <GlobalChat userId={user?.id ?? null} />
             </body>
         </html>
     );
