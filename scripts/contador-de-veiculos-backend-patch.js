@@ -208,7 +208,13 @@ function startPipeline() {
 
     console.log('[FFmpeg] Iniciando pipeline contínuo...');
     ffpipe = spawn('ffmpeg', [
-        '-y', '-tls_verify', '0',
+        '-y',
+        '-tls_verify', '0',
+        // Reduz tempo de probe para conectar mais rápido ao live edge
+        '-probesize', '500000',
+        '-analyzeduration', '1000000',
+        // Força live edge (descarta buffer inicial)
+        '-live_start_index', '-1',
         '-i', HLS_STREAM,
         '-vf', `fps=3,scale=${INPUT_SIZE}:${INPUT_SIZE}`,
         '-f', 'rawvideo', '-pix_fmt', 'rgb24',

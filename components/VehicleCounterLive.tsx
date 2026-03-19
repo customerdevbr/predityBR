@@ -205,20 +205,45 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         ]);
     }, [round, prevRound]);
 
-    // ── HLS player ─────────────────────────────────────────────
+    // ── HLS player (baixo delay) ────────────────────────────────
     useEffect(() => {
         if (!videoRef.current) return;
         const video = videoRef.current;
 
         if (typeof window !== 'undefined' && (window as any).Hls?.isSupported?.()) {
             const Hls = (window as any).Hls;
-            const hls = new Hls({ lowLatencyMode: true });
+            const hls = new Hls({
+                lowLatencyMode: true,
+                // Fica apenas 1 segmento atrás do live edge (mínimo estável)
+                liveSyncDurationCount: 1,
+                // Se ficar mais de 3 segmentos atrás, aumenta playback rate para alcançar
+                liveMaxLatencyDurationCount: 3,
+                // Reduz buffer ao mínimo
+                maxBufferLength: 8,
+                maxMaxBufferLength: 15,
+                // Sem buffer traseiro — libera memória e reduz latência percebida
+                backBufferLength: 0,
+                enableWorker: true,
+            });
             hls.loadSource(STREAM_URL);
             hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                // Carrega a partir do live edge (-1)
+                hls.startLoad(-1);
+                video.play().catch(() => {});
+            });
+            // Se acumular latência (usuário pausou, aba em background, etc.) → pula para o live edge
+            hls.on(Hls.Events.LEVEL_UPDATED, (_: any, data: any) => {
+                if (!data.live) return;
+                const liveSyncPos = hls.liveSyncPosition;
+                if (liveSyncPos && video.currentTime < liveSyncPos - 20) {
+                    video.currentTime = liveSyncPos;
+                }
+            });
             return () => hls.destroy();
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = STREAM_URL;
+            // Safari nativo — usa #t=999999 para pular ao live edge
+            video.src = STREAM_URL + '#t=999999';
             video.play().catch(() => {});
         }
     }, []);
