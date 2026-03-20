@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     getAdminClient,
     isOperatingHours,
-    isAtFiveMinBoundary,
     getBTCPrice,
     createBTCMarket,
     resolveBTCMarket,
@@ -16,7 +15,7 @@ import {
  * GET /api/cron/auto-markets
  * Invocado pelo Vercel Cron a cada minuto.
  * Gerencia o ciclo completo dos mercados automáticos:
- *   - BTC:     resolve expirado → cria novo (nas janelas de 5 min)
+ *   - BTC:     resolve expirado → cria novo (se não houver mercado aberto)
  *   - Veículos: cria mercado ao iniciar rodada → resolve ao finalizar
  */
 export async function GET(req: NextRequest) {
@@ -33,10 +32,12 @@ export async function GET(req: NextRequest) {
     const results: Record<string, any> = {};
 
     // ══════════════════════════════════════════════════════════════
-    // BTC MARKET
+    // BTC MARKET — resolve e cria em blocos independentes para que
+    // uma falha na resolução não impeça a criação do próximo mercado
     // ══════════════════════════════════════════════════════════════
+
+    // 1. Resolve mercado BTC expirado
     try {
-        // 1. Procura mercado BTC expirado para resolver
         const { data: expiredBTC } = await supabase
             .from('markets')
             .select('id, metadata')
@@ -52,10 +53,15 @@ export async function GET(req: NextRequest) {
             const resolved = await resolveBTCMarket(expiredBTC.id, openPrice, currentPrice);
             results.btc_resolved = resolved ? expiredBTC.id : 'FAILED';
         }
+    } catch (err: any) {
+        console.error('[AutoMarkets/BTC/resolve]', err.message);
+        results.btc_resolve_error = err.message;
+    }
 
-        // 2. Cria novo mercado BTC se estiver em horário de operação e na janela de 5 min
-        if (isOperatingHours() && isAtFiveMinBoundary()) {
-            // Verifica se já existe mercado BTC aberto (evita duplicata)
+    // 2. Cria novo mercado BTC se não houver nenhum aberto (durante horário de operação)
+    // Sem exigir janela de 5 min: se a criação falhou num ciclo, o próximo a corrige.
+    try {
+        if (isOperatingHours()) {
             const { data: openBTC } = await supabase
                 .from('markets')
                 .select('id')
@@ -74,8 +80,8 @@ export async function GET(req: NextRequest) {
             }
         }
     } catch (err: any) {
-        console.error('[AutoMarkets/BTC]', err.message);
-        results.btc_error = err.message;
+        console.error('[AutoMarkets/BTC/create]', err.message);
+        results.btc_create_error = err.message;
     }
 
     // ══════════════════════════════════════════════════════════════
