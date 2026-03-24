@@ -27,7 +27,16 @@ const FRAME_SIZE         = INPUT_SIZE * INPUT_SIZE * 3;  // RGB24 raw
 const VEHICLE_CLASSES    = new Set([2, 3, 5, 7]);        // car, moto, bus, truck
 const CONF_THRESHOLD     = 0.30;
 const IOU_THRESHOLD      = 0.45;
-const LINE               = { x1: 0.05, y1: 0.45, x2: 0.85, y2: 0.45 };
+
+// Linha de contagem — posicionada somente na faixa da estrada (ambas as vias)
+// x1/x2 delimitam a largura da pista no frame, y define a posição vertical
+const LINE               = { x1: 0.15, y1: 0.50, x2: 0.85, y2: 0.50 };
+
+// Zona de detecção — restringe a IA a uma faixa vertical em torno da linha
+// Equivale a ~2m antes e ~2m depois da linha na estrada real
+// Veículos fora dessa faixa são ignorados (reduz falsos positivos e CPU)
+const ZONE_Y_MIN         = 0.30;
+const ZONE_Y_MAX         = 0.70;
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -137,6 +146,8 @@ function postprocess(data) {
         if (maxS < CONF_THRESHOLD || !VEHICLE_CLASSES.has(maxC)) continue;
         const cx = data[0*N+i]/INPUT_SIZE, cy = data[1*N+i]/INPUT_SIZE;
         const w  = data[2*N+i]/INPUT_SIZE, h  = data[3*N+i]/INPUT_SIZE;
+        // Ignora detecções fora da zona de interesse (fora da estrada)
+        if (cy < ZONE_Y_MIN || cy > ZONE_Y_MAX) continue;
         dets.push({ cx, cy, w, h, x1:cx-w/2, y1:cy-h/2, x2:cx+w/2, y2:cy+h/2, score:maxS });
     }
     return nms(dets);
@@ -300,6 +311,7 @@ function broadcastBoxes() {
                 w:  +(t.w ?? 0.08).toFixed(3), h: +(t.h ?? 0.10).toFixed(3),
             })),
             count: crossings,
+            ts: Date.now(),     // timestamp para sincronização com player HLS
         },
     });
 }

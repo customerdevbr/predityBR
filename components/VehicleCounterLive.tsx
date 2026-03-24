@@ -15,6 +15,10 @@ interface VehicleCounterLiveProps {
 
 const STREAM_URL = 'https://34.104.32.249.nip.io/SP055-KM136/stream.m3u8';
 
+// Delay para sincronizar bounding boxes com o player HLS
+// HLS tem ~10s de latência (1 segmento de 10s), FFmpeg processa quase em tempo real
+const BOX_DELAY_MS = 10_000;
+
 // ── Memoized: histórico de resultados ────────────────────────────────────────
 const HistoryDots = React.memo(function HistoryDots({ markets }: { markets: Array<{ id: string; resolution_result?: string }> }) {
     if (!markets.length) return null;
@@ -156,6 +160,8 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
     const [broadcastCount, setBroadcastCount] = useState<number | null>(null);
     const countHistory = useRef<{ t: number; v: number }[]>([]);
     const videoRef = useRef<HTMLVideoElement>(null);
+    // Buffer de broadcast para sincronizar boxes com o delay do HLS
+    const boxBuffer = useRef<Array<{ ts: number; boxes: any[]; count: number }>>([]);
 
     const targetCount: number = market?.metadata?.target_count ?? 100;
     const marketId: string = market?.id;
@@ -263,7 +269,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         return () => { supabase.removeChannel(ch); };
     }, [marketId]);
 
-    // ── Realtime Broadcast: bounding boxes da IA ─────────────
+    // ── Realtime Broadcast: bounding boxes da IA (buffered para sync com HLS) ──
     useEffect(() => {
         const roundId = market?.metadata?.round_id;
         if (!roundId) return;
@@ -271,13 +277,43 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         const ch = supabase
             .channel(`det-${roundId}`)
             .on('broadcast', { event: 'det' }, ({ payload }) => {
-                setDetBoxes(payload.boxes ?? []);
-                if (payload.count != null) setBroadcastCount(payload.count);
+                // Acumula no buffer em vez de setar direto — será consumido com delay
+                boxBuffer.current.push({
+                    ts: payload.ts ?? Date.now(),
+                    boxes: payload.boxes ?? [],
+                    count: payload.count ?? 0,
+                });
+                // Limita buffer a 60s para não crescer indefinidamente
+                const cutoff = Date.now() - 60_000;
+                while (boxBuffer.current.length > 0 && boxBuffer.current[0].ts < cutoff) {
+                    boxBuffer.current.shift();
+                }
             })
             .subscribe();
 
-        return () => { supabase.removeChannel(ch); };
+        return () => {
+            supabase.removeChannel(ch);
+            boxBuffer.current = [];
+        };
     }, [market?.metadata?.round_id]);
+
+    // ── Consumidor do buffer: reproduz boxes com delay do HLS ─────────────
+    useEffect(() => {
+        const id = setInterval(() => {
+            const now = Date.now();
+            const cutoff = now - BOX_DELAY_MS;
+            let latest: { ts: number; boxes: any[]; count: number } | null = null;
+            // Consome todas as entradas que já passaram do delay
+            while (boxBuffer.current.length > 0 && boxBuffer.current[0].ts <= cutoff) {
+                latest = boxBuffer.current.shift()!;
+            }
+            if (latest) {
+                setDetBoxes(latest.boxes);
+                setBroadcastCount(latest.count);
+            }
+        }, 200); // atualiza a cada 200ms para suavidade
+        return () => clearInterval(id);
+    }, []);
 
     // ── Realtime: novos mercados resolvidos (history dots) ────
     useEffect(() => {
@@ -496,18 +532,25 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                     viewBox="0 0 704 480"
                     preserveAspectRatio="xMidYMid slice"
                 >
+                    {/* Zona de detecção — faixa semitransparente mostrando onde a IA atua
+                        ZONE_Y: 0.30–0.70 → y: 144–336 em 480px
+                        LINE x: 0.15–0.85 → x: 106–598 em 704px */}
+                    <rect x="106" y="144" width="492" height="192"
+                        fill="rgba(34,197,94,0.04)" stroke="rgba(34,197,94,0.15)"
+                        strokeWidth="1" strokeDasharray="6,4" rx="4" />
+
                     {/* Bounding boxes amarelas — cada veículo rastreado pelo servidor */}
                     <DetectionOverlay boxes={detBoxes} />
 
-                    {/* Linha de contagem verde — y=45% da imagem 640×640 → y=216 em 480px */}
-                    <line x1="35" y1="216" x2="598" y2="216"
+                    {/* Linha de contagem verde — y=50% → y=240 em 480px, x: 106–598 */}
+                    <line x1="106" y1="240" x2="598" y2="240"
                         stroke="rgba(0,0,0,0.5)" strokeWidth="3" />
-                    <line x1="35" y1="216" x2="598" y2="216"
+                    <line x1="106" y1="240" x2="598" y2="240"
                         stroke="#22c55e" strokeWidth="2" />
-                    <circle cx="35"  cy="216" r="4" fill="#22c55e" />
-                    <circle cx="598" cy="216" r="4" fill="#22c55e" />
-                    <rect x="601" y="207" width="32" height="16" rx="3" fill="rgba(0,0,0,0.6)" />
-                    <text x="617" y="218" fill="#22c55e" fontSize="9" fontWeight="bold"
+                    <circle cx="106" cy="240" r="4" fill="#22c55e" />
+                    <circle cx="598" cy="240" r="4" fill="#22c55e" />
+                    <rect x="601" y="231" width="32" height="16" rx="3" fill="rgba(0,0,0,0.6)" />
+                    <text x="617" y="242" fill="#22c55e" fontSize="9" fontWeight="bold"
                         fontFamily="monospace" textAnchor="middle">IA</text>
                 </svg>
 
