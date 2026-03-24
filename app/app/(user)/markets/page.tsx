@@ -145,7 +145,7 @@ export default function MarketsPage() {
                                         <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/20 flex-shrink-0 text-2xl">🚗</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="font-bold text-white">Câmera Ao Vivo</div>
-                                            <div className="text-xs text-gray-500">Contador de Veículos · SP-055 · 5 min</div>
+                                            <div className="text-xs text-gray-500">Contador de Veículos · SP-055 KM 136 · 5 min</div>
                                         </div>
                                         <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-green-400 transition-colors flex-shrink-0" />
                                     </Link>

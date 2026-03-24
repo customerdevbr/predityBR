@@ -192,7 +192,7 @@ export async function createVehicleMarket(
     const description =
         `Meta desta rodada: ${targetCount} veículos\n\n` +
         `📋 Regras do mercado:\n` +
-        `• A contagem é feita por uma IA (YOLOv8) monitorando câmera de tráfego pública da rodovia SP-055 (Km 110A).\n` +
+        `• A contagem é feita por uma IA (YOLOv8) monitorando câmera de tráfego pública da rodovia SP-055 (Km 136 — São Sebastião, sentido Caraguatatuba).\n` +
         `• MAIS: total de veículos contabilizados pela IA SUPERIOR a ${targetCount}.\n` +
         `• MENOS: total IGUAL OU INFERIOR a ${targetCount}.\n` +
         `• ⚠️ Transparência: devido à qualidade da transmissão ao vivo e ao desempenho da IA, alguns veículos podem não ser contabilizados. Vale exclusivamente o número computado pelo sistema.\n` +
@@ -217,7 +217,7 @@ export async function createVehicleMarket(
                 auto_market: true,
                 round_id: roundId,
                 target_count: targetCount,
-                stream_url: 'https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8',
+                stream_url: 'https://34.104.32.249.nip.io/SP055-KM136/stream.m3u8',
             },
         })
         .select('id')

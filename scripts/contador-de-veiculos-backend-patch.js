@@ -20,7 +20,7 @@ const PREDITY_WEBHOOK_SECRET = process.env.PREDITY_WEBHOOK_SECRET ?? '';
 
 const ROUND_DURATION_MS  = 5 * 60 * 1000;   // 5 min
 const BETWEEN_ROUNDS_MS  = 12 * 1000;        // 12s entre rodadas
-const HLS_STREAM         = 'https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8';
+const HLS_STREAM         = 'https://34.104.32.249.nip.io/SP055-KM136/stream.m3u8';
 const MODEL_PATH         = __dirname + '/yolov5nu.onnx';
 const INPUT_SIZE         = 640;
 const FRAME_SIZE         = INPUT_SIZE * INPUT_SIZE * 3;  // RGB24 raw

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
     title: 'Câmera Ao Vivo — Contador de Veículos',
     description:
-        'Mercado ao vivo: a IA conta veículos em câmera pública da rodovia SP-055. Novo mercado a cada 5 minutos. Resultado automático, pagamento via PIX.',
+        'Mercado ao vivo: a IA conta veículos em câmera pública da rodovia SP-055 KM 136 (São Sebastião). Novo mercado a cada 5 minutos. Resultado automático, pagamento via PIX.',
 };
 
 export default async function VeiculoMarketPage() {
@@ -50,7 +50,7 @@ export default async function VeiculoMarketPage() {
                         </div>
                         <div>
                             <h1 className="text-lg font-black text-white">Câmera Ao Vivo</h1>
-                            <p className="text-xs text-gray-500">Rodada de 5 min · SP-055 KM 110A · 09h–20h BRT</p>
+                            <p className="text-xs text-gray-500">Rodada de 5 min · SP-055 KM 136 · São Sebastião · 09h–20h BRT</p>
                         </div>
                     </div>
                 </div>
@@ -58,6 +58,7 @@ export default async function VeiculoMarketPage() {
                 {/* Mercado ativo */}
                 {market ? (
                     <VehicleCounterLive
+                        key={market.id}
                         market={market}
                         currentUser={session?.user ?? null}
                         serverNow={Date.now()}
@@ -99,7 +100,7 @@ export default async function VeiculoMarketPage() {
                 {/* Regras resumidas */}
                 <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-xs text-gray-500 space-y-1.5">
                     <p className="font-bold text-gray-300 text-sm mb-2">Como funciona</p>
-                    <p>• IA (YOLOv8) conta veículos cruzando a linha na câmera da SP-055.</p>
+                    <p>• IA (YOLOv8) conta veículos cruzando a linha na câmera da SP-055 KM 136 (São Sebastião).</p>
                     <p>• Cada rodada dura <strong className="text-white">5 minutos</strong>. A meta é definida com base no resultado arredondado da rodada anterior.</p>
                     <p>• Resultado: se passaram <strong className="text-white">mais</strong> ou <strong className="text-white">menos</strong> veículos que a meta.</p>
                     <p>• A próxima meta é o resultado atual arredondado para a dezena acima (ex: 87 → próxima meta: 90).</p>

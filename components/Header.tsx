@@ -72,10 +72,10 @@ export default function Header({ user: initialUser }: { user: User | null }) {
             )
             .subscribe();
 
-        // 2. Interval Polling (Every 5 seconds for absolute fallback)
+        // 2. Interval Polling (Every 30 seconds — fallback only, realtime handles the rest)
         const intervalId = setInterval(() => {
             if (user?.id) fetchBalance(user.id);
-        }, 5000);
+        }, 30_000);
 
         // 3. Optimistic Local Window Events (Instant Feedback)
         const handleOptimisticUpdate = (e: any) => {

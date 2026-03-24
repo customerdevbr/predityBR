@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Zap, Car, Clock, AlertTriangle, TrendingUp, TrendingDown, Users } from 'lucide-react';
@@ -12,9 +13,10 @@ interface VehicleCounterLiveProps {
     serverNow?: number;  // Date.now() medido no servidor (SSR) — evita drift de relógio do cliente
 }
 
-const STREAM_URL = 'https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8';
+const STREAM_URL = 'https://34.104.32.249.nip.io/SP055-KM136/stream.m3u8';
 
-function HistoryDots({ markets }: { markets: Array<{ id: string; resolution_result?: string }> }) {
+// ── Memoized: histórico de resultados ────────────────────────────────────────
+const HistoryDots = React.memo(function HistoryDots({ markets }: { markets: Array<{ id: string; resolution_result?: string }> }) {
     if (!markets.length) return null;
     return (
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -30,9 +32,10 @@ function HistoryDots({ markets }: { markets: Array<{ id: string; resolution_resu
             })}
         </div>
     );
-}
+});
 
-function LiveBetsFeed({ marketId, greenOutcome, labels, max = 6 }: {
+// ── Memoized: feed de apostas ao vivo ────────────────────────────────────────
+const LiveBetsFeed = React.memo(function LiveBetsFeed({ marketId, greenOutcome, labels, max = 6 }: {
     marketId: string;
     greenOutcome: string;
     labels: Record<string, string>;
@@ -72,9 +75,65 @@ function LiveBetsFeed({ marketId, greenOutcome, labels, max = 6 }: {
             ))}
         </div>
     );
+});
+
+// ── Memoized: overlay de bounding boxes da IA ────────────────────────────────
+const DetectionOverlay = React.memo(function DetectionOverlay({
+    boxes,
+}: {
+    boxes: Array<{ id: number; cx: number; cy: number; w: number; h: number }>;
+}) {
+    return (
+        <>
+            {boxes.map(box => {
+                const x = (box.cx - box.w / 2) * 704;
+                const y = (box.cy - box.h / 2) * 480;
+                const w = box.w * 704;
+                const h = box.h * 480;
+                return (
+                    <g key={box.id}>
+                        <rect x={x} y={y} width={w} height={h}
+                            fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" />
+                        <rect x={x} y={y} width={w} height={h}
+                            fill="rgba(245,158,11,0.08)" stroke="#f59e0b" strokeWidth="1.5" />
+                    </g>
+                );
+            })}
+        </>
+    );
+});
+
+// ── Contador animado (pulsa + escala ao mudar) ───────────────────────────────
+function AnimatedCounter({ value }: { value: number }) {
+    const [display, setDisplay] = useState(value);
+    const [flash, setFlash] = useState(false);
+    const prev = useRef(value);
+
+    useEffect(() => {
+        if (value !== prev.current) {
+            setFlash(true);
+            setDisplay(value);
+            prev.current = value;
+            const t = setTimeout(() => setFlash(false), 350);
+            return () => clearTimeout(t);
+        }
+    }, [value]);
+
+    return (
+        <span
+            className={`text-5xl font-black tabular-nums inline-block transition-all duration-300 ${
+                flash ? 'text-green-400 scale-110' : 'text-white scale-100'
+            }`}
+            style={{ transformOrigin: 'left bottom' }}
+        >
+            {display}
+        </span>
+    );
 }
 
 export default function VehicleCounterLive({ market, currentUser, onBetPlaced, serverNow }: VehicleCounterLiveProps) {
+    const router = useRouter();
+
     const [round, setRound] = useState<any>(null);
     const [prevRound, setPrevRound] = useState<any>(null);
     const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -236,35 +295,54 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         return () => { supabase.removeChannel(ch); };
     }, []);
 
-    // ── Auto-reload quando mercado encerra ────────────────────
+    // ── Auto-transition quando mercado encerra ──────────────────
     useEffect(() => {
-        if (marketStatus !== 'OPEN' && reloadCountdown === null) setReloadCountdown(10);
+        if (marketStatus !== 'OPEN' && reloadCountdown === null) setReloadCountdown(8);
     }, [marketStatus]);
 
+    // ── Countdown → polling → soft refresh (sem reload!) ────────
     useEffect(() => {
         if (reloadCountdown === null) return;
-        if (reloadCountdown <= 0) { window.location.reload(); return; }
+
+        // Quando countdown chega a 0, inicia polling por novo mercado
+        if (reloadCountdown <= 0) {
+            const poll = setInterval(async () => {
+                const { data } = await supabase
+                    .from('markets')
+                    .select('id')
+                    .eq('status', 'OPEN')
+                    .eq('metadata->>market_type', 'VEHICLE')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (data && data.id !== marketId) {
+                    clearInterval(poll);
+                    router.refresh();   // soft refresh — sem tela branca
+                }
+            }, 2500);
+            return () => clearInterval(poll);
+        }
+
         const t = setTimeout(() => setReloadCountdown(p => (p ?? 1) - 1), 1000);
         return () => clearTimeout(t);
-    }, [reloadCountdown]);
+    }, [reloadCountdown, marketId, router]);
 
     // ── Contador regressivo ────────────────────────────────────
     // Usa serverNow (timestamp SSR) como referência para evitar drift do relógio do cliente.
-    // elapsed = tempo decorrido desde o carregamento da página (calculado com delta, sem clock absoluto)
-    // remaining = (end_date - serverNow) - elapsed
-    const mountedClientAt = useRef(Date.now());
+    // effectStart é recalculado sempre que o effect re-executa (novo mercado via refresh).
     useEffect(() => {
         if (!market?.end_date) return;
         const endMs = new Date(market.end_date).getTime();
         const referenceNow = serverNow ?? Date.now();
-        const initialRemaining = endMs - referenceNow; // calculado no servidor — preciso
+        const initialRemaining = endMs - referenceNow;
+        const effectStart = Date.now();
 
         const tick = () => {
-            const elapsed = Date.now() - mountedClientAt.current;
+            const elapsed = Date.now() - effectStart;
             const diff = Math.max(0, initialRemaining - elapsed);
             const left = Math.ceil(diff / 1000);
             setTimeLeft(left);
-            if (left === 0 && marketStatus === 'OPEN' && reloadCountdown === null) setReloadCountdown(12);
+            if (left === 0 && marketStatus === 'OPEN' && reloadCountdown === null) setReloadCountdown(10);
         };
         tick();
         const id = setInterval(tick, 1000);
@@ -376,6 +454,12 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                         Carregando nova rodada em {reloadCountdown}s
                     </div>
                 )}
+                {reloadCountdown !== null && reloadCountdown <= 0 && (
+                    <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                        Buscando nova rodada...
+                    </div>
+                )}
             </div>
         );
     }
@@ -413,20 +497,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                     preserveAspectRatio="xMidYMid slice"
                 >
                     {/* Bounding boxes amarelas — cada veículo rastreado pelo servidor */}
-                    {detBoxes.map(box => {
-                        const x = (box.cx - box.w / 2) * 704;
-                        const y = (box.cy - box.h / 2) * 480;
-                        const w = box.w * 704;
-                        const h = box.h * 480;
-                        return (
-                            <g key={box.id}>
-                                <rect x={x} y={y} width={w} height={h}
-                                    fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" />
-                                <rect x={x} y={y} width={w} height={h}
-                                    fill="rgba(245,158,11,0.08)" stroke="#f59e0b" strokeWidth="1.5" />
-                            </g>
-                        );
-                    })}
+                    <DetectionOverlay boxes={detBoxes} />
 
                     {/* Linha de contagem verde — y=45% da imagem 640×640 → y=216 em 480px */}
                     <line x1="35" y1="216" x2="598" y2="216"
@@ -447,7 +518,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                         AO VIVO
                     </span>
                     <span className="bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full border border-white/10">
-                        SP-055 · KM 110A
+                        SP-055 · KM 136
                     </span>
                 </div>
 
@@ -463,9 +534,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                         <div>
                             <p className="text-xs text-gray-400 mb-0.5">Veículos contabilizados</p>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black text-white tabular-nums">
-                                    {liveCount}
-                                </span>
+                                <AnimatedCounter value={liveCount} />
                                 <span className={`text-sm font-bold flex items-center gap-1 ${isOver ? 'text-green-400' : 'text-orange-400'}`}>
                                     {isOver ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                                     {isOver ? 'acima' : 'abaixo'} de {targetCount}
@@ -481,7 +550,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                     {/* Barra de progresso */}
                     <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
                         <div
-                            className={`h-full rounded-full transition-all duration-700 ${isOver ? 'bg-green-500' : 'bg-orange-500'}`}
+                            className={`h-full rounded-full transition-[width] duration-700 ${isOver ? 'bg-green-500' : 'bg-orange-500'}`}
                             style={{ width: `${Math.min(pct, 100)}%` }}
                         />
                     </div>
@@ -601,7 +670,7 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
             <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-3 flex gap-2">
                 <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-yellow-200/70 leading-relaxed">
-                    A contagem é realizada por inteligência artificial (YOLOv8) em câmera pública da rodovia SP-055. Pela qualidade da transmissão e desempenho da IA, alguns veículos podem não ser contabilizados. Vale exclusivamente o número computado pelo sistema.
+                    A contagem é realizada por inteligência artificial (YOLOv8) em câmera pública da rodovia SP-055 (São Sebastião, sentido Caraguatatuba). Pela qualidade da transmissão e desempenho da IA, alguns veículos podem não ser contabilizados. Vale exclusivamente o número computado pelo sistema.
                 </p>
             </div>
         </div>
