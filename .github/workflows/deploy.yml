@@ -33,5 +33,11 @@ jobs:
             rm -rf .next
             npm run build
             pm2 restart predity-web
-            
+
+            # Deploy do backend do contador de veículos
+            if [ -f /var/www/preditybr/scripts/contador-de-veiculos-backend-patch.js ]; then
+              cp /var/www/preditybr/scripts/contador-de-veiculos-backend-patch.js /var/www/contador-de-veiculos/backend/server.js
+              pm2 restart contador-veiculos 2>/dev/null || echo "contador-veiculos não está rodando no PM2"
+            fi
+
             echo "Deploy Concluído e PM2 Reiniciado! 🚀"
