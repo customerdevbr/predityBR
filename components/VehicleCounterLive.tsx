@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Hls from 'hls.js';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Zap, Car, Clock, AlertTriangle, TrendingUp, TrendingDown, Users } from 'lucide-react';
@@ -81,7 +82,7 @@ const LiveBetsFeed = React.memo(function LiveBetsFeed({ marketId, greenOutcome, 
     );
 });
 
-// ── Memoized: overlay de bounding boxes da IA ────────────────────────────────
+// ── Memoized: overlay de bounding boxes da IA (com transição CSS suave) ─────
 const DetectionOverlay = React.memo(function DetectionOverlay({
     boxes,
 }: {
@@ -97,9 +98,9 @@ const DetectionOverlay = React.memo(function DetectionOverlay({
                 return (
                     <g key={box.id}>
                         <rect x={x} y={y} width={w} height={h}
-                            fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" />
-                        <rect x={x} y={y} width={w} height={h}
-                            fill="rgba(245,158,11,0.08)" stroke="#f59e0b" strokeWidth="1.5" />
+                            fill="rgba(245,158,11,0.08)" stroke="#f59e0b" strokeWidth="1.5"
+                            style={{ transition: 'x 200ms ease-out, y 200ms ease-out, width 200ms ease-out, height 200ms ease-out' }}
+                        />
                     </g>
                 );
             })}
@@ -107,26 +108,48 @@ const DetectionOverlay = React.memo(function DetectionOverlay({
     );
 });
 
-// ── Contador animado (pulsa + escala ao mudar) ───────────────────────────────
+// ── Contador animado com interpolação suave (tween) ──────────────────────────
 function AnimatedCounter({ value }: { value: number }) {
     const [display, setDisplay] = useState(value);
-    const [flash, setFlash] = useState(false);
-    const prev = useRef(value);
+    const animRef = useRef<number>(0);
+    const currentRef = useRef(value);
 
     useEffect(() => {
-        if (value !== prev.current) {
-            setFlash(true);
-            setDisplay(value);
-            prev.current = value;
-            const t = setTimeout(() => setFlash(false), 350);
-            return () => clearTimeout(t);
-        }
+        const from = currentRef.current;
+        const to = value;
+        if (from === to) return;
+
+        const duration = 600; // ms — duração da transição
+        const start = performance.now();
+
+        const animate = (now: number) => {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic — desacelera suavemente no final
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = Math.round(from + (to - from) * eased);
+
+            setDisplay(current);
+
+            if (progress < 1) {
+                animRef.current = requestAnimationFrame(animate);
+            } else {
+                currentRef.current = to;
+            }
+        };
+
+        cancelAnimationFrame(animRef.current);
+        animRef.current = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animRef.current);
     }, [value]);
+
+    const isChanging = display !== currentRef.current;
 
     return (
         <span
-            className={`text-5xl font-black tabular-nums inline-block transition-all duration-300 ${
-                flash ? 'text-green-400 scale-110' : 'text-white scale-100'
+            className={`text-5xl font-black tabular-nums inline-block transition-colors duration-300 ${
+                isChanging ? 'text-green-400' : 'text-white'
             }`}
             style={{ transformOrigin: 'left bottom' }}
         >
@@ -155,12 +178,10 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
     });
     const [marketStatus, setMarketStatus] = useState<string>(market?.status ?? 'OPEN');
     const [reloadCountdown, setReloadCountdown] = useState<number | null>(null);
-    // Bounding boxes recebidas do servidor via Supabase Realtime Broadcast
     const [detBoxes, setDetBoxes] = useState<Array<{ id: number; cx: number; cy: number; w: number; h: number }>>([]);
     const [broadcastCount, setBroadcastCount] = useState<number | null>(null);
     const countHistory = useRef<{ t: number; v: number }[]>([]);
     const videoRef = useRef<HTMLVideoElement>(null);
-    // Buffer de broadcast para sincronizar boxes com o delay do HLS
     const boxBuffer = useRef<Array<{ ts: number; boxes: any[]; count: number }>>([]);
 
     const targetCount: number = market?.metadata?.target_count ?? 100;
@@ -177,7 +198,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
             const roundId = market?.metadata?.round_id;
             if (!roundId) return;
 
-            // Rodada atual
             const { data: cur } = await supabase
                 .from('rounds')
                 .select('*')
@@ -185,7 +205,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                 .maybeSingle();
             if (cur) setRound(cur);
 
-            // Rodada anterior (para comparação)
             const { data: prev } = await supabase
                 .from('rounds')
                 .select('*')
@@ -195,7 +214,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                 .maybeSingle();
             if (prev) setPrevRound(prev);
 
-            // Histórico de mercados resolvidos (para history dots)
             const { data: hist } = await supabase
                 .from('markets')
                 .select('id, resolution_result')
@@ -205,7 +223,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                 .limit(10);
             if (hist) setHistoryMarkets(hist.reverse());
 
-            // Aposta do usuário
             if (currentUser) {
                 const { data: bet } = await supabase
                     .from('bets')
@@ -240,7 +257,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                     const r = payload.new as any;
                     setRound(r);
 
-                    // Registra histórico para sparkline
                     const now = Date.now();
                     countHistory.current = [
                         ...countHistory.current.filter(p => now - p.t < 5 * 60_000),
@@ -277,13 +293,12 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         const ch = supabase
             .channel(`det-${roundId}`)
             .on('broadcast', { event: 'det' }, ({ payload }) => {
-                // Acumula no buffer em vez de setar direto — será consumido com delay
                 boxBuffer.current.push({
                     ts: payload.ts ?? Date.now(),
                     boxes: payload.boxes ?? [],
                     count: payload.count ?? 0,
                 });
-                // Limita buffer a 60s para não crescer indefinidamente
+                // Limita buffer a 60s
                 const cutoff = Date.now() - 60_000;
                 while (boxBuffer.current.length > 0 && boxBuffer.current[0].ts < cutoff) {
                     boxBuffer.current.shift();
@@ -303,7 +318,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
             const now = Date.now();
             const cutoff = now - BOX_DELAY_MS;
             let latest: { ts: number; boxes: any[]; count: number } | null = null;
-            // Consome todas as entradas que já passaram do delay
             while (boxBuffer.current.length > 0 && boxBuffer.current[0].ts <= cutoff) {
                 latest = boxBuffer.current.shift()!;
             }
@@ -311,19 +325,20 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                 setDetBoxes(latest.boxes);
                 setBroadcastCount(latest.count);
             }
-        }, 200); // atualiza a cada 200ms para suavidade
+        }, 200);
         return () => clearInterval(id);
     }, []);
 
-    // ── Realtime: novos mercados resolvidos (history dots) ────
+    // ── Realtime: novos mercados resolvidos (history dots) — filtrado ────
     useEffect(() => {
         const ch = supabase
             .channel('vehicle-hist-markets')
             .on('postgres_changes', {
                 event: 'UPDATE', schema: 'public', table: 'markets',
+                filter: `status=eq.RESOLVED`,
             }, (payload) => {
                 const m = payload.new as any;
-                if (m.status === 'RESOLVED' && m.metadata?.market_type === 'VEHICLE') {
+                if (m.metadata?.market_type === 'VEHICLE') {
                     setHistoryMarkets(prev => [...prev.slice(-9), { id: m.id, resolution_result: m.resolution_result }]);
                 }
             })
@@ -336,12 +351,26 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         if (marketStatus !== 'OPEN' && reloadCountdown === null) setReloadCountdown(8);
     }, [marketStatus]);
 
-    // ── Countdown → polling → soft refresh (sem reload!) ────────
+    // ── Countdown → Realtime listener por novo mercado (sem polling!) ────
     useEffect(() => {
         if (reloadCountdown === null) return;
 
-        // Quando countdown chega a 0, inicia polling por novo mercado
+        // Quando countdown chega a 0, escuta INSERT de novo mercado via Realtime
         if (reloadCountdown <= 0) {
+            const ch = supabase
+                .channel('new-vehicle-market')
+                .on('postgres_changes', {
+                    event: 'INSERT', schema: 'public', table: 'markets',
+                }, (payload) => {
+                    const m = payload.new as any;
+                    if (m.metadata?.market_type === 'VEHICLE' && m.status === 'OPEN') {
+                        supabase.removeChannel(ch);
+                        router.refresh();
+                    }
+                })
+                .subscribe();
+
+            // Fallback: polling a cada 5s caso o Realtime falhe
             const poll = setInterval(async () => {
                 const { data } = await supabase
                     .from('markets')
@@ -353,10 +382,15 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                     .maybeSingle();
                 if (data && data.id !== marketId) {
                     clearInterval(poll);
-                    router.refresh();   // soft refresh — sem tela branca
+                    supabase.removeChannel(ch);
+                    router.refresh();
                 }
-            }, 2500);
-            return () => clearInterval(poll);
+            }, 5000);
+
+            return () => {
+                clearInterval(poll);
+                supabase.removeChannel(ch);
+            };
         }
 
         const t = setTimeout(() => setReloadCountdown(p => (p ?? 1) - 1), 1000);
@@ -364,8 +398,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
     }, [reloadCountdown, marketId, router]);
 
     // ── Contador regressivo ────────────────────────────────────
-    // Usa serverNow (timestamp SSR) como referência para evitar drift do relógio do cliente.
-    // effectStart é recalculado sempre que o effect re-executa (novo mercado via refresh).
     useEffect(() => {
         if (!market?.end_date) return;
         const endMs = new Date(market.end_date).getTime();
@@ -385,34 +417,27 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         return () => clearInterval(id);
     }, [market?.end_date, serverNow, marketStatus, reloadCountdown]);
 
-    // ── HLS player (baixo delay) ────────────────────────────────
+    // ── HLS player (via npm, não CDN) ────────────────────────────────
     useEffect(() => {
         if (!videoRef.current) return;
         const video = videoRef.current;
 
-        if (typeof window !== 'undefined' && (window as any).Hls?.isSupported?.()) {
-            const Hls = (window as any).Hls;
+        if (Hls.isSupported()) {
             const hls = new Hls({
                 lowLatencyMode: true,
-                // Fica apenas 1 segmento atrás do live edge (mínimo estável)
                 liveSyncDurationCount: 1,
-                // Se ficar mais de 3 segmentos atrás, aumenta playback rate para alcançar
                 liveMaxLatencyDurationCount: 3,
-                // Reduz buffer ao mínimo
                 maxBufferLength: 8,
                 maxMaxBufferLength: 15,
-                // Sem buffer traseiro — libera memória e reduz latência percebida
                 backBufferLength: 0,
                 enableWorker: true,
             });
             hls.loadSource(STREAM_URL);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                // Carrega a partir do live edge (-1)
                 hls.startLoad(-1);
                 video.play().catch(() => {});
             });
-            // Se acumular latência (usuário pausou, aba em background, etc.) → pula para o live edge
             hls.on(Hls.Events.LEVEL_UPDATED, (_: any, data: any) => {
                 if (!data.live) return;
                 const liveSyncPos = hls.liveSyncPosition;
@@ -422,7 +447,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
             });
             return () => hls.destroy();
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Safari nativo — usa #t=999999 para pular ao live edge
             video.src = STREAM_URL + '#t=999999';
             video.play().catch(() => {});
         }
@@ -455,12 +479,10 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
         } finally {
             setSubmitting(false);
         }
-    }, [betSide, betAmount, currentUser, marketId, balance, market, onBetPlaced]);
+    }, [betSide, betAmount, currentUser, marketId, balance, market, onBetPlaced, marketStatus]);
 
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
-    // broadcastCount vem do servidor a cada 500ms (mais imediato)
-    // round.actual_count vem do banco a cada 1s (autoritativo para apostas)
     const liveCount = broadcastCount ?? round?.actual_count ?? 0;
     const pct = Math.min(100, (liveCount / targetCount) * 100);
     const isOver = liveCount > targetCount;
@@ -511,9 +533,6 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
 
             {/* ── Câmera ao Vivo ─────────────────────────────────── */}
             <div className="relative rounded-2xl overflow-hidden bg-black border border-white/5 shadow-2xl">
-                {/* HLS.js precisa ser carregado externamente via CDN */}
-                <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" async />
-
                 <video
                     ref={videoRef}
                     className="w-full aspect-video object-cover"
@@ -522,27 +541,21 @@ export default function VehicleCounterLive({ market, currentUser, onBetPlaced, s
                     autoPlay
                 />
 
-                {/* Overlay SVG: linha de contagem + bounding boxes da IA
-                    viewBox espelha resolução real da câmera (704×480).
-                    As detecções são em espaço 640×640 normalizado (0-1),
-                    mapeamos para 704×480: x_cam = cx*704, y_cam = cy*480.
-                    preserveAspectRatio="xMidYMid slice" = object-cover */}
+                {/* Overlay SVG: linha de contagem + bounding boxes da IA */}
                 <svg
                     className="absolute inset-0 w-full h-full pointer-events-none"
                     viewBox="0 0 704 480"
                     preserveAspectRatio="xMidYMid slice"
                 >
-                    {/* Zona de detecção — faixa semitransparente mostrando onde a IA atua
-                        ZONE_Y: 0.30–0.70 → y: 144–336 em 480px
-                        LINE x: 0.15–0.85 → x: 106–598 em 704px */}
+                    {/* Zona de detecção */}
                     <rect x="106" y="144" width="492" height="192"
                         fill="rgba(34,197,94,0.04)" stroke="rgba(34,197,94,0.15)"
                         strokeWidth="1" strokeDasharray="6,4" rx="4" />
 
-                    {/* Bounding boxes amarelas — cada veículo rastreado pelo servidor */}
+                    {/* Bounding boxes */}
                     <DetectionOverlay boxes={detBoxes} />
 
-                    {/* Linha de contagem verde — y=50% → y=240 em 480px, x: 106–598 */}
+                    {/* Linha de contagem */}
                     <line x1="106" y1="240" x2="598" y2="240"
                         stroke="rgba(0,0,0,0.5)" strokeWidth="3" />
                     <line x1="106" y1="240" x2="598" y2="240"

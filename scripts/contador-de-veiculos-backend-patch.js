@@ -1,5 +1,6 @@
 'use strict';
 require('dotenv').config();
+const crypto = require('crypto');
 
 // Node.js 18 não tem WebSocket nativo — polyfill com 'ws' para Supabase Realtime
 if (!global.WebSocket) {
@@ -17,9 +18,12 @@ const SUPABASE_URL          = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PREDITY_API_URL       = process.env.PREDITY_API_URL   ?? 'http://localhost:3000';
 const PREDITY_WEBHOOK_SECRET = process.env.PREDITY_WEBHOOK_SECRET ?? '';
+const BROADCAST_HMAC_SECRET  = process.env.BROADCAST_HMAC_SECRET ?? PREDITY_WEBHOOK_SECRET;
 
 const ROUND_DURATION_MS  = 5 * 60 * 1000;   // 5 min
 const BETWEEN_ROUNDS_MS  = 12 * 1000;        // 12s entre rodadas
+const SYNC_INTERVAL_MS   = 5000;             // Sync DB a cada 5s (antes: 1s → 300 writes/rodada, agora: 60)
+const DETECT_FPS         = 1.5;              // 1.5fps (antes: 3fps — metade da CPU de inferência)
 const HLS_STREAM         = 'https://34.104.32.249.nip.io/SP055-KM136/stream.m3u8';
 const MODEL_PATH         = __dirname + '/yolov5nu.onnx';
 const INPUT_SIZE         = 640;
@@ -29,12 +33,9 @@ const CONF_THRESHOLD     = 0.30;
 const IOU_THRESHOLD      = 0.45;
 
 // Linha de contagem — posicionada somente na faixa da estrada (ambas as vias)
-// x1/x2 delimitam a largura da pista no frame, y define a posição vertical
 const LINE               = { x1: 0.15, y1: 0.50, x2: 0.85, y2: 0.50 };
 
 // Zona de detecção — restringe a IA a uma faixa vertical em torno da linha
-// Equivale a ~2m antes e ~2m depois da linha na estrada real
-// Veículos fora dessa faixa são ignorados (reduz falsos positivos e CPU)
 const ZONE_Y_MIN         = 0.30;
 const ZONE_Y_MAX         = 0.70;
 
@@ -52,31 +53,55 @@ let nextTrackId      = 1;
 let broadcastCh      = null;
 let broadcastReady   = false;
 
-// Pipeline ffmpeg contínuo
-let ffpipe           = null;
-let pipelineBuffer   = Buffer.alloc(0);
-let frameProcessing  = false;   // mutex: não enfileira frames
+// Broadcast throttle — envia apenas quando contagem muda ou a cada 2s (para boxes)
+let lastBroadcastCount = -1;
+let lastBroadcastTime  = 0;
 
-// Intervals/timers (guardados para poder cancelar)
+// Pipeline ffmpeg — agora inicia/para com cada rodada (antes: rodava 24/7)
+let ffpipe           = null;
+let ffpipeRestarting = false;  // flag para saber se o close foi intencional (stopPipeline)
+
+// Ring buffer pré-alocado (evita GC pressure do Buffer.concat)
+const RING_CAPACITY  = FRAME_SIZE * 4;  // 4 frames de buffer
+const ringBuf        = Buffer.allocUnsafe(RING_CAPACITY);
+let ringWritePos     = 0;
+let ringDataLen      = 0;  // bytes válidos no ring buffer
+let frameProcessing  = false;
+
+// Intervals/timers
 let syncInterval     = null;
 let roundTimer       = null;
 
-// ── HTTP helper ───────────────────────────────────────────────────────────────
+// ── HMAC helper ──────────────────────────────────────────────────────────────
+function signPayload(payload) {
+    return crypto.createHmac('sha256', BROADCAST_HMAC_SECRET)
+        .update(JSON.stringify(payload)).digest('hex');
+}
+
+function signWebhookBody(body) {
+    return crypto.createHmac('sha256', PREDITY_WEBHOOK_SECRET)
+        .update(body).digest('hex');
+}
+
+// ── HTTP helper ─────────────────────────────────────────────────────────────
 function postJson(rawUrl, body) {
     return new Promise((resolve, reject) => {
         const parsed = new URL(rawUrl);
         const isHttps = parsed.protocol === 'https:';
         const lib  = isHttps ? https : http;
         const data = JSON.stringify(body);
+        const sig  = signWebhookBody(data);
         const req  = lib.request({
             hostname: parsed.hostname,
             port:     parsed.port || (isHttps ? 443 : 80),
             path:     parsed.pathname + parsed.search,
             method:   'POST',
             headers: {
-                'Content-Type':   'application/json',
-                'Content-Length': Buffer.byteLength(data),
-                'x-webhook-secret': PREDITY_WEBHOOK_SECRET,
+                'Content-Type':      'application/json',
+                'Content-Length':     Buffer.byteLength(data),
+                'x-webhook-secret':  PREDITY_WEBHOOK_SECRET,
+                'x-webhook-signature': sig,
+                'x-webhook-timestamp': Date.now().toString(),
             },
         }, res => {
             let out = '';
@@ -146,7 +171,6 @@ function postprocess(data) {
         if (maxS < CONF_THRESHOLD || !VEHICLE_CLASSES.has(maxC)) continue;
         const cx = data[0*N+i]/INPUT_SIZE, cy = data[1*N+i]/INPUT_SIZE;
         const w  = data[2*N+i]/INPUT_SIZE, h  = data[3*N+i]/INPUT_SIZE;
-        // Ignora detecções fora da zona de interesse (fora da estrada)
         if (cy < ZONE_Y_MIN || cy > ZONE_Y_MAX) continue;
         dets.push({ cx, cy, w, h, x1:cx-w/2, y1:cy-h/2, x2:cx+w/2, y2:cy+h/2, score:maxS });
     }
@@ -213,30 +237,50 @@ async function runDetection(rgbBuf) {
     }
 }
 
-// ── Pipeline ffmpeg contínuo (raw RGB24 @ 3fps) ───────────────────────────────
+// ── Pipeline FFmpeg — inicia/para com cada rodada ─────────────────────────────
 function startPipeline() {
     if (ffpipe) return;
+    ffpipeRestarting = false;
 
-    console.log('[FFmpeg] Iniciando pipeline contínuo...');
+    console.log(`[FFmpeg] Iniciando pipeline (${DETECT_FPS}fps)...`);
     ffpipe = spawn('ffmpeg', [
         '-y',
         '-tls_verify', '0',
-        // Reduz tempo de probe para conectar mais rápido ao live edge
         '-probesize', '500000',
         '-analyzeduration', '1000000',
-        // Força live edge (descarta buffer inicial)
         '-live_start_index', '-1',
         '-i', HLS_STREAM,
-        '-vf', `fps=3,scale=${INPUT_SIZE}:${INPUT_SIZE}`,
+        '-vf', `fps=${DETECT_FPS},scale=${INPUT_SIZE}:${INPUT_SIZE}`,
         '-f', 'rawvideo', '-pix_fmt', 'rgb24',
         'pipe:1',
     ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
+    // Ring buffer: escreve dados do FFmpeg sem alocações extras
     ffpipe.stdout.on('data', chunk => {
-        pipelineBuffer = Buffer.concat([pipelineBuffer, chunk]);
-        while (pipelineBuffer.length >= FRAME_SIZE) {
-            const frame = pipelineBuffer.slice(0, FRAME_SIZE);
-            pipelineBuffer = pipelineBuffer.slice(FRAME_SIZE);
+        // Copia chunk para o ring buffer (wrap-around)
+        const space = RING_CAPACITY - ringWritePos;
+        if (chunk.length <= space) {
+            chunk.copy(ringBuf, ringWritePos);
+        } else {
+            chunk.copy(ringBuf, ringWritePos, 0, space);
+            chunk.copy(ringBuf, 0, space);
+        }
+        ringWritePos = (ringWritePos + chunk.length) % RING_CAPACITY;
+        ringDataLen  = Math.min(ringDataLen + chunk.length, RING_CAPACITY);
+
+        // Consome frames completos
+        while (ringDataLen >= FRAME_SIZE) {
+            const readPos = (ringWritePos - ringDataLen + RING_CAPACITY) % RING_CAPACITY;
+            const frame = Buffer.allocUnsafe(FRAME_SIZE);
+            // Copia do ring buffer para frame linear
+            const contiguous = RING_CAPACITY - readPos;
+            if (contiguous >= FRAME_SIZE) {
+                ringBuf.copy(frame, 0, readPos, readPos + FRAME_SIZE);
+            } else {
+                ringBuf.copy(frame, 0, readPos, RING_CAPACITY);
+                ringBuf.copy(frame, contiguous, 0, FRAME_SIZE - contiguous);
+            }
+            ringDataLen -= FRAME_SIZE;
             if (detectorActive) runDetection(frame);
         }
     });
@@ -244,11 +288,19 @@ function startPipeline() {
     ffpipe.stderr.on('data', () => {}); // suppress ffmpeg output
 
     ffpipe.on('close', async code => {
-        console.log(`[FFmpeg] Encerrado (code=${code}), reiniciando em 5s...`);
         ffpipe = null;
-        pipelineBuffer = Buffer.alloc(0);
+        ringWritePos = 0;
+        ringDataLen  = 0;
 
-        // Se a stream caiu durante uma rodada ativa, cancela o mercado e reembolsa
+        // Se foi um stop intencional (entre rodadas), não reinicia
+        if (ffpipeRestarting) {
+            console.log('[FFmpeg] Pipeline parado intencionalmente.');
+            return;
+        }
+
+        console.log(`[FFmpeg] Encerrado (code=${code})`);
+
+        // Se a stream caiu durante uma rodada ativa, cancela o mercado
         if (detectorActive && currentRound) {
             console.warn('[FFmpeg] Stream perdida durante rodada — cancelando mercado e reembolsando...');
             if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
@@ -259,7 +311,6 @@ function startPipeline() {
                 .update({ status: 'finished', actual_count: crossings })
                 .eq('id', currentRound.id);
 
-            // Envia webhook de cancelamento (void) para reembolsar apostas
             await sendWebhook('void', currentRound.id, {
                 reason: 'stream_failure',
                 actual_count: crossings,
@@ -268,20 +319,29 @@ function startPipeline() {
             if (broadcastCh) { supabase.removeChannel(broadcastCh); broadcastCh = null; broadcastReady = false; }
             currentRound = null;
 
-            // Aguarda 60s antes de tentar nova rodada (aguarda stream recuperar)
+            // Aguarda 60s antes de tentar nova rodada
             setTimeout(startRound, 60_000);
+            return;
         }
 
-        setTimeout(startPipeline, 5000);
+        // Reconexão automática durante rodada ativa (stream caiu brevemente)
+        if (detectorActive) {
+            console.log('[FFmpeg] Reconectando em 5s...');
+            setTimeout(startPipeline, 5000);
+        }
     });
 }
 
 function stopPipeline() {
-    if (ffpipe) { ffpipe.kill('SIGTERM'); ffpipe = null; }
-    pipelineBuffer = Buffer.alloc(0);
+    if (!ffpipe) return;
+    ffpipeRestarting = true;  // sinaliza que é intencional
+    ffpipe.kill('SIGTERM');
+    ffpipe = null;
+    ringWritePos = 0;
+    ringDataLen  = 0;
 }
 
-// ── Supabase Realtime Broadcast ───────────────────────────────────────────────
+// ── Supabase Realtime Broadcast (com HMAC) ──────────────────────────────────
 async function initBroadcast(roundId) {
     if (broadcastCh) { supabase.removeChannel(broadcastCh); }
     broadcastReady = false;
@@ -296,23 +356,35 @@ async function initBroadcast(roundId) {
                 resolve();
             }
         });
-        setTimeout(resolve, 8000); // timeout de segurança
+        setTimeout(resolve, 8000);
     });
 }
 
 function broadcastBoxes() {
     if (!broadcastCh || !broadcastReady) return;
+
+    const now = Date.now();
+    // Throttle: só envia se contagem mudou OU a cada 2s (para atualizar posição das boxes)
+    if (crossings === lastBroadcastCount && now - lastBroadcastTime < 2000) return;
+    lastBroadcastCount = crossings;
+    lastBroadcastTime  = now;
+
+    const payload = {
+        boxes: tracks.map(t => ({
+            id: t.id,
+            cx: +t.cx.toFixed(3), cy: +t.cy.toFixed(3),
+            w:  +(t.w ?? 0.08).toFixed(3), h: +(t.h ?? 0.10).toFixed(3),
+        })),
+        count: crossings,
+        ts: now,
+    };
+
+    // Assina o payload para o frontend poder verificar autenticidade
+    const sig = signPayload(payload);
+
     broadcastCh.send({
         type: 'broadcast', event: 'det',
-        payload: {
-            boxes: tracks.map(t => ({
-                id: t.id,
-                cx: +t.cx.toFixed(3), cy: +t.cy.toFixed(3),
-                w:  +(t.w ?? 0.08).toFixed(3), h: +(t.h ?? 0.10).toFixed(3),
-            })),
-            count: crossings,
-            ts: Date.now(),     // timestamp para sincronização com player HLS
-        },
+        payload: { ...payload, sig },
     });
 }
 
@@ -322,7 +394,6 @@ async function syncCount(roundId) {
 }
 
 async function getTargetCount() {
-    // Ignora rounds com actual_count <= 10 (cleanup/crashes sem detecção real)
     const { data } = await supabase
         .from('rounds').select('actual_count')
         .eq('status', 'finished')
@@ -332,7 +403,7 @@ async function getTargetCount() {
     return data?.actual_count ?? 100;
 }
 
-// ── Cleanup de rodadas órfãs (restarts anteriores) ────────────────────────────
+// ── Cleanup de rodadas órfãs ────────────────────────────────────────────────
 async function cleanupOrphanRounds() {
     const { data } = await supabase
         .from('rounds').select('id, end_time, actual_count')
@@ -358,6 +429,9 @@ async function finishRound(roundRow) {
     if (roundTimer)   { clearTimeout(roundTimer);    roundTimer   = null; }
     detectorActive = false;
 
+    // Para FFmpeg entre rodadas (economia de CPU e rede)
+    stopPipeline();
+
     await syncCount(roundRow.id);
     await supabase.from('rounds')
         .update({ status: 'finished', actual_count: crossings })
@@ -381,11 +455,8 @@ async function startRound() {
     // Verifica horário operacional (09h-20h BRT)
     if (!isOperatingHours()) {
         const h = getBRTHour();
-        const waitMs = h < 9
-            ? ((9 - h) * 60 * 60_000)
-            : ((33 - h) * 60 * 60_000); // espera até 09h do dia seguinte
         console.log(`[Rodada] Fora do horário (${h}h BRT). Aguardando até 09h...`);
-        return setTimeout(startRound, Math.min(waitMs, 5 * 60_000)); // re-verifica em até 5min
+        return setTimeout(startRound, Math.min(5 * 60_000, 60_000)); // re-verifica em 1min
     }
 
     // Verifica se stream está acessível
@@ -412,13 +483,18 @@ async function startRound() {
     crossings      = 0;
     tracks         = [];
     detectorActive = true;
+    lastBroadcastCount = -1;
+    lastBroadcastTime  = 0;
 
     console.log(`[Rodada] Iniciada: ${row.id} | Meta: ${targetCount}`);
     await sendWebhook('start', row.id, { target_count: targetCount, end_time: endTime });
     await initBroadcast(row.id);
 
-    // Sync a cada 1s
-    syncInterval = setInterval(() => syncCount(row.id), 1000);
+    // Inicia FFmpeg apenas para esta rodada
+    startPipeline();
+
+    // Sync DB a cada 5s (antes: 1s → 300 writes, agora: 60 writes por rodada)
+    syncInterval = setInterval(() => syncCount(row.id), SYNC_INTERVAL_MS);
 
     // Encerramento automático
     roundTimer = setTimeout(() => finishRound(row), ROUND_DURATION_MS);
@@ -436,7 +512,6 @@ function isOperatingHours() {
     return h >= 9 && h < 20;
 }
 
-/** Faz uma HEAD no m3u8 e verifica se a resposta é 2xx ou 3xx */
 function checkStreamAccessible() {
     return new Promise(resolve => {
         const url = new URL(HLS_STREAM);
@@ -475,9 +550,7 @@ http.createServer((req, res) => {
     await loadModel();
     await cleanupOrphanRounds();
 
-    // Inicia pipeline de frames (roda sempre, mesmo entre rodadas)
-    startPipeline();
-
-    // Pequena espera para o pipeline conectar antes da primeira rodada
+    // FFmpeg NÃO inicia aqui — só inicia junto com cada rodada (economia de CPU/rede)
+    // Primeira rodada em 5s (tempo para estabilizar)
     setTimeout(startRound, 5000);
 })();

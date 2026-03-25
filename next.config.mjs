@@ -31,7 +31,7 @@ const securityHeaders = [
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
             "media-src 'self' blob: https:",
-            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://api.binance.com wss://stream.binance.com",
+            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://api.binance.com wss://stream.binance.com https://34.104.32.249.nip.io",
             "frame-src https://challenges.cloudflare.com",
             "object-src 'none'",
             "base-uri 'self'",

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'crypto';
 import {
     getAdminClient,
     createVehicleMarket,
@@ -9,21 +10,51 @@ import {
 /**
  * POST /api/webhook/vehicle-round
  * Recebe eventos do backend do contador de veículos (contador-de-veiculos/backend/server.js).
- * Protegido por VEHICLE_WEBHOOK_SECRET no header X-Webhook-Secret.
+ * Protegido por VEHICLE_WEBHOOK_SECRET + HMAC signature.
  *
  * Payload { action: 'start', round_id, target_count }
  * Payload { action: 'end',   round_id, actual_count, rounded_count }
  */
+
+function verifyWebhook(secret: string, signature: string | null, rawBody: string): boolean {
+    // Se o backend envia HMAC signature, verificar com timing-safe compare
+    if (signature) {
+        const expected = createHmac('sha256', process.env.VEHICLE_WEBHOOK_SECRET!)
+            .update(rawBody).digest('hex');
+        try {
+            return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+        } catch {
+            return false;
+        }
+    }
+    // Fallback: comparação simples de secret (compatibilidade com versão anterior)
+    return secret === process.env.VEHICLE_WEBHOOK_SECRET;
+}
+
 export async function POST(req: NextRequest) {
-    // Valida segredo
-    const secret = req.headers.get('x-webhook-secret');
-    if (!secret || secret !== process.env.VEHICLE_WEBHOOK_SECRET) {
+    const secret = req.headers.get('x-webhook-secret') ?? '';
+    const signature = req.headers.get('x-webhook-signature');
+
+    let rawBody: string;
+    try {
+        rawBody = await req.text();
+    } catch {
+        return NextResponse.json({ error: 'Body inválido' }, { status: 400 });
+    }
+
+    if (!verifyWebhook(secret, signature, rawBody)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Replay protection: rejeita webhooks com timestamp > 5 min
+    const ts = req.headers.get('x-webhook-timestamp');
+    if (ts && Math.abs(Date.now() - parseInt(ts, 10)) > 5 * 60 * 1000) {
+        return NextResponse.json({ error: 'Webhook expirado' }, { status: 401 });
     }
 
     let body: any;
     try {
-        body = await req.json();
+        body = JSON.parse(rawBody);
     } catch {
         return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
     }
